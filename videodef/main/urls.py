@@ -17,6 +17,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from account.views import home, account, about
+from chat.views import chat
+from videocall.views import videocall
+from game.views import games
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', home),
+    path('account', account),
+    path('chats', chat),
+    path('about', about),
+    path('videocall', videocall),
+    path('games', games),
 ]
