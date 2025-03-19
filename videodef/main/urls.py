@@ -23,21 +23,24 @@ from videocall.views import *
 from game.views import *
 
 account_patterns = [
-    path('', home),
-    path('account', account),
-    path('about', about),
+    path('', home, name="home"),
+    path('account', account, name="account"),
+    path('about', about, name="about"),
+    path("register", register_view, name="register"),
+    path("login", login_view, name="login"),
+    path("logout", logout_view, name="logout"),
 ]
 
 chat_patterns = [
-    path('', chats),
+    path('', chats, name="chats"),
 ]
 
 videocall_patterns = [
-    path('', videocall),
+    path('', videocall, name="videocall"),
 ]
 
 game_patterns = [
-    path('', games),
+    path('', games, name="games"),
 ]
 
 urlpatterns = [

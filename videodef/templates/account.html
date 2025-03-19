@@ -1,4 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-	<h2>Аккаунт</h2>
+	<h1>Аккаунт</h1>
+	{% if user.is_authenticated %}
+		<h2>Добро пожаловать</h2>
+	    <p>Вы вошли как {{ user.username }}</p>
+	    <a href="{% url 'logout' %}">Выйти</a>
+	{% else %}
+		<h2>Войдите в аккаунт</h2>
+	    <a href="{% url 'login' %}">Войти</a>
+	{% endif %}
 {% endblock %}
