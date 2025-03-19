@@ -1,4 +1,4 @@
 from django.shortcuts import render
 
-def chat(request):
-    return render(request, "chat.html")
+def chats(request):
+    return render(request, "chats.html")
