@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
+{% block page_name %}Аккаунт{% endblock %}
 {% block content %}
-	<h1>Аккаунт</h1>
 	{% if user.is_authenticated %}
 		<h2>Добро пожаловать</h2>
 	    <p>Вы вошли как {{ user.username }}</p>

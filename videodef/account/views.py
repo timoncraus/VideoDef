@@ -14,7 +14,7 @@ def account(request):
 
 def register_view(request):
     if request.method == 'POST':
-        form = RegisterForm(request.POST)
+        form = RegisterForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()
             login(request, user)
@@ -22,7 +22,15 @@ def register_view(request):
             return redirect('home')
     else:
         form = RegisterForm()
-    return render(request, 'register.html', {'form': form})
+    return render(request, 'register-login-form.html', 
+        {
+            'form': form,
+            "page_name": "Регистрация", 
+            "button_text": "Зарегистрироваться",
+            "altern_text": "Уже есть аккаунт?",
+            "altern_url": "login",
+            "altern_url_text": "Войти"
+        })
 
 def login_view(request):
     if request.method == 'POST':
@@ -36,7 +44,15 @@ def login_view(request):
             messages.error(request, 'Неверный логин или пароль')
     else:
         form = LoginForm()
-    return render(request, 'login.html', {'form': form})
+    return render(request, 'register-login-form.html', 
+        {
+            'form': form,
+            "page_name": "Вход", 
+            "button_text": "Войти",
+            "altern_text": "Нет аккаунта?",
+            "altern_url": "register",
+            "altern_url_text": "Зарегистрироваться"
+        })
 
 def logout_view(request):
     logout(request)

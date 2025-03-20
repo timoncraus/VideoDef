@@ -1,13 +1,8 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
+{% block page_name %}{{ page_name }}{% endblock %}
 {% block content %}
-    <h2>Регистрация</h2>
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-warning">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-    <form method="post" class="mb-3 mt-3">
+    <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
         {% csrf_token %}
         {% for field in form %}
             <div class="form-group">
@@ -17,19 +12,19 @@
                         <span style="color: red; font-size: 23px;">*</span>
                     {% endif %}
                 </p>
-                {% if field.errors %}
-                    {{ field|add_class:"form-control"|add_class:"is-invalid"}}
-                {% else %}
+                {% if field.errors is not defined %}
                     {{ field|add_class:"form-control" }}
+                {% else %}
+                    {{ field|add_class:"form-control"|add_class:"is-invalid" }}
                 {% endif %}
                 {% for error in field.errors %}
                     <div class="alert alert-danger d-flex align-items-center mb-3 mt-3">{{ error }}</div>
                 {% endfor %}
             </div>
         {% endfor %}
-        <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
+        <button type="submit" class="btn btn-primary mb-3 mt-3">{{ button_text }}</button>
     </form>
     <div class="mb-3 mt-3">
-        <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
+        <p>{{ altern_text }} <a href="{{ altern_url }}">{{ altern_url_text }}</a></p>
     </div>
 {% endblock %}
