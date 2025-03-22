@@ -54,11 +54,19 @@ class Profile(models.Model):
         (ROLE_TEACHER, "Учитель")
     ]
 
+    GENDER_M = "M"
+    GENDER_W = "W"
+    GENDER_CHOICES = [
+        (GENDER_M, "Мужской"),
+        (GENDER_W, "Женский")
+    ]
+
     photo = models.ImageField(upload_to=get_avatar_path, blank=True, verbose_name="Фото")
     first_name = models.CharField(max_length=40, verbose_name="Имя")
     last_name = models.CharField(max_length=40, verbose_name="Фамилия")
     patronymic = models.CharField(max_length=40, blank=True, verbose_name="Отчество")
     role = models.CharField(max_length=2, choices=ROLE_CHOICES, verbose_name="Роль")
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, verbose_name="Пол")
     date_birth = models.DateField(verbose_name="Дата рождения")
     violations = models.ManyToManyField(ViolationType)
 

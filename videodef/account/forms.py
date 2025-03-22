@@ -29,7 +29,6 @@ class RegisterForm(UserCreationForm):
             photo=self.cleaned_data.get('photo', None)
         )
         user.profile = profile
-        profile.user = user
         if commit:
             profile.save()
             user.save()
@@ -38,3 +37,15 @@ class RegisterForm(UserCreationForm):
 
 class LoginForm(AuthenticationForm):
     fields = ['username', 'password']
+
+
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'phone_number']
+
+
+class ProfileEditForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['photo', 'first_name', 'last_name', 'patronymic', 'date_birth', 'role', 'gender']
