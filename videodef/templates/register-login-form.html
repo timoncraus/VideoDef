@@ -12,7 +12,7 @@
                         <span style="color: red; font-size: 23px;">*</span>
                     {% endif %}
                 </p>
-                {% if field.errors is not defined %}
+                {% if not field.errors %}
                     {{ field|add_class:"form-control" }}
                 {% else %}
                     {{ field|add_class:"form-control"|add_class:"is-invalid" }}
