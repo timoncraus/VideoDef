@@ -107,6 +107,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'account.User'
 
+AUTHENTICATION_BACKENDS = [
+    "account.auth_backends.CustomAuthBackend",
+    "django.contrib.auth.backends.ModelBackend"
+]
+
 LOGIN_REDIRECT_URL = 'account'
 LOGOUT_REDIRECT_URL = 'login'
 
@@ -135,3 +140,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+

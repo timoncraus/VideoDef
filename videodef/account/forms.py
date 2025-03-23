@@ -1,14 +1,18 @@
-from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import User, Profile
 from django.core.validators import RegexValidator
+from django.contrib.auth import authenticate
+from django.conf import settings
+from .models import User, Profile
+from django import forms
+from .auth_backends import CustomAuthBackend
 
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(max_length=40, required=True, label="Имя")
     last_name = forms.CharField(max_length=40, required=True, label="Фамилия")
     patronymic = forms.CharField(max_length=40, required=False, label="Отчество")
     date_birth = forms.DateField(required=True, label="Дата рождения", widget=forms.DateInput(attrs={'type': 'date'}))
-    role = forms.ChoiceField(choices=Profile.ROLE_CHOICES, required=True, label="Роль")
+    role = forms.ChoiceField(choices=Profile.ROLE_CHOICES, required=True, label="Роль", initial="S")
+    gender = forms.ChoiceField(choices=Profile.GENDER_CHOICES, required=True, label="Пол", initial="M")
     photo = forms.ImageField(required=False, label="Фото")
     
     class Meta:
@@ -17,7 +21,7 @@ class RegisterForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['phone_number'].validators = [RegexValidator(r'^\d{1,10}$')]
+        self.fields['phone_number'].validators = [RegexValidator(r'^\+?1?\d{9,15}$')]
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -29,14 +33,37 @@ class RegisterForm(UserCreationForm):
             photo=self.cleaned_data.get('photo', None)
         )
         user.profile = profile
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
         if commit:
             profile.save()
             user.save()
         return user
 
 
-class LoginForm(AuthenticationForm):
-    fields = ['username', 'password']
+class LoginForm(forms.Form):
+    identifier = forms.CharField(label="Логин, E-mail, ID или Телефон", required=True)
+    password = forms.CharField(label="Пароль", widget=forms.PasswordInput, required=True)
+
+    def clean(self):
+        identifier = self.cleaned_data.get("identifier")
+        password = self.cleaned_data.get("password")
+
+        if identifier and password:
+            try:
+                user = User.objects.authenticate_user(identifier, password)  # Используем метод из UserManager
+            except Exception as e:
+                raise forms.ValidationError(str(e))
+
+            if not user:
+                raise forms.ValidationError("Неверные данные")
+
+            user.backend = settings.AUTHENTICATION_BACKENDS[0]
+            self.user = user
+
+        return self.cleaned_data
+
+    def get_user(self):
+        return getattr(self, "user", None)
 
 
 class UserEditForm(forms.ModelForm):

@@ -5,8 +5,12 @@ import string
 import os
 
 
+CHARACTERS = string.ascii_uppercase + string.digits
+
+
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **kwargs):
+        """Создание обычного пользователя"""
         if not username:
             raise ValueError("Пользователь должен иметь логин")
         user = self.model(
@@ -19,12 +23,31 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, email=None, password=None):
+        """Создание супер пользователя"""
         user = self.create_user(username=username, email=email, password=password)
         user.is_superuser = True
         user.is_staff = True
         user.save(using=self._db)
         return user
 
+    def authenticate_user(self, identifier, password):
+        """Аутентификация по ID, username, email или телефону"""
+        user = None
+        identifier = identifier.strip()
+        if all([letter in CHARACTERS for letter in identifier]) and len(identifier) == 7:
+            user = self.model.objects.filter(unique_id=identifier).first()
+        elif "@" in identifier:
+            user = self.model.objects.filter(email=identifier).first()
+        elif all([letter in "+0123456789" for letter in identifier]):
+            user = self.model.objects.filter(phone_number=identifier).first()
+        else:
+            user = self.model.objects.filter(username=identifier).first()
+
+        if not user:
+            raise ValueError("Пользователь с таким логином не найден")
+        if not user.check_password(password):
+            raise ValueError("Неправильный пароль")
+        return user
 
 class ViolationType(models.Model):
     name = models.CharField(max_length=150)
@@ -78,7 +101,7 @@ class Profile(models.Model):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()
 
 
-CHARACTERS = string.ascii_uppercase + string.digits
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "username"
