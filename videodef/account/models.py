@@ -44,9 +44,9 @@ class UserManager(BaseUserManager):
             user = self.model.objects.filter(username=identifier).first()
 
         if not user:
-            raise ValueError("Пользователь с таким логином не найден")
+            raise ValueError("Неверный логин")
         if not user.check_password(password):
-            raise ValueError("Неправильный пароль")
+            raise ValueError("Неверный пароль")
         return user
 
 class ViolationType(models.Model):

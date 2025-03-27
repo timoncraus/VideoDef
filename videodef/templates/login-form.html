@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block page_name %}Вход{% endblock %}
+{% block content %}
+	<form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
+		{% csrf_token %}
+		{% include "default_field.html" with field=forms.0.identifier %}
+		{% include "default_field.html" with field=forms.0.password %}
+		
+		<button type="submit" class="btn btn-primary mb-3 mt-3">Войти</button>
+
+	</form>
+	<div class="mb-3 mt-3">
+        <p>Нет аккаунта? <a href="register">Зарегистрироваться</a></p>
+    </div>
+{% endblock %}

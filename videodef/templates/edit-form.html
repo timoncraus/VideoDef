@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block page_name %}Ваш профиль{% endblock %}
+{% block content %}
+    <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
+        {% csrf_token %}
+
+        {% if forms.1.instance.photo %}
+            <img src="{{ forms.1.instance.photo.url }}" style="width:150px;height:150px;">
+        {% else %}
+            <img src="/media/avatars/default.png">
+        {% endif %}
+        <br>
+        <div class="form-group">
+            <p class="form-label">Изменить фото: </p>
+            <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
+        </div>
+        <br>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="photo-clear" id="photo-clear_id" style="transform: scale(1.5)">
+            <p class="form-label mx-2">Очистить</p>
+        </div>
+        
+
+        <p class="form-label">Ваш ID: {{ unique_id }}</p>
+        <p class="form-label">Дата вашей регистрации: {{ date_registr }}</p>
+
+        {% include "default_field.html" with field=forms.0.username %}
+        {% include "default_field.html" with field=forms.0.email %}
+        {% include "default_field.html" with field=forms.0.phone_number %}
+        {% include "default_field.html" with field=forms.0.password1 %}
+        {% include "default_field.html" with field=forms.0.password2 %}
+
+        {% include "default_field.html" with field=forms.1.first_name %}
+        {% include "default_field.html" with field=forms.1.last_name %}
+        {% include "default_field.html" with field=forms.1.patronymic %}
+        {% include "date_field.html" with field=forms.1.date_birth %}
+        {% include "default_field.html" with field=forms.1.role %}
+        {% include "default_field.html" with field=forms.1.gender %}
+
+        <button type="submit" class="btn btn-primary mb-3 mt-3">Отправить изменения</button>
+    </form>
+    <div class="mb-3 mt-3">
+        <p><a href="logout">Выйти</a></p>
+    </div>
+
+    
+{% endblock %}

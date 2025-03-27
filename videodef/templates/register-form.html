@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block page_name %}Регистрация{% endblock %}
+{% block content %}
+    <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label class="form-label" for="id_photo">{{ forms.0.photo.label_tag }}</label>
+            <br>
+            <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
+            <br>
+            <img id="preview" src="{{ form.photo.value|default:'/media/avatars/default.png' }}" alt="Аватар" width="100" height="100" alt="Предпросмотр" style="width:150px;height:150px;">
+        </div>
+        <script>
+            document.getElementById('id_photo').addEventListener('change', function(event) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('preview').src = e.target.result;
+                };
+                reader.readAsDataURL(event.target.files[0]);
+            });
+        </script>
+
+        {% include "default_field.html" with field=forms.0.first_name %}
+        {% include "default_field.html" with field=forms.0.last_name %}
+        {% include "default_field.html" with field=forms.0.patronymic %}
+        {% include "date_field.html" with field=forms.0.date_birth %}
+        {% include "default_field.html" with field=forms.0.role %}
+        {% include "default_field.html" with field=forms.0.gender %}
+
+        {% include "default_field.html" with field=forms.0.username %}
+        {% include "default_field.html" with field=forms.0.email %}
+        {% include "default_field.html" with field=forms.0.phone_number %}
+        {% include "default_field.html" with field=forms.0.password1 %}
+        {% include "default_field.html" with field=forms.0.password2 %}
+
+        <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
+    </form>
+    <div class="mb-3 mt-3">
+        <p>Уже есть аккаунт? <a href="login">Войти</a></p>
+    </div>
+
+    
+{% endblock %}

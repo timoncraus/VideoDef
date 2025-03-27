@@ -15,8 +15,8 @@ def account(request):
         return render(request, "account.html")
     profile = user.profile
     if request.method == 'POST':
-        user_form = UserEditForm(request.POST, instance=user)
-        profile_form = ProfileEditForm(request.POST, request.FILES, instance=profile)
+        user_form = UserEditForm(request.POST, instance=user, auth_user=user)
+        profile_form = ProfileEditForm(request.POST, request.FILES, instance=profile, auth_user=user)
         if user_form.is_valid() and profile_form:
             user = user_form.save()
             profile = profile_form.save()
@@ -24,17 +24,14 @@ def account(request):
             messages.success(request, 'Данные были изменены!')
             return redirect('account')
     else:
-        user_form = UserEditForm(instance=user)
-        profile_form = ProfileEditForm(instance=profile)
-    return render(request, "register-login-edit-form.html", 
+        user_form = UserEditForm(instance=user, auth_user=user)
+        profile_form = ProfileEditForm(instance=profile, auth_user=user)
+    return render(request, "edit-form.html", 
         {
-            'forms': [profile_form, user_form], 
-            "page_name": "Ваш профиль",
-            "button_text": "Отправить изменения",
-            "altern_url": "logout",
-            "altern_url_text": "Выйти",
-            "type": "edit"
-        })
+            'forms': [user_form, profile_form],
+            "unique_id":user.unique_id,
+            "date_registr":user.date_registr
+            })
 
 def register_view(request):
     if request.method == 'POST':
@@ -46,16 +43,7 @@ def register_view(request):
             return redirect('home')
     else:
         form = RegisterForm()
-    return render(request, 'register-login-edit-form.html', 
-        {
-            'forms': [form],
-            "page_name": "Регистрация", 
-            "button_text": "Зарегистрироваться",
-            "altern_text": "Уже есть аккаунт?",
-            "altern_url": "login",
-            "altern_url_text": "Войти",
-            "type": "register"
-        })
+    return render(request, 'register-form.html', {'forms': [form]})
 
 def login_view(request):
     if request.method == 'POST':
@@ -69,16 +57,7 @@ def login_view(request):
             messages.error(request, 'Неверный логин или пароль')
     else:
         form = LoginForm()
-    return render(request, 'register-login-edit-form.html', 
-        {
-            'forms': [form],
-            "page_name": "Вход", 
-            "button_text": "Войти",
-            "altern_text": "Нет аккаунта?",
-            "altern_url": "register",
-            "altern_url_text": "Зарегистрироваться",
-            "type": "login"
-        })
+    return render(request, 'login-form.html', {'forms': [form]})
 
 def logout_view(request):
     logout(request)

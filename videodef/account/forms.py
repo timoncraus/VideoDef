@@ -10,7 +10,8 @@ class RegisterForm(UserCreationForm):
     first_name = forms.CharField(max_length=40, required=True, label="Имя")
     last_name = forms.CharField(max_length=40, required=True, label="Фамилия")
     patronymic = forms.CharField(max_length=40, required=False, label="Отчество")
-    date_birth = forms.DateField(required=True, label="Дата рождения", widget=forms.DateInput(attrs={'type': 'date'}))
+    date_birth = forms.DateField(required=True, label="Дата рождения", 
+        widget=forms.DateInput(attrs={'type': 'date'}))
     role = forms.ChoiceField(choices=Profile.ROLE_CHOICES, required=True, label="Роль", initial="S")
     gender = forms.ChoiceField(choices=Profile.GENDER_CHOICES, required=True, label="Пол", initial="M")
     photo = forms.ImageField(required=False, label="Фото")
@@ -30,6 +31,8 @@ class RegisterForm(UserCreationForm):
             last_name=self.cleaned_data['last_name'],
             patronymic=self.cleaned_data['patronymic'],
             date_birth=self.cleaned_data['date_birth'],
+            role=self.cleaned_data['role'],
+            gender=self.cleaned_data['gender'],
             photo=self.cleaned_data.get('photo', None)
         )
         user.profile = profile
@@ -54,9 +57,6 @@ class LoginForm(forms.Form):
             except Exception as e:
                 raise forms.ValidationError(str(e))
 
-            if not user:
-                raise forms.ValidationError("Неверные данные")
-
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
             self.user = user
 
@@ -67,12 +67,18 @@ class LoginForm(forms.Form):
 
 
 class UserEditForm(forms.ModelForm):
+    def __init__(self, *args, auth_user, **kwargs):
+        auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
+        super().__init__(*args, **kwargs)
     class Meta:
         model = User
         fields = ['username', 'email', 'phone_number']
 
 
 class ProfileEditForm(forms.ModelForm):
+    def __init__(self, *args, auth_user, **kwargs):
+        auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
+        super().__init__(*args, **kwargs)
     class Meta:
         model = Profile
         fields = ['photo', 'first_name', 'last_name', 'patronymic', 'date_birth', 'role', 'gender']

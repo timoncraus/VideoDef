@@ -1,0 +1,19 @@
+{% load widget_tweaks %}
+<div class="form-group">
+    <p class="form-label">
+        {{ field.label_tag }}
+        {% if field.field.required %}
+            <span style="color: red; font-size: 23px;">*</span>
+        {% endif %}
+    </p>
+    
+    {% if not field.errors %}
+        <input type="text" value="{{ field.value|date:'d-m-Y' }}|default:'01-01-2000'" class="date form-control" id="id_{{ field.name }}" name="{{ field.name }}" placeholder="дд.мм.гггг" required>
+    {% else %}
+        <input type="text" class="date form-control is-invalid" id="id_{{ field.name }}" name="{{ field.name }}" placeholder="дд.мм.гггг" required>
+    {% endif %}
+
+    {% for error in field.errors %}
+        <div class="alert alert-danger d-flex align-items-center mb-3 mt-3">{{ error }}</div>
+    {% endfor %}
+</div>

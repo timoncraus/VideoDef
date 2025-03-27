@@ -1,0 +1,5 @@
+{% for message in messages %}
+    {% if message.message != "Неверный логин или пароль" %}
+        <div class="alert alert-warning">{{ message }}</div>
+    {% endif %}
+{% endfor %}
