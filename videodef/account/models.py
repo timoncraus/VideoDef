@@ -70,10 +70,10 @@ def get_avatar_path(user, filename):
 
 class Profile(models.Model):
 
-    ROLE_TEACHER = "T"
+    ROLE_TEACHER = "P"
     ROLE_STUDENT = "S"
     ROLE_CHOICES = [
-        (ROLE_STUDENT, "Ученик"),
+        (ROLE_STUDENT, "Родитель"),
         (ROLE_TEACHER, "Учитель")
     ]
 
