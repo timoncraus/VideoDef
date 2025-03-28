@@ -5,8 +5,8 @@
     <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
         {% csrf_token %}
 
-        {% if forms.1.instance.photo %}
-            <img src="{{ forms.1.instance.photo.url }}" style="width:150px;height:150px;">
+        {% if forms.profile_form.instance.photo %}
+            <img src="{{ forms.profile_form.instance.photo.url }}" style="width:150px;height:150px;">
         {% else %}
             <img src="/media/avatars/default.png">
         {% endif %}
@@ -25,18 +25,18 @@
         <p class="form-label">Ваш ID: {{ unique_id }}</p>
         <p class="form-label">Дата вашей регистрации: {{ date_registr }}</p>
 
-        {% include "default_field.html" with field=forms.0.username %}
-        {% include "default_field.html" with field=forms.0.email %}
-        {% include "default_field.html" with field=forms.0.phone_number %}
-        {% include "default_field.html" with field=forms.0.password1 %}
-        {% include "default_field.html" with field=forms.0.password2 %}
+        {% include "default_field.html" with field=forms.user_form.username %}
+        {% include "default_field.html" with field=forms.user_form.email %}
+        {% include "default_field.html" with field=forms.user_form.phone_number %}
+        {% include "default_field.html" with field=forms.user_form.password1 %}
+        {% include "default_field.html" with field=forms.user_form.password2 %}
 
-        {% include "default_field.html" with field=forms.1.first_name %}
-        {% include "default_field.html" with field=forms.1.last_name %}
-        {% include "default_field.html" with field=forms.1.patronymic %}
-        {% include "date_field.html" with field=forms.1.date_birth %}
-        {% include "default_field.html" with field=forms.1.role %}
-        {% include "default_field.html" with field=forms.1.gender %}
+        {% include "default_field.html" with field=forms.profile_form.first_name %}
+        {% include "default_field.html" with field=forms.profile_form.last_name %}
+        {% include "default_field.html" with field=forms.profile_form.patronymic %}
+        {% include "date_field.html" with field=forms.profile_form.date_birth %}
+        {% include "default_field.html" with field=forms.profile_form.role %}
+        {% include "default_field.html" with field=forms.profile_form.gender %}
 
         <button type="submit" class="btn btn-primary mb-3 mt-3">Отправить изменения</button>
     </form>

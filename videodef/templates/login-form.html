@@ -4,8 +4,8 @@
 {% block content %}
 	<form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
 		{% csrf_token %}
-		{% include "default_field.html" with field=forms.0.identifier %}
-		{% include "default_field.html" with field=forms.0.password %}
+		{% include "default_field.html" with field=forms.login_form.identifier %}
+		{% include "default_field.html" with field=forms.login_form.password %}
 		
 		<button type="submit" class="btn btn-primary mb-3 mt-3">Войти</button>
 

@@ -28,7 +28,7 @@ def account(request):
         profile_form = ProfileEditForm(instance=profile, auth_user=user)
     return render(request, "edit-form.html", 
         {
-            'forms': [user_form, profile_form],
+            'forms': {'user_form': user_form, 'profile_form': profile_form},
             "unique_id":user.unique_id,
             "date_registr":user.date_registr
             })
@@ -43,7 +43,7 @@ def register_view(request):
             return redirect('home')
     else:
         form = RegisterForm()
-    return render(request, 'register-form.html', {'forms': [form]})
+    return render(request, 'register-form.html', { 'forms': {'register_form': form} })
 
 def login_view(request):
     if request.method == 'POST':
@@ -57,7 +57,7 @@ def login_view(request):
             messages.error(request, 'Неверный логин или пароль')
     else:
         form = LoginForm()
-    return render(request, 'login-form.html', {'forms': [form]})
+    return render(request, 'login-form.html', { 'forms': {'login_form': form} })
 
 def logout_view(request):
     logout(request)

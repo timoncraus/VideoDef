@@ -6,7 +6,7 @@
         {% csrf_token %}
 
         <div class="form-group">
-            <label class="form-label" for="id_photo">{{ forms.0.photo.label_tag }}</label>
+            <label class="form-label" for="id_photo">{{ forms.register_form.photo.label_tag }}</label>
             <br>
             <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
             <br>
@@ -22,18 +22,18 @@
             });
         </script>
 
-        {% include "default_field.html" with field=forms.0.first_name %}
-        {% include "default_field.html" with field=forms.0.last_name %}
-        {% include "default_field.html" with field=forms.0.patronymic %}
-        {% include "date_field.html" with field=forms.0.date_birth %}
-        {% include "default_field.html" with field=forms.0.role %}
-        {% include "default_field.html" with field=forms.0.gender %}
+        {% include "default_field.html" with field=forms.register_form.first_name %}
+        {% include "default_field.html" with field=forms.register_form.last_name %}
+        {% include "default_field.html" with field=forms.register_form.patronymic %}
+        {% include "date_field.html" with field=forms.register_form.date_birth %}
+        {% include "default_field.html" with field=forms.register_form.role %}
+        {% include "default_field.html" with field=forms.register_form.gender %}
 
-        {% include "default_field.html" with field=forms.0.username %}
-        {% include "default_field.html" with field=forms.0.email %}
-        {% include "default_field.html" with field=forms.0.phone_number %}
-        {% include "default_field.html" with field=forms.0.password1 %}
-        {% include "default_field.html" with field=forms.0.password2 %}
+        {% include "default_field.html" with field=forms.register_form.username %}
+        {% include "default_field.html" with field=forms.register_form.email %}
+        {% include "default_field.html" with field=forms.register_form.phone_number %}
+        {% include "default_field.html" with field=forms.register_form.password1 %}
+        {% include "default_field.html" with field=forms.register_form.password2 %}
 
         <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
     </form>

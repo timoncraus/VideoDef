@@ -1,4 +1,4 @@
-{% for form in forms %}
+{% for form_name, form in forms.items %}
     {% for error in form.non_field_errors %}
         <div class="alert alert-danger d-flex align-items-center mb-3 mt-3">{{ error }}</div>
     {% endfor %}
