@@ -1,0 +1,105 @@
+/* Основной фон */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+    color: #333;
+}
+
+/* Шапка с картинкой */
+header {
+    background-image: url('/static/images/paint_boat.jpg');
+    background-size: cover;
+    height: 300px;
+    text-align: center;
+    color: #fff;
+    padding-top: 100px;
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+/* Навигационная панель */
+nav.navbar {
+    background-color: #00bfff;
+    border-bottom: 5px solid #005f7f;
+}
+
+.navbar-brand {
+    font-size: 1.8rem;
+    color: #fff !important;
+    font-weight: bold;
+}
+
+/* Стили для ссылок в меню */
+.navbar-nav .nav-link {
+    color: #ffffff !important;  /* Белый цвет текста всегда */
+    font-size: 1.2rem;
+    padding: 10px 15px;
+}
+
+/* Изменение цвета фона при наведении */
+.navbar-nav .nav-link:hover {
+    background-color: #005f7f;
+    color: #fff !important;
+    border-radius: 5px;
+}
+
+.navbar-nav .nav-link.active {
+    background-color: #005f7f; /* Установим активный элемент */
+    color: #fff !important;
+}
+
+.container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+}
+
+/* Стили для формы */
+input, select, button {
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #00bfff;
+    margin-top: 10px;
+    width: 100%;
+}
+
+button {
+    background-color: #00bfff;
+    color: white;
+    font-size: 1.2rem;
+    border: none;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #005f7f;
+}
+
+.date {
+    border: 1px solid #00bfff;
+}
+
+.messages, .non_field_errors {
+    background-color: #ffeb3b;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.messages ul, .non_field_errors ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.messages li, .non_field_errors li {
+    color: #c62828;
+    font-weight: bold;
+}

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block page_name %}Ваши чаты{% endblock %}
+{% block content %}
+    {% for chat in user_chats %}
+        <div class="chat-item">
+            <a href="{% url 'chats' %}">
+                <h3>{{ chat.name }}</h3>
+                <p>
+                    {% if chat.user1 != user %}
+                        {{ chat.user1.username }}
+                    {% else %}
+                        {{ chat.user2.username }}
+                    {% endif %}
+                </p>
+            </a>
+        </div>
+    {% endfor %}
+{% endblock %}

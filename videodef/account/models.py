@@ -49,6 +49,7 @@ class UserManager(BaseUserManager):
             raise ValueError("Неверный пароль")
         return user
 
+
 class ViolationType(models.Model):
     name = models.CharField(max_length=150)
 
@@ -68,12 +69,14 @@ def get_avatar_path(user, filename):
         path = os.path.join("avatars", get_random_filename() + "." + ext)
     return path
 
+
 class Profile(models.Model):
 
-    ROLE_TEACHER = "P"
-    ROLE_STUDENT = "S"
+    
+    ROLE_PARENT = "S"
+    ROLE_TEACHER = "T"
     ROLE_CHOICES = [
-        (ROLE_STUDENT, "Родитель"),
+        (ROLE_PARENT, "Родитель"),
         (ROLE_TEACHER, "Учитель")
     ]
 
@@ -101,8 +104,6 @@ class Profile(models.Model):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()
 
 
-
-
 class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -112,6 +113,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=255, unique=True, verbose_name="E-mail")
     phone_number = models.CharField(max_length=15, unique=True, verbose_name="Номер телефона")
     date_registr = models.DateTimeField(auto_now_add=True, verbose_name="Дата регистрации")
+    last_seen = models.DateTimeField(auto_now=True, verbose_name="Последний раз в сети")
     profile = models.OneToOneField(Profile, null=True, blank=True, on_delete=models.CASCADE, related_name="user", verbose_name="Профиль")
 
     objects = UserManager()

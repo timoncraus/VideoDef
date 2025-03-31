@@ -20,38 +20,39 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 
-from account.views import *
-from chat.views import *
-from videocall.views import *
-from game.views import *
+from account import views as account_views
+from chat import views as chat_views
+from videocall import views as videocall_views
+from game import views as game_views
 
 account_patterns = [
-    path('', home, name="home"),
-    path('account', account, name="account"),
-    path('about', about, name="about"),
-    path("register", register_view, name="register"),
-    path("login", login_view, name="login"),
-    path("logout", logout_view, name="logout"),
+    path('', account_views.home, name="home"),
+    path('account', account_views.account, name="account"),
+    path('about', account_views.about, name="about"),
+    path("register", account_views.register_view, name="register"),
+    path("login", account_views.login_view, name="login"),
+    path("logout", account_views.logout_view, name="logout"),
 ]
 
 chat_patterns = [
-    path('', chats, name="chats"),
+    path('', chat_views.chats, name='chats'),
 ]
 
+
 videocall_patterns = [
-    path('', videocall, name="videocall"),
+    path('', videocall_views.videocall, name="videocall"),
 ]
 
 game_patterns = [
-    path('', games, name="games"),
+    path('', game_views.games, name="games"),
 ]
 
 urlpatterns = [
-    path('admin', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('', include(account_patterns)),
-    path('chats', include(chat_patterns)),
-    path('videocall', include(videocall_patterns)),
-    path('games', include(game_patterns))
+    path('chats/', include(chat_patterns)),
+    path('videocall/', include(videocall_patterns)),
+    path('games/', include(game_patterns)),
 ]
 
 if settings.DEBUG:
