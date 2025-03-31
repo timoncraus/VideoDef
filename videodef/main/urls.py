@@ -27,15 +27,16 @@ from game import views as game_views
 
 account_patterns = [
     path('', account_views.home, name="home"),
-    path('account', account_views.account, name="account"),
-    path('about', account_views.about, name="about"),
-    path("register", account_views.register_view, name="register"),
-    path("login", account_views.login_view, name="login"),
-    path("logout", account_views.logout_view, name="logout"),
+    path('account/', account_views.account, name="account"),
+    path('about/', account_views.about, name="about"),
+    path("register/", account_views.register_view, name="register"),
+    path("login/", account_views.login_view, name="login"),
+    path("logout/", account_views.logout_view, name="logout"),
 ]
 
 chat_patterns = [
     path('', chat_views.chats, name='chats'),
+    path('<int:chat_id>/', chat_views.chat_room, name='chat_room'),
 ]
 
 

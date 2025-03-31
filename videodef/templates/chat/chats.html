@@ -3,14 +3,17 @@
 {% block content %}
     {% for chat in user_chats %}
         <div class="chat-item">
-            <a href="{% url 'chats' %}">
+            <a href="{% url 'chat_room' chat.id %}">
                 <h3>{{ chat.name }}</h3>
                 <p>
                     {% if chat.user1 != user %}
+                        <img src="{{ chat.user1.profile.photo.url }}" style="width:150px;height:150px;" alt="Avatar" />
                         {{ chat.user1.username }}
                     {% else %}
+                        <img src="{{ chat.user2.profile.photo.url }}" style="width:150px;height:150px;" alt="Avatar" />
                         {{ chat.user2.username }}
                     {% endif %}
+                    <span> Последний раз в сети:{{ chat.user1.last_login }}</span>
                 </p>
             </a>
         </div>

@@ -4,15 +4,15 @@ from .forms import RegisterForm, LoginForm, UserEditForm, ProfileEditForm
 from django.contrib import messages
 
 def home(request):
-    return render(request, "home.html")
+    return render(request, "account/home.html")
 
 def about(request):
-    return render(request, "about.html")
+    return render(request, "account/about.html")
 
 def account(request):
     user = request.user
     if not user.is_authenticated:
-        return render(request, "account.html")
+        return render(request, "account/account.html")
     profile = user.profile
     if request.method == 'POST':
         user_form = UserEditForm(request.POST, instance=user, auth_user=user)
@@ -26,7 +26,7 @@ def account(request):
     else:
         user_form = UserEditForm(instance=user, auth_user=user)
         profile_form = ProfileEditForm(instance=profile, auth_user=user)
-    return render(request, "edit-form.html", 
+    return render(request, "account/edit-form.html", 
         {
             'forms': {'user_form': user_form, 'profile_form': profile_form},
             "unique_id":user.unique_id,
@@ -43,7 +43,7 @@ def register_view(request):
             return redirect('home')
     else:
         form = RegisterForm()
-    return render(request, 'register-form.html', { 'forms': {'register_form': form} })
+    return render(request, 'account/register-form.html', { 'forms': {'register_form': form} })
 
 def login_view(request):
     if request.method == 'POST':
@@ -57,7 +57,7 @@ def login_view(request):
             messages.error(request, 'Неверный логин или пароль')
     else:
         form = LoginForm()
-    return render(request, 'login-form.html', { 'forms': {'login_form': form} })
+    return render(request, 'account/login-form.html', { 'forms': {'login_form': form} })
 
 def logout_view(request):
     logout(request)

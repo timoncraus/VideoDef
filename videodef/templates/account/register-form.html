@@ -22,23 +22,23 @@
             });
         </script>
 
-        {% include "default_field.html" with field=forms.register_form.first_name %}
-        {% include "default_field.html" with field=forms.register_form.last_name %}
-        {% include "default_field.html" with field=forms.register_form.patronymic %}
-        {% include "date_field.html" with field=forms.register_form.date_birth %}
-        {% include "default_field.html" with field=forms.register_form.role %}
-        {% include "default_field.html" with field=forms.register_form.gender %}
+        {% include "account/default_field.html" with field=forms.register_form.first_name %}
+        {% include "account/default_field.html" with field=forms.register_form.last_name %}
+        {% include "account/default_field.html" with field=forms.register_form.patronymic %}
+        {% include "account/date_field.html" with field=forms.register_form.date_birth %}
+        {% include "account/default_field.html" with field=forms.register_form.role %}
+        {% include "account/default_field.html" with field=forms.register_form.gender %}
 
-        {% include "default_field.html" with field=forms.register_form.username %}
-        {% include "default_field.html" with field=forms.register_form.email %}
-        {% include "default_field.html" with field=forms.register_form.phone_number %}
-        {% include "default_field.html" with field=forms.register_form.password1 %}
-        {% include "default_field.html" with field=forms.register_form.password2 %}
+        {% include "account/default_field.html" with field=forms.register_form.username %}
+        {% include "account/default_field.html" with field=forms.register_form.email %}
+        {% include "account/default_field.html" with field=forms.register_form.phone_number %}
+        {% include "account/default_field.html" with field=forms.register_form.password1 %}
+        {% include "account/default_field.html" with field=forms.register_form.password2 %}
 
         <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
     </form>
     <div class="mb-3 mt-3">
-        <p>Уже есть аккаунт? <a href="login">Войти</a></p>
+        <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
     </div>
 
     
