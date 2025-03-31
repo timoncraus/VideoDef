@@ -21,7 +21,7 @@
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            document.querySelector('#chat-messages').innerHTML += `<div><b>${data.user_id}:: ${data.message}<b></div>`;
+            document.querySelector('#chat-messages').innerHTML += `<div><b>${data.user_id}:</b> ${data.message}</div>`;
         };
 
         chatSocket.onclose = function(e) {
@@ -31,12 +31,12 @@
         document.querySelector('#send-message-btn').onclick = function(e) {
             const messageInputDom = document.querySelector('#chat-message-input');
             const message = messageInputDom.value;
-            chatSocket.send(JSON.stringify({
-                'message': message,
-                'user_id': "{{ request.user.unique_id }}",
-            }));
+
+            // Отправляем сообщение без user_id (он берется на сервере)
+            chatSocket.send(JSON.stringify({'message': message}));
+
             messageInputDom.value = ''; // очистить поле после отправки
         };
-
     </script>
+
 {% endblock %}
