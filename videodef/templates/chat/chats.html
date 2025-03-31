@@ -7,10 +7,18 @@
                 <h3>{{ chat.name }}</h3>
                 <p>
                     {% if chat.user1 != user %}
-                        <img src="{{ chat.user1.profile.photo.url }}" style="width:150px;height:150px;" alt="Avatar" />
+                        {% if chat.user1.profile.photo %}
+                            <img src="{{ chat.user1.profile.photo.url }}" style="width:150px;height:150px;"  alt="Avatar" />
+                        {% else %}
+                            <img src="/media/avatars/default.png" style="width:150px;height:150px;">
+                        {% endif %}
                         {{ chat.user1.username }}
                     {% else %}
-                        <img src="{{ chat.user2.profile.photo.url }}" style="width:150px;height:150px;" alt="Avatar" />
+                        {% if chat.user2.profile.photo %}
+                            <img src="{{ chat.user2.profile.photo.url }}" style="width:150px;height:150px;"  alt="Avatar" />
+                        {% else %}
+                            <img src="/media/avatars/default.png" style="width:150px;height:150px;">
+                        {% endif %}
                         {{ chat.user2.username }}
                     {% endif %}
                     <span> Последний раз в сети:{{ chat.user1.last_login }}</span>
