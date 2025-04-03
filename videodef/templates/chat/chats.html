@@ -1,29 +1,17 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block style %}<link rel="stylesheet" href="{% static 'css/chat/chats.css' %}" />{% endblock %}
 {% block page_name %}Ваши чаты{% endblock %}
 {% block content %}
-    {% for chat in user_chats %}
-        <div class="chat-item">
-            <a href="{% url 'chat_room' chat.id %}">
-                <h3>{{ chat.name }}</h3>
-                <p>
-                    {% if chat.user1 != user %}
-                        {% if chat.user1.profile.photo %}
-                            <img src="{{ chat.user1.profile.photo.url }}" style="width:150px;height:150px;"  alt="Avatar" />
-                        {% else %}
-                            <img src="/media/avatars/default.png" style="width:150px;height:150px;">
-                        {% endif %}
-                        {{ chat.user1.username }}
-                    {% else %}
-                        {% if chat.user2.profile.photo %}
-                            <img src="{{ chat.user2.profile.photo.url }}" style="width:150px;height:150px;"  alt="Avatar" />
-                        {% else %}
-                            <img src="/media/avatars/default.png" style="width:150px;height:150px;">
-                        {% endif %}
-                        {{ chat.user2.username }}
-                    {% endif %}
-                    <span> Последний раз в сети:{{ chat.user1.last_login }}</span>
-                </p>
-            </a>
-        </div>
+<div class="chat-list">
+    {% for chat, last_message in chats_info %}
+        <a href="{% url 'chat_room' chat.id %}" class="chat-item">
+            {% if chat.user1 != user %}
+                {% include "chat/chat_user_view.html" with user=chat.user1 %}
+            {% else %}
+                {% include "chat/chat_user_view.html" with user=chat.user2 %}
+            {% endif %}
+        </a>
     {% endfor %}
+</div>
 {% endblock %}

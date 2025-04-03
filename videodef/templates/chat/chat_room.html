@@ -1,42 +1,28 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block style %}<link rel="stylesheet" href="{% static 'css/chat/chat_room.css' %}" />{% endblock %}
 {% block page_name %}Чат{% endblock %}
 {% block content %}
-    <div id="chat-messages" data-chat-id="{{ chat.id }}">
-        {% for message in chat.messages.all %}
-            <div>
-                <b>{{ message.sender_id }}:</b> {{ message.content }}
-            </div>
-        {% endfor %}
+    <div class="chat-container">
+        <div class="chat-header">
+            {% if chat.user1 != user %}
+                {% include "chat/chat_room_user_view.html" with user=chat.user1 %}
+            {% else %}
+                {% include "chat/chat_room_user_view.html" with user=chat.user2 %}
+            {% endif %}
+        </div>
+        <div class="chat-messages" id="chat-messages" data-chat-id="{{ chat.id }}">
+            {% for message in chat.messages.all %}
+                <div class="message {% if message.sender == user %}sent{% else %}received{% endif %}">
+                    {{ message.content }}
+                    <div class="message-time">{{ message.timestamp|date:"H:i" }} по мск</div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="chat-input">
+            <textarea id="chat-message-input" placeholder="Введите сообщение..."></textarea>
+            <button id="send-message-btn">Отправить</button>
+        </div>
     </div>
-
-    <textarea id="chat-message-input" placeholder="Введите сообщение..."></textarea>
-    <button id="send-message-btn">Отправить</button>
-
-    <script>
-        const chatId = document.getElementById('chat-messages').dataset.chatId;
-        const chatSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/chat/' + chatId + '/'
-        );
-
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            document.querySelector('#chat-messages').innerHTML += `<div><b>${data.user_id}:</b> ${data.message}</div>`;
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
-
-        document.querySelector('#send-message-btn').onclick = function(e) {
-            const messageInputDom = document.querySelector('#chat-message-input');
-            const message = messageInputDom.value;
-
-            // Отправляем сообщение без user_id (он берется на сервере)
-            chatSocket.send(JSON.stringify({'message': message}));
-
-            messageInputDom.value = ''; // очистить поле после отправки
-        };
-    </script>
-
+    <script src="{% static 'js/chat/chat_room.js' %}"></script>
 {% endblock %}

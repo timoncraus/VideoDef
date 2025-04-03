@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils.timezone import now
 from django.db import models
 import random
 import string
@@ -71,8 +72,6 @@ def get_avatar_path(user, filename):
 
 
 class Profile(models.Model):
-
-    
     ROLE_PARENT = "S"
     ROLE_TEACHER = "T"
     ROLE_CHOICES = [
@@ -117,6 +116,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile = models.OneToOneField(Profile, null=True, blank=True, on_delete=models.CASCADE, related_name="user", verbose_name="Профиль")
 
     objects = UserManager()
+
+    def update_last_seen(self):
+        self.last_seen = now()
+        self.save()
 
     def generate_unique_id(self):
         while True:

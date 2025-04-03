@@ -1,0 +1,32 @@
+.chat-list {
+    padding-left: 40px;
+    margin: auto;
+}
+.chat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-decoration: none;
+    color: black;
+    background: white;
+}
+.chat-item:hover {
+    background: #f5f5f5;
+}
+.medium-avatar {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.chat-details {
+    flex: 1;
+    font-size: 17px;
+}
+.chat-name {
+    font-weight: bold;
+}
+.chat-last-message {
+    color: gray;
+}

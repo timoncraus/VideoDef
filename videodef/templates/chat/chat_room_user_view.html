@@ -1,0 +1,9 @@
+{% include "photo.html" with img_class="small-avatar" %}
+<div>
+    <strong>{{ user.profile }}</strong>
+    <br>
+    <small id="last-active-date" data-gender="{{ user.profile.gender }}" data-date="{{ user.last_seen|date:'Y-m-d H:i:s' }}"
+    data-curr-date="{{ curr_date|date:'Y-m-d H:i:s' }}">
+    	<span id="last-active-formatted"></span>
+    </small>
+</div>
