@@ -5,12 +5,19 @@
     background-color: #00bfff;
     border: 5px solid #005f7f;
     border-radius: 15px;
+    overflow: auto;
 }
 
 .games-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
+}
+
+.game-card-link {
+    text-decoration: none;
+    display: block;
+    color: black;
 }
 
 .game-card {
@@ -30,4 +37,14 @@
 .game-card h2 {
     font-size: 1.2em;
     margin: 10px 0;
+}
+
+.game-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.game-card:active {
+    transform: scale(0.95);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
