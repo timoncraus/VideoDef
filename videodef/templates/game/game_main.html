@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_name %}Игры{% endblock %}
+
+{% block content %}
+<div class="games-container">
+    <div class="games-grid">
+        {% for game in games %}
+        <div class="game-card">
+            <img src="{% static game.image %}" alt="{{ game.title }}">
+            <h2>{{ game.title }}</h2>
+            <p>{{ game.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
