@@ -46,6 +46,7 @@ videocall_patterns = [
 
 game_patterns = [
     path('', game_views.games, name="games"),
+    path("puzzles/", game_views.puzzle_game, name="puzzle_game")
 ]
 
 urlpatterns = [

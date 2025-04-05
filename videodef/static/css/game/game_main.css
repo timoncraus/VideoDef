@@ -39,6 +39,11 @@
     margin: 10px 0;
 }
 
+.game-card p {
+    text-align: justify;
+    font-size: 12px;
+}
+
 .game-card:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
