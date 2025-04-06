@@ -8,7 +8,14 @@
 {% block content %}
     <div class="puzzle-container">
         {% for i in "123456789" %}
-            <div class="puzzle-piece" id="piece-{{i}}"></div>
+            <div class="puzzle-piece" id="piece-{{i}}" draggable="true" data-index="{{i}}">
+            </div>
         {% endfor %}
     </div>
+    
+    <div id="game-message" style="display: none; text-align: center; font-size: 1.5em; margin-top: 20px;">
+        Поздравляем! Вы собрали пазл!
+    </div>
+
+    <script src="{% static 'js/game/puzzles.js' %}"></script>
 {% endblock %}

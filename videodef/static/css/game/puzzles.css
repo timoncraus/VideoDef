@@ -4,6 +4,7 @@
     display: flex;
     flex-wrap: wrap;
     margin: 0 auto;
+    position: relative;
 }
 
 .puzzle-piece {
@@ -11,7 +12,9 @@
     height: 100px;
     background-image: url("/static/images/puzzle_test.png");
     background-size: 300px 300px;
-    box-shadow: inset 0 0 1px black;
+    position: absolute;
+    transition: left 0.2s, top 0.2s;
+    cursor: pointer;
 }
 
 #piece-1  { background-position: 0   0; }
@@ -23,3 +26,13 @@
 #piece-7  { background-position: 0 -200px; }
 #piece-8  { background-position: -100px -200px; }
 #piece-9  { background-position: -200px -200px; }
+
+#game-message {
+    font-size: 1.5em;
+    color: #4CAF50;  /* Зеленый цвет */
+    background-color: #e8f5e9;  /* Легкий зеленый фон */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
