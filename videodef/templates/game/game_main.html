@@ -8,7 +8,13 @@
 <div class="games-container">
     <div class="games-grid">
         {% for game in games %}
-        <a href="" class="game-card-link">
+        
+        {% if game.url != "#" %}
+        <a href="{% url game.url %}" class="game-card-link">
+        {% else %}
+        <a href="#" class="game-card-link">
+        {% endif %}
+
         <div class="game-card">
             <img src="{% static game.image %}" alt="{{ game.title }}">
             <h2>{{ game.title }}</h2>
