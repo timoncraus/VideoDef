@@ -170,3 +170,20 @@ function overResizeHandle(x, y, imgObj) {
            y >= imgObj.y + imgObj.height - size &&
            y <= imgObj.y + imgObj.height;
 }
+
+// Автоматическая адаптация размера canvas под родителя
+function resizeCanvasToDisplaySize() {
+    const wrapper = canvas.parentElement;
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+
+    // Устанавливаем физические размеры
+    canvas.width = width;
+    canvas.height = height;
+
+    redrawCanvas();
+}
+
+// Адаптация при загрузке страницы и при изменении размера окна
+window.addEventListener('load', resizeCanvasToDisplaySize);
+window.addEventListener('resize', resizeCanvasToDisplaySize);
