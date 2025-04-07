@@ -19,3 +19,6 @@ def games(request):
 
 def puzzle_game(request):
     return render(request, "game/puzzles.html")
+
+def whiteboard(request):
+    return render(request, "game/whiteboard.html")

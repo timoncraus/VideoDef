@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block style %}<link rel="stylesheet" href="{% static 'css\game\whiteboard.css' %}" />{% endblock %}
+
+
+{% block page_name %}Интерактивная доска{% endblock %}
+
+{% block content %}
+    <div class="controls">
+        <input type="file" id="img-upload">
+        <button onclick="clearBoard()">Очистить</button>
+    </div>
+
+    <canvas id="board" width="800" height="600"></canvas>
+    <script src="{% static 'js/game/whiteboard.js' %}"></script>
+{% endblock %}

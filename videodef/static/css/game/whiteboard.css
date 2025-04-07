@@ -1,0 +1,8 @@
+ canvas {
+    border: 1px solid #000;
+    cursor: crosshair;
+ }
+ 
+ .controls {
+    margin: 10px 0;
+ }
