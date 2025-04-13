@@ -13,6 +13,7 @@ let activeResizeHandle = null; // Текущая ручка изменения �
 
 let currentTool = 'pen'; // Текущий инструмент
 let currentLineWidth = 2; // Толщина линии
+let currentColor = '#000000';
 
 // Устанавливаем WebSocket-соединение
 const ws = new WebSocket(`ws://${window.location.host}/ws/whiteboard/`);
@@ -62,6 +63,10 @@ document.getElementById('eraser_btn').addEventListener('click', () => {
     toggleToolButtons('eraser_btn');
 });
 
+document.getElementById('colorPicker').addEventListener('input', (e) => {
+    currentColor = e.target.value;
+});
+
 document.getElementById('thickness').addEventListener('input', (e) => {
     currentLineWidth = parseInt(e.target.value);
 });
@@ -109,7 +114,7 @@ canvas.addEventListener('mousemove', (e) => {
             type: 'draw',
             x0: prev.x, y0: prev.y,
             x1: current.x, y1: current.y,
-            color: currentTool === 'pen' ? '#000' : '#fff',  // Цвет линии
+            color: currentTool === 'pen' ? currentColor : '#fff',  // Цвет линии
             lineWidth: currentLineWidth // Толщина
         };
         ws.send(JSON.stringify(message));
