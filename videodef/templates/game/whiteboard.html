@@ -21,8 +21,9 @@
 </div>
 
     <!-- Обёртка для canvas -->
-    <div class="canvas-wrapper" style="position: relative; width: 100%; height: 70vh;">
-        <canvas id="board"></canvas>
+    <div class="canvas-wrapper">
+        <canvas id="image-layer" class="canvas-layer" style="z-index: 0;"></canvas>
+        <canvas id="draw-layer" class="canvas-layer" style="z-index: 1;"></canvas>
     </div>
     <script src="{% static 'js/game/whiteboard.js' %}"></script>
 {% endblock %}
