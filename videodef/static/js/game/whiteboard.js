@@ -1,14 +1,18 @@
-const canvas = document.getElementById('board');
+const canvas = document.getElementById('board'); 
 const ctx = canvas.getContext('2d');
 
 let drawing = false; // Флаг рисования
 let prev = {}; // Предыдущие координаты
+
 let images = []; // Массив всех добавленных изображений
 let activeImage = null; // Текущее редактируемое изображение
 let dragOffset = { x: 0, y: 0 }; // Смещение для перетаскивания
 let isDragging = false; // Флаг перетаскивания
 let isResizing = false; // Флаг изменения размера
 let activeResizeHandle = null; // Текущая ручка изменения размера
+
+let currentTool = 'pen'; // Текущий инструмент
+let currentLineWidth = 2; // Толщина линии
 
 // Устанавливаем WebSocket-соединение
 const ws = new WebSocket(`ws://${window.location.host}/ws/whiteboard/`);
@@ -46,6 +50,26 @@ ws.onmessage = (e) => {
         images = [];
     }
 };
+
+// Инструменты
+document.getElementById('pen_btn').addEventListener('click', () => {
+    currentTool = 'pen';
+    toggleToolButtons('pen_btn');
+});
+
+document.getElementById('eraser_btn').addEventListener('click', () => {
+    currentTool = 'eraser';
+    toggleToolButtons('eraser_btn');
+});
+
+document.getElementById('thickness').addEventListener('input', (e) => {
+    currentLineWidth = parseInt(e.target.value);
+});
+
+function toggleToolButtons(activeId) {
+    document.querySelectorAll('.tool').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(activeId).classList.add('active');
+}
 
 // Начало рисования
 canvas.addEventListener('mousedown', (e) => {
@@ -85,10 +109,14 @@ canvas.addEventListener('mousemove', (e) => {
             type: 'draw',
             x0: prev.x, y0: prev.y,
             x1: current.x, y1: current.y,
-            color: '#000',       // Цвет линии
-            lineWidth: 2         // Толщина
+            color: currentTool === 'pen' ? '#000' : '#fff',  // Цвет линии
+            lineWidth: currentLineWidth // Толщина
         };
         ws.send(JSON.stringify(message));
+
+        // Рисуем линию
+        drawLine(prev.x, prev.y, current.x, current.y, message.color, message.lineWidth);
+        
         prev = current;
     } else if (isDragging && activeImage) {
         activeImage.x = x - dragOffset.x;
@@ -101,10 +129,13 @@ canvas.addEventListener('mousemove', (e) => {
     }
 });
 
-// Функция рисования линии
+// Рисуем линию с учетом толщины
 function drawLine(x0, y0, x1, y1, color, lineWidth) {
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round'; // Округлые концы линии для более плавного перехода
+    ctx.lineJoin = 'round'; // Округление углов между отрезками
+
     ctx.beginPath();
     ctx.moveTo(x0, y0);
     ctx.lineTo(x1, y1);

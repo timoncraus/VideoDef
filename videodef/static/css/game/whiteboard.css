@@ -1,15 +1,65 @@
- canvas {
-    border: 1px solid #000;
-    cursor: crosshair;
- }
- 
- .controls {
-    margin: 10px 0;
- }
+/* Обёртка для холста */
+.canvas-wrapper { 
+   position: relative;
+   width: 100%;
+   height: 70vh;
+}
 
- #board {
+/* Холст */
+canvas {
+   display: block;
    width: 100%;
    height: 100%;
    border: 1px solid #ccc;
-   display: block;
+   background-color: white;
+   cursor: crosshair;
+   touch-action: none;
+}
+
+/* Панель инструментов */
+.toolbar {
+   display: flex;
+   gap: 10px;
+   padding: 10px;
+   background-color: #f0f0f0;
+   border-bottom: 1px solid #ccc;
+   align-items: center;
+   justify-content: flex-start;
+   flex-wrap: nowrap;
+   overflow-x: auto;
+}
+
+/* Кнопки инструментов */
+.tool {
+   padding: 8px 4px;
+   background-color: #fff;
+   color: black;
+   border: 1px solid #999;
+   border-radius: 4px;
+   cursor: pointer;
+   font-size: 14px;
+   transition: background-color 0.2s, border-color 0.2s;
+}
+
+.tool:hover {
+   background-color: #e6f0ff;
+   border-color: #007bff;
+}
+
+.tool.active {
+   background-color: #d0eaff;
+   border-color: #007bff;
+}
+
+/* Ползунок толщины */
+#thickness {
+   width: 120px;
+}
+
+/* Поле загрузки изображения */
+#img-upload {
+   padding: 5px;
+   font-size: 14px;
+   max-width: 200px;
+   cursor: pointer;
 }

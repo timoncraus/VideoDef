@@ -1,15 +1,21 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block style %}<link rel="stylesheet" href="{% static 'css\game\whiteboard.css' %}" />{% endblock %}
+{% block style %}<link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />{% endblock %}
 
 
 {% block page_name %}Интерактивная доска{% endblock %}
 
 {% block content %}
-    <div class="controls">
-        <input type="file" id="img-upload">
-        <button onclick="clearBoard()">Очистить</button>
-    </div>
+<div class="toolbar">
+    <button id="pen_btn" class="tool active">✏️ Кисть</button>
+    <button id="eraser_btn" class="tool">🧽 Ластик</button>
+    
+    <label for="thickness">Толщина:</label>
+    <input type="range" id="thickness" min="1" max="20" value="2">
+
+    <input type="file" id="img-upload" title="Загрузить изображение">
+    <button onclick="clearBoard()">🗑️ Очистить холст</button>
+</div>
 
     <!-- Обёртка для canvas -->
     <div class="canvas-wrapper" style="position: relative; width: 100%; height: 70vh;">
