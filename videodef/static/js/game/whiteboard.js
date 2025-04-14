@@ -67,7 +67,6 @@ document.getElementById('thickness').addEventListener('input', (e) => {
     currentLineWidth = parseInt(e.target.value); // Изменяем толщину линии
 });
 
-// Функция для подсветки активной кнопки на панели инструментов
 function toggleToolButtons(activeId) {
     document.querySelectorAll('.tool').forEach(btn => btn.classList.remove('active'));
     document.getElementById(activeId).classList.add('active');
@@ -98,7 +97,6 @@ drawCanvas.addEventListener('mouseup', () => {
     activeImage = null;
 });
 
-// Обработка движения мыши для рисования и перетаскивания
 drawCanvas.addEventListener('mousemove', (e) => {
     const { offsetX: x, offsetY: y } = e;
 
@@ -127,7 +125,6 @@ drawCanvas.addEventListener('mousemove', (e) => {
     }
 });
 
-// Функция для отрисовки линии
 function drawLine(ctx, x0, y0, x1, y1, color, lineWidth) {
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
@@ -152,13 +149,11 @@ document.getElementById('img-upload').addEventListener('change', function () {
     reader.readAsDataURL(file); // Читаем файл как DataURL
 });
 
-// Очистка доски
 function clearBoard() {
     ws.send(JSON.stringify({ type: 'clear' })); // Отправляем сообщение на сервер для очистки
     document.getElementById('img-upload').value = ''; // Очищаем поле загрузки изображения
 }
 
-// Перерисовка всех изображений
 function redrawImages() {
     imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height); // Очищаем холст
     images.forEach(imgObj => {
@@ -167,7 +162,6 @@ function redrawImages() {
     });
 }
 
-// Функция для получения изображения по координатам (при клике на изображение)
 function getImageAt(x, y) {
     for (let i = images.length - 1; i >= 0; i--) {
         const img = images[i];
@@ -179,14 +173,12 @@ function getImageAt(x, y) {
     return null;
 }
 
-// Функция рисования ручки для изменения размера изображения
 function drawResizeHandle(ctx, imgObj) {
     const size = 10;
     ctx.fillStyle = '#00f'; // Синий цвет для ручки
     ctx.fillRect(imgObj.x + imgObj.width - size, imgObj.y + imgObj.height - size, size, size); // Рисуем ручку
 }
 
-// Проверка, находится ли курсор над ручкой изменения размера изображения
 function overResizeHandle(x, y, imgObj) {
     const size = 10;
     return x >= imgObj.x + imgObj.width - size &&
@@ -195,7 +187,6 @@ function overResizeHandle(x, y, imgObj) {
            y <= imgObj.y + imgObj.height;
 }
 
-// Функция для изменения размера холста
 function resizeCanvasToDisplaySize() {
     const wrapper = imageCanvas.parentElement;
     const width = wrapper.clientWidth;
@@ -211,3 +202,50 @@ function resizeCanvasToDisplaySize() {
 
 window.addEventListener('load', resizeCanvasToDisplaySize); // Изменяем размер холста при загрузке страницы
 window.addEventListener('resize', resizeCanvasToDisplaySize); // Изменяем размер холста при изменении окна
+
+// ---------------- Добавление игр на холст ----------------
+const dropdown = document.getElementById("game-menu");
+const gamesBtn = document.getElementById("games_btn");
+
+gamesBtn.addEventListener("click", () => {
+    dropdown.classList.toggle("show");
+});
+
+window.addEventListener("click", (e) => {
+    if (!gamesBtn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove("show");
+    }
+});
+
+document.querySelectorAll(".game-option").forEach(option => {
+    option.addEventListener("click", () => {
+        const gameName = option.dataset.name;
+        addGameIframe(gameName);
+        dropdown.classList.remove("show");
+    });
+});
+
+function addGameIframe(name) {
+    const iframeWrapper = document.createElement('div');
+    iframeWrapper.className = 'iframe-wrapper';
+    iframeWrapper.style.left = '100px';
+    iframeWrapper.style.top = '100px';
+    iframeWrapper.style.width = '400px';
+    iframeWrapper.style.height = '300px';
+    iframeWrapper.style.aspectRatio = '4 / 3';
+
+    const iframe = document.createElement('iframe');
+    
+    iframe.src = `http://127.0.0.1:8000/games/${name}/`;
+
+    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'iframe-close';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = () => iframeWrapper.remove();
+
+    iframeWrapper.appendChild(closeBtn);
+    iframeWrapper.appendChild(iframe);
+    document.querySelector('.canvas-wrapper').appendChild(iframeWrapper);
+}

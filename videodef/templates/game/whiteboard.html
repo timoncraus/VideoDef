@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block style %}<link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />{% endblock %}
-
+{% block style %}
+<link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
+{% endblock %}
 
 {% block page_name %}Интерактивная доска{% endblock %}
 
@@ -9,21 +10,35 @@
 <div class="toolbar">
     <button id="pen_btn" class="tool active">✏️ Кисть</button>
     <button id="eraser_btn" class="tool">🧽 Ластик</button>
-    
+
     <label for="colorPicker">Цвет:</label>
     <input type="color" id="colorPicker" value="#000000">
 
     <label for="thickness">Толщина:</label>
     <input type="range" id="thickness" min="1" max="20" value="2">
 
+    <!-- Меню выбора игр -->
+    <div class="dropdown">
+        <button id="games_btn" class="tool">🎮 Игры ▼</button>
+        <div class="dropdown-content" id="game-menu">
+            <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
+          <!-- Можно добавить другие игры -->
+        </div>
+    </div>
+
     <input type="file" id="img-upload" title="Загрузить изображение">
     <button id="clear_btn" onclick="clearBoard()">🗑️ Очистить холст</button>
+
 </div>
 
-    <!-- Обёртка для canvas -->
-    <div class="canvas-wrapper">
-        <canvas id="image-layer" class="canvas-layer" style="z-index: 0;"></canvas>
-        <canvas id="draw-layer" class="canvas-layer" style="z-index: 1;"></canvas>
-    </div>
-    <script src="{% static 'js/game/whiteboard.js' %}"></script>
+<!-- Обёртка для canvas -->
+<div class="canvas-wrapper">
+    <canvas id="image-layer" class="canvas-layer" style="z-index: 0;"></canvas>
+    <canvas id="draw-layer" class="canvas-layer" style="z-index: 1;"></canvas>
+</div>
+
+<!-- Контейнер для вставленных iframe -->
+<div id="iframe-container"></div>
+
+<script src="{% static 'js/game/whiteboard.js' %}"></script>
 {% endblock %}

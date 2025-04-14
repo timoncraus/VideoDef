@@ -1,3 +1,5 @@
+/* Исходные стили (не изменяются) */
+
 /* Обёртка для холста */
 .canvas-wrapper { 
    position: relative;
@@ -37,10 +39,8 @@ canvas {
    background-color: #f0f0f0;
    border-bottom: 1px solid #ccc;
    align-items: center;
-   justify-content: flex-start;
    flex-wrap: nowrap;
    overflow-x: auto;
-   justify-content: space-between;
 }
 
 /* Кнопки инструментов */
@@ -54,6 +54,7 @@ canvas {
    font-size: 14px;
    max-width: 100px;
    transition: background-color 0.2s, border-color 0.2s;
+   white-space: nowrap;
 }
 
 .tool:hover {
@@ -93,4 +94,183 @@ canvas {
 
 #clear_btn {
    max-width: 200px;
+}
+
+/* --- Выпадающее меню (Игры как в Paint) --- */
+.dropdown {
+   position: relative;
+   display: inline-block;
+}
+
+#games_btn {
+   position: relative;
+   background-color: #2980b9;
+   color: white;
+   padding: 10px 20px;
+   border-radius: 5px;
+   cursor: pointer;
+   font-size: 16px;
+   white-space: nowrap;
+}
+
+#games_btn:hover {
+   background-color: #3498db;
+}
+
+/* Ширина для выпадающего меню */
+.dropdown-content {
+   display: none;
+   position: absolute;
+   top: 100%;
+   left: 0;
+   background-color: white;
+   min-width: 100%;
+   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+   border: 1px solid #ccc;
+   border-radius: 4px;
+   z-index: 10;
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.3s ease-out;
+}
+
+.dropdown-content.show {
+   display: block;
+   opacity: 1;
+   pointer-events: auto;
+}
+
+/* Стили для элементов выпадающего списка */
+.dropdown-content .game-option {
+   padding: 8px 12px;
+   cursor: pointer;
+   white-space: nowrap;
+}
+
+.dropdown-content .game-option:hover {
+   background-color: #f0f0f0;
+}
+
+/* --- Вставленный iframe с игрой --- */
+.iframe-wrapper {
+   position: absolute;
+   border: 2px solid #444;
+   resize: both;
+   overflow: hidden;
+   z-index: 5;
+   background-color: #fff;
+   box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+.iframe-wrapper iframe {
+   width: 100%;
+   height: 100%;
+   border: none;
+   display: block;
+   pointer-events: auto;
+}
+
+.iframe-close {
+   position: absolute;
+   top: 5px;
+   right: 5px;
+   padding: 5px 10px;
+   background-color: #c0392b;
+   border: none;
+   color: #fff;
+   cursor: pointer;
+   font-size: 16px;
+   border-radius: 5px;
+}
+
+.iframe-close:hover {
+   background-color: #e74c3c;
+}
+
+/* --- Дополнительно добавленные стили для анимации и функциональности --- */
+
+/* Анимация для выпадающего меню */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    min-width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-out;
+}
+
+.dropdown-content.show {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Стиль кнопки "Игры" */
+#games_btn {
+    background-color: #2980b9;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    white-space: nowrap;
+    min-width: 120px; /* Чтобы ширина кнопки не менялась */
+}
+
+#games_btn:hover {
+    background-color: #3498db;
+}
+
+/* Плавное появление меню при клике */
+.dropdown-content .game-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dropdown-content .game-option:hover {
+    background-color: #f0f0f0;
+}
+
+/* Стили для iframe с играми */
+.iframe-wrapper {
+    position: absolute;
+    border: 2px solid #3498db;
+    border-radius: 5px;
+    z-index: 15;
+    cursor: move;
+}
+
+.iframe-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.iframe-close {
+   position: absolute;
+   top: 5px;
+   right: 5px;
+   width: 20px;
+   height: 20px;
+   background-color: #c0392b;
+   border: none;
+   color: #fff;
+   font-size: 16px;
+   cursor: pointer;
+   text-align: center;
+   line-height: 16px;
+   border-radius: 3px;
+   padding: 0;
+}
+
+.iframe-close:hover {
+   background-color: #e74c3c;
 }

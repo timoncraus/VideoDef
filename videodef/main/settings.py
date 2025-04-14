@@ -155,3 +155,5 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+
+X_FRAME_OPTIONS = 'ALLOWALL'
