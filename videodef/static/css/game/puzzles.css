@@ -1,4 +1,4 @@
-.puzzle-container {
+.puzzle-container { 
     width: 300px;
     height: 300px;
     display: flex;
@@ -10,11 +10,22 @@
 .puzzle-piece {
     width: 100px;
     height: 100px;
-    background-image: url("/static/images/puzzle_test.png");
     background-size: 300px 300px;
     position: absolute;
-    transition: left 0.2s, top 0.2s;
+    transition: left 0.2s, top 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+}
+
+.puzzle-piece:hover {
+    box-shadow: 0 0 8px #0295c7;
+}
+
+.puzzle-piece.selected {
+    border: 2px solid #005f7f;
+    box-shadow: 0 0 12px #005f7f;
 }
 
 #piece-1  { background-position: 0   0; }
@@ -29,10 +40,83 @@
 
 #game-message {
     font-size: 1.5em;
-    color: #4CAF50;  /* Зеленый цвет */
-    background-color: #e8f5e9;  /* Легкий зеленый фон */
+    color: #4CAF50;
+    background-color: #e8f5e9;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin-top: 20px;
+}
+
+/* Стартовое окно */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+}
+
+.preset-images {
+    display: flex;
+    justify-content: center;
+    background-color: #00bfff;
+    border: 3px solid #005f7f;
+    border-radius: 8px;
+    gap: 10px;
+    margin: 15px 0;
+    padding: 10px 0;
+}
+
+.preset {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    transition: border 0.2s, transform 0.2s;
+}
+
+.preset:hover {
+    border-color: #00bfff;
+    transform: scale(1.05);
+}
+
+.preset.selected {
+    border: 4px solid;
+    border-color: #005f7f;
+    box-shadow: 0 0 10px #005f7f;
+}
+
+.upload-label {
+    display: block;
+    margin: 15px 0;
+    font-weight: bold;
+}
+
+#start-game {
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: #00bfff;
+    border: 3px solid #005f7f;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
 }

@@ -1,11 +1,29 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block style %}<link rel="stylesheet" href="{% static 'css\game\puzzles.css' %}" />{% endblock %}
+{% block style %}<link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />{% endblock %}
 
 
 {% block page_name %}Пазлы{% endblock %}
 
 {% block content %}
+    <div id="start-modal" class="modal">
+        <div class="modal-content">
+            <h2>Выберите изображения для пазла</h2>
+
+            <div class="preset-images">
+                <img src="{% static 'images/puzzle_test.png' %}" class="preset" data-src="{% static 'images/puzzle_test.png' %}">
+                <img src="{% static 'images/masha-i-medvedi.png' %}" class="preset" data-src="{% static 'images/masha-i-medvedi.png' %}">
+            </div>
+
+            <label class="upload-label">
+                Загрузить своё:
+                <input type="file" id="custom-image" accept="image/*">
+            </label>
+
+            <button id="start-game">Начать игру</button>
+        </div>
+    </div>
+
     <div class="puzzle-container">
         {% for i in "123456789" %}
             <div class="puzzle-piece" id="piece-{{i}}" draggable="true" data-index="{{i}}">

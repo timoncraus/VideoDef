@@ -1,17 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('.puzzle-container');
+    const modal = document.getElementById('start-modal');
+    const startBtn = document.getElementById('start-game');
+    const customInput = document.getElementById('custom-image');
+    const presets = document.querySelectorAll('.preset');
     const pieces = Array.from(document.querySelectorAll('.puzzle-piece'));
     const message = document.getElementById('game-message');
-
-    // Сетка 3x3
     const gridPositions = [
         [0, 0], [100, 0], [200, 0],
         [0, 100], [100, 100], [200, 100],
         [0, 200], [100, 200], [200, 200],
     ];
-
-    // Случайная расстановка индексов
-    let piecePositions = shuffle([...Array(9).keys()]);  // [0...8]
+    let piecePositions = shuffle([...Array(9).keys()]);
+    let selectedImage = '';
 
     function placePieces() {
         pieces.forEach((piece, idx) => {
@@ -21,7 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Перестановка по клику (двойной клик)
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
     let selectedPiece = null;
 
     pieces.forEach(piece => {
@@ -30,10 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedPiece = piece;
                 piece.style.outline = '2px solid red';
             } else if (selectedPiece === piece) {
-                selectedPiece.style.outline = '';
+                piece.style.outline = '';
                 selectedPiece = null;
             } else {
-                // Обмен позиций
                 swapPieces(selectedPiece, piece);
                 selectedPiece.style.outline = '';
                 selectedPiece = null;
@@ -56,13 +62,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function shuffle(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    }
+    // Обработка выбора изображения
+    presets.forEach(preset => {
+        preset.addEventListener('click', () => {
+            presets.forEach(p => p.classList.remove('selected'));
+            preset.classList.add('selected');
+            selectedImage = preset.dataset.src;
+        });
+    });
 
-    placePieces();
+    customInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                selectedImage = reader.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    startBtn.addEventListener('click', () => {
+        if (!selectedImage) {
+            alert("Пожалуйста, выберите или загрузите изображение.");
+            return;
+        }
+
+        pieces.forEach(piece => {
+            piece.style.backgroundImage = `url("${selectedImage}")`;
+        });
+
+        modal.style.display = 'none';
+        placePieces();
+    });
 });
