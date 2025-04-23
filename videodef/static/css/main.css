@@ -1,66 +1,185 @@
-/* Основной фон */
+/* Основные стили */
+
 body {
-    background-color: #f8f9fa;
     font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #F7F7F7 0%, #E3F2FD 100%);
     color: #333;
+    line-height: 1.6;
 }
 
-/* Шапка с картинкой */
 header {
-    background-image: url('/static/images/paint_boat.jpg');
+    background-image: url('/static/images/oil_paint.png');
     background-size: cover;
-    height: 300px;
+    color: white;
+    padding: 40px;
     text-align: center;
-    color: #fff;
-    padding-top: 100px;
 }
 
-header h1 {
+.small-circle-text {
+    display: inline-block;
+    padding: 10px 13px;
+    background-color: #4D8CF2;
+    border-radius: 50%;
+    border: 3px solid #FFA500;
+    color: white;
+    font-size: 28px;
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+}
+
+.circle-text {
+    display: inline-block;
+    padding: 30px 40px;
+    background-color: #4D8CF2;
+    border-radius: 50%;
+    border: 5px solid #FFA500;
+    color: white;
+    font-size: 28px;
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.circle-text:hover {
+    background-color: #9fbcea;
+    transform: scale(1.1);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+    border-color: #FF7F32;
+}
+
+h1 {
     font-size: 3rem;
     font-weight: bold;
+    letter-spacing: 2px;
 }
 
-/* Навигационная панель */
-nav.navbar {
-    background-color: #00bfff;
-    border-bottom: 5px solid #005f7f;
+.navbar {
+    background-color: #4D8CF2;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.navbar-brand {
-    font-size: 1.8rem;
-    color: #fff !important;
-    font-weight: bold;
-}
-
-/* Стили для ссылок в меню */
-.navbar-nav .nav-link {
-    color: #ffffff !important;  /* Белый цвет текста всегда */
+.navbar .nav-link {
     font-size: 1.2rem;
-    padding: 10px 15px;
+    color: white !important;
+    text-transform: uppercase;
+    font-weight: 500;
 }
 
-/* Изменение цвета фона при наведении */
-.navbar-nav .nav-link:hover {
-    background-color: #005f7f;
-    color: #fff !important;
-    border-radius: 5px;
+.navbar .nav-link:hover {
+    color: #FFC107 !important;
 }
 
-.navbar-nav .nav-link.active {
-    background-color: #005f7f; /* Установим активный элемент */
-    color: #fff !important;
+.navbar-toggler-icon {
+    background-color: white;
 }
 
 .container {
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-top: 20px;
+    margin-top: 30px;
 }
 
+.btn-primary {
+    background-color: #4D8CF2;
+    border-color: #4D8CF2;
+    padding: 10px 20px;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #3b6fc0;
+    border-color: #3b6fc0;
+    transform: scale(1.05);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    background-color: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    padding: 30px;
+    background-color: #f8f8f8;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.card-body h5 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #4D8CF2;
+}
+
+.card-body p {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.6;
+}
+
+.navbar-toggler {
+    border-color: #fff;
+}
+
+
+/* Анимации и эффекты */
+
+.nav-link {
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 0;
+    height: 2px;
+    background-color: #FFC107;
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+
+/* Иконки */
+
+.nav-item i {
+    margin-right: 8px;
+}
+
+
+/* Плавные анимации для кнопок */
+
+.btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+
 /* Стили для формы */
-input, select, button {
+
+input,
+select,
+button {
     border-radius: 8px;
     padding: 10px;
     border: 1px solid #00bfff;
@@ -85,7 +204,8 @@ button:hover {
     border: 1px solid #00bfff;
 }
 
-.messages, .non_field_errors {
+.messages,
+.non_field_errors {
     background-color: #ffeb3b;
     padding: 10px;
     border-radius: 5px;
@@ -93,13 +213,15 @@ button:hover {
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.messages ul, .non_field_errors ul {
+.messages ul,
+.non_field_errors ul {
     list-style-type: none;
     margin: 0;
     padding: 0;
 }
 
-.messages li, .non_field_errors li {
+.messages li,
+.non_field_errors li {
     color: #c62828;
     font-weight: bold;
 }

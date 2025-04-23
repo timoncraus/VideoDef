@@ -4,43 +4,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Видеодеф{% endblock %}</title>
+    <title>{% block title %}Видео дефектолог{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}" />
     {% block style %}{% endblock %}
 </head>
 <body>
+
     <header>
-        <h1>Видео дефектолог</h1>
+        <h1 class="circle-text">Видео дефектолог</h1>
     </header>
 
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">Видео дефектолог</a>
+            <a class="navbar-brand small-circle-text" href="/">Видео дефектолог</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'videocall' %}">Видеозвонок</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'games' %}">Игры</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'chats' %}">Переписки</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">О нас</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'account' %}">Личный кабинет</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'videocall' %}"><i class="bi bi-camera-video"></i>Видеозвонок</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'games' %}"><i class="bi bi-controller"></i>Игры</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'chats' %}"><i class="bi bi-chat-left-text"></i>Переписки</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'about' %}"><i class="bi bi-info-circle"></i>О нас</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'account' %}"><i class="bi bi-person-circle"></i>Личный кабинет</a></li>
                 </ul>
             </div>
         </div>
     </nav>
     
-    <div class="container mt-4">
+    <div class="container mt-5">
         {% include "messages.html" %}
         {% include "non_field_errors.html" %}
 
-        <h2>{% block page_name %}{% endblock %}</h2>
-        {% block content %}{% endblock %}
+        <h2 class="display-4 text-center mb-4">{% block page_name %}{% endblock %}</h2>
+        
+        {% block content %}
+            <div class="card">
+                <div class="card-body">
+                    <!-- Основной контент страницы -->
+                </div>
+            </div>
+        {% endblock %}
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ru.js"></script>
