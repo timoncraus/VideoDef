@@ -18,8 +18,16 @@ export function createPuzzleOnBoard(gameWrapper) {
 
 function createPuzzleSeparately() {
     const [puzzleParams, puzzleContainer, message] = getPuzzleParts();
-    document.body.appendChild(puzzleContainer);
-    document.body.appendChild(message);
+    const puzzleWrapper = document.createElement('div');
+    puzzleWrapper.className = 'puzzle-wrapper';
+    puzzleWrapper.style.width = '600px';
+    puzzleWrapper.style.height = '600px';
+    puzzleWrapper.style.position = 'relative';
+
+    puzzleWrapper.appendChild(puzzleContainer);
+    puzzleWrapper.appendChild(message);
+
+    document.body.appendChild(puzzleWrapper);
 
     const modal = document.getElementById('start-modal');
     const startBtn = document.getElementById('start-game');

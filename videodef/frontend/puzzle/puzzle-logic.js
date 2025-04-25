@@ -21,9 +21,10 @@ export function createPuzzle(puzzleContainer, puzzleParams, message) {
         piece.classList.add('puzzle-piece');
         piece.id = `piece-${i + 1}`;
         piece.setAttribute('data-index', i);
-        piece.style.width = `${300 / puzzleParams.gridSize}px`;
-        piece.style.height = `${300 / puzzleParams.gridSize}px`;
-        piece.style.backgroundSize = `${300}px ${300}px`;
+        const percent = 100 / puzzleParams.gridSize;
+        piece.style.width = `${percent}%`;
+        piece.style.height = `${percent}%`;
+        piece.style.backgroundSize = `${puzzleParams.gridSize * 100}% ${puzzleParams.gridSize * 100}%`;
         piece.addEventListener('click', () => handlePieceClick(puzzleContainer, puzzleParams, piece, message));
 
         puzzleContainer.appendChild(piece);
@@ -55,22 +56,22 @@ function createPuzzleContainer() {
 export function placePieces(puzzleContainer, puzzleParams) {
     const pieces = puzzleContainer.querySelectorAll('.puzzle-piece');
     const gridPositions = [];
+    const percent = 100 / puzzleParams.gridSize;
     for (let row = 0; row < puzzleParams.gridSize; row++) {
         for (let col = 0; col < puzzleParams.gridSize; col++) {
-            gridPositions.push([col * (300 / puzzleParams.gridSize), row * (300 / puzzleParams.gridSize)]);
+            gridPositions.push([col * percent, row * percent]);
         }
     }
 
     pieces.forEach((piece, idx) => {
         const [x, y] = gridPositions[puzzleParams.piecePositions[idx]];
-        piece.style.left = `${x}px`;
-        piece.style.top = `${y}px`;
+        piece.style.left = `${x}%`;
+        piece.style.top = `${y}%`;
 
         const row = Math.floor(idx / puzzleParams.gridSize);
         const col = idx % puzzleParams.gridSize;
         piece.style.backgroundPosition =
-            `-${col * (300 / puzzleParams.gridSize)}px 
-            -${row * (300 / puzzleParams.gridSize)}px`;
+            `${(col * -100)}% ${(row  * -100)}%`;
     });
 }
 

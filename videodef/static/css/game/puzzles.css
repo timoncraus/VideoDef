@@ -1,10 +1,18 @@
-.puzzle-container { 
-    width: 300px;
+.puzzle-wrapper {
+    width: 400px;
     height: 300px;
+    position: relative;
+    margin: 0 auto;
+}
+
+.puzzle-container { 
+    width: 85%;
+    height: 85%;
     display: flex;
     flex-wrap: wrap;
     margin: 0 auto;
     position: relative;
+    overflow: hidden;
 }
 
 .puzzle-piece {
@@ -27,16 +35,6 @@
     border: 2px solid #005f7f;
     box-shadow: 0 0 12px #005f7f;
 }
-
-#piece-1  { background-position: 0   0; }
-#piece-2  { background-position: -100px 0; }
-#piece-3  { background-position: -200px 0; }
-#piece-4  { background-position: 0 -100px; }
-#piece-5  { background-position: -100px -100px; }
-#piece-6  { background-position: -200px -100px; }
-#piece-7  { background-position: 0 -200px; }
-#piece-8  { background-position: -100px -200px; }
-#piece-9  { background-position: -200px -200px; }
 
 #game-message {
     font-size: 1.5em;

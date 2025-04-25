@@ -184,3 +184,16 @@ canvas {
 .paste-game-close:hover {
     background-color: #e74c3c;
 }
+
+.resize-handle {
+    width: 10px;
+    height: 10px;
+    background: #007bff;
+    border: 2px solid white;
+    border-radius: 50%;
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    cursor: se-resize;
+    z-index: 20;
+}

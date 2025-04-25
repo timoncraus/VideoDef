@@ -261,6 +261,7 @@ function addGamePasteGame() {
     gameWrapper.appendChild(closeBtn);
     document.querySelector('.canvas-wrapper').appendChild(gameWrapper);
     makeDraggable(gameWrapper);
+    makeResizable(gameWrapper);
     return gameWrapper;
 }
 
@@ -297,6 +298,50 @@ function makeDraggable(gameWrapper) {
     document.addEventListener('mouseup', () => {
         if (gameWrapper.isDragging) {
             gameWrapper.isDragging = false;
+            someonesDragging = false;
+            document.body.style.userSelect = '';
+        }
+    });
+}
+
+function makeResizable(gameWrapper) {
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'resize-handle';
+    gameWrapper.appendChild(resizeHandle);
+
+    gameWrapper.isResizing = false;
+    let startX, startY, startWidth, startHeight;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+        e.stopPropagation(); // чтобы drag и resize не конфликтовали
+        gameWrapper.isResizing = true;
+        someonesDragging = true;
+
+        const rect = gameWrapper.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = rect.width;
+        startHeight = rect.height;
+
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!gameWrapper.isResizing) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        const newWidth = Math.max(400, startWidth + dx);
+        const newHeight = Math.max(300, startHeight + dy);
+
+        gameWrapper.style.width = `${newWidth}px`;
+        gameWrapper.style.height = `${newHeight}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (gameWrapper.isResizing) {
+            gameWrapper.isResizing = false;
             someonesDragging = false;
             document.body.style.userSelect = '';
         }
