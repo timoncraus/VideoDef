@@ -24,6 +24,7 @@ from account import views as account_views
 from chat import views as chat_views
 from videocall import views as videocall_views
 from game import views as game_views
+from resume import views as resume_views
 
 account_patterns = [
     path('', account_views.home, name="home"),
@@ -50,12 +51,26 @@ game_patterns = [
     path('whiteboard/', game_views.whiteboard, name="whiteboard"),
 ]
 
+resume_urlpatterns = [
+    # для преподавателей:
+    path('my/', resume_views.ResumeListView.as_view(), name='my_resumes'),
+    path('create/', resume_views.ResumeCreateView.as_view(), name='create_my_resume'),
+    path('edit/<int:pk>/', resume_views.ResumeUpdateView.as_view(), name='edit_my_resume_form'),
+    path('delete/<int:pk>/', resume_views.ResumeDeleteView.as_view(), name='resume_confirm_delete'),
+   
+
+    # для родителей:
+    path('search/', resume_views.PublicResumeListView.as_view(), name='public_resume_list'),
+    path('view/<int:pk>/', resume_views.ResumeDetailView.as_view(), name='public_resume_detail'),
+]
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(account_patterns)),
     path('chats/', include(chat_patterns)),
     path('videocall/', include(videocall_patterns)),
     path('games/', include(game_patterns)),
+    path('resumes/', include(resume_urlpatterns)),
 ]
 
 if settings.DEBUG:

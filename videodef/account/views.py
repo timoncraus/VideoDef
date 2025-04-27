@@ -32,12 +32,12 @@ def account(request):
     else:
         user_form = UserEditForm(instance=user, auth_user=user)
         profile_form = ProfileEditForm(instance=profile, auth_user=user)
-    return render(request, "account/edit-form.html", 
+    return render(request, "account/edit_form.html", 
         {
             'forms': {'user_form': user_form, 'profile_form': profile_form},
             "unique_id": user.unique_id,
             "date_registr": user.date_registr
-            })
+        })
 
 def register_view(request):
     if request.method == 'POST':
@@ -54,7 +54,7 @@ def register_view(request):
             messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         form = RegisterForm()
-    return render(request, 'account/register-form.html', { 'forms': {'register_form': form} })
+    return render(request, 'account/register_form.html', { 'forms': {'register_form': form} })
 
 def login_view(request):
     if request.method == 'POST':
@@ -68,7 +68,7 @@ def login_view(request):
             messages.error(request, 'Неверный логин или пароль')
     else:
         form = LoginForm()
-    return render(request, 'account/login-form.html', { 'forms': {'login_form': form} })
+    return render(request, 'account/login_form.html', { 'forms': {'login_form': form} })
 
 def logout_view(request):
     logout(request)

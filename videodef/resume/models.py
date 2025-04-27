@@ -1,0 +1,64 @@
+from django.db import models
+from account.models import User
+
+
+class ViolationType(models.Model):
+    name = models.CharField(max_length=300)
+
+    class Meta:
+        verbose_name = "Виды нарушений"
+
+    def __str__(self):
+        return self.name
+
+
+class Document(models.Model):
+    photo = models.ImageField(upload_to='documents/')
+    info = models.TextField(verbose_name="Информация")
+    is_verified = models.BooleanField(default=False, verbose_name="Проверено администратором")
+
+    class Meta:
+        verbose_name = "Документ"
+        verbose_name_plural = "Документы"
+
+    def __str__(self):
+        return f"Документ №{self.id} ({'Проверен' if self.is_verified else 'Не проверен'})"
+
+
+class Resume(models.Model):
+    DRAFT = 'draft'
+    ACTIVE = 'active'
+
+    STATUS_CHOICES = [
+        (DRAFT, 'Черновик'),
+        (ACTIVE, 'Активно'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resumes')
+    short_info = models.CharField(max_length=400, verbose_name="Краткая информация")
+    detailed_info = models.TextField(verbose_name="Подробная информация", max_length=5000)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=DRAFT, verbose_name="Статус резюме")
+    document = models.ForeignKey(Document, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Документ")
+    violation_types = models.ManyToManyField(ViolationType, blank=True, verbose_name="Виды нарушений")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Резюме"
+        verbose_name_plural = "Резюме"
+
+    def __str__(self):
+        return f"{self.short_info} ({'Активно' if self.status == self.ACTIVE else 'Черновик'})"
+
+
+class ResumeImage(models.Model):
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='resume_images/')
+
+    class Meta:
+        verbose_name = "Изображение резюме"
+        verbose_name_plural = "Изображения резюме"
+
+    def __str__(self):
+        return f"Изображение для резюме №{self.resume.id}"

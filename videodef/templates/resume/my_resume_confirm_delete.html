@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto py-8 text-center">
+    <h1 class="text-2xl font-bold mb-4">Удалить резюме?</h1>
+    <p class="mb-6">{{ object.short_info }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="bg-red-500   py-2 px-4 rounded mr-2">Удалить</button>
+        <a href="{% url 'my_resumes' %}" class="bg-gray-300 py-2 px-4 rounded">Отмена</a>
+    </form>
+</div>
+{% endblock %}

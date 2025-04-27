@@ -24,10 +24,23 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'videocall' %}"><i class="bi bi-camera-video"></i>Видеозвонок</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'games' %}"><i class="bi bi-controller"></i>Игры</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'chats' %}"><i class="bi bi-chat-left-text"></i>Переписки</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'about' %}"><i class="bi bi-info-circle"></i>О проекте</a></li>
+                    {% if user.is_authenticated %}
+                        {% if request.user.profile.role.name == 'Преподаватель' %}
+                            <li class="nav-item"><a class="nav-link" href="{% url 'my_resumes' %}"><i class="bi bi-file-earmark-text"></i>Мои резюме</a></li>
+                        {% endif %}
+
+                        {% if request.user.profile.role.name == 'Родитель' %}
+                            <li class="nav-item"><a class="nav-link" href=""><i class="bi bi-person-lines-fill"></i>Мои дети</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'public_resume_list' %}"><i class="bi bi-search"></i>Найти преподавателя</a></li>
+                        {% endif %}
+
+                        <!-- Для преподавателя и родителя -->
+                        <li class="nav-item"><a class="nav-link" href=""><i class="bi bi-person-circle"></i>Мои игры</a></li>
+                        <li class="nav-item"><a class="nav-link" href=""><i class="bi bi-person-circle"></i>Расписание</a></li>
+                    {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'account' %}"><i class="bi bi-person-circle"></i>Личный кабинет</a></li>
                 </ul>
             </div>
@@ -40,13 +53,7 @@
 
         <h2 class="display-4 text-center mb-4">{% block page_name %}{% endblock %}</h2>
         
-        {% block content %}
-            <div class="card">
-                <div class="card-body">
-                    <!-- Основной контент страницы -->
-                </div>
-            </div>
-        {% endblock %}
+        {% block content %}{% endblock %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

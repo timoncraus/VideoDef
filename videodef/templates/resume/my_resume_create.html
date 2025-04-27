@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">{% if object %}Редактировать резюме{% else %}Создать резюме{% endif %}</h1>
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {{ images_formset.management_form }}
+        {% for form in images_formset.forms %}
+            {{ form.as_p }}
+        {% endfor %}
+        <button type="submit" class="bg-blue-500   py-2 px-4 rounded">Сохранить</button>
+    </form>
+</div>
+{% endblock %}

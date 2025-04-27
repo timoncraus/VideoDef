@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.conf import settings
-from .models import User, Profile
+from .models import User, Profile, Role, Gender
 from django import forms
 from .auth_backends import CustomAuthBackend
 
@@ -12,8 +12,19 @@ class RegisterForm(UserCreationForm):
     patronymic = forms.CharField(max_length=40, required=False, label="Отчество")
     date_birth = forms.DateField(required=True, label="Дата рождения", 
         widget=forms.DateInput(attrs={'type': 'date'}))
-    role = forms.ChoiceField(choices=Profile.ROLE_CHOICES, required=True, label="Роль", initial="S")
-    gender = forms.ChoiceField(choices=Profile.GENDER_CHOICES, required=True, label="Пол", initial="M")
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(),
+        required=True,
+        label="Роль",
+        empty_label="Выберите роль"
+    )
+
+    gender = forms.ModelChoiceField(
+        queryset=Gender.objects.all(),
+        required=True,
+        label="Пол",
+        empty_label="Выберите пол"
+    )
     photo = forms.ImageField(required=False, label="Фото")
     
     class Meta:

@@ -5,7 +5,6 @@ import random
 import string
 import os
 
-
 CHARACTERS = string.ascii_uppercase + string.digits
 
 
@@ -51,14 +50,29 @@ class UserManager(BaseUserManager):
         return user
 
 
-class ViolationType(models.Model):
-    name = models.CharField(max_length=150)
+from django.db import models
+
+class Role(models.Model):
+    name = models.CharField(max_length=50, verbose_name="Название роли")
 
     class Meta:
-        verbose_name = "Виды нарушений"
+        verbose_name = "Роль"
+        verbose_name_plural = "Роли"
 
     def __str__(self):
         return self.name
+
+
+class Gender(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Название пола")
+
+    class Meta:
+        verbose_name = "Пол"
+        verbose_name_plural = "Пол"
+
+    def __str__(self):
+        return self.name
+
 
 def get_random_filename():
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(32))
@@ -72,32 +86,19 @@ def get_avatar_path(user, filename):
 
 
 class Profile(models.Model):
-    ROLE_PARENT = "S"
-    ROLE_TEACHER = "T"
-    ROLE_CHOICES = [
-        (ROLE_PARENT, "Родитель"),
-        (ROLE_TEACHER, "Учитель")
-    ]
-
-    GENDER_M = "M"
-    GENDER_W = "W"
-    GENDER_CHOICES = [
-        (GENDER_M, "Мужской"),
-        (GENDER_W, "Женский")
-    ]
-
     photo = models.ImageField(upload_to=get_avatar_path, blank=True, verbose_name="Фото")
     first_name = models.CharField(max_length=40, verbose_name="Имя")
     last_name = models.CharField(max_length=40, verbose_name="Фамилия")
     patronymic = models.CharField(max_length=40, blank=True, verbose_name="Отчество")
-    role = models.CharField(max_length=2, choices=ROLE_CHOICES, verbose_name="Роль")
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, verbose_name="Пол")
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, verbose_name="Роль")
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, null=True, verbose_name="Пол")
     date_birth = models.DateField(verbose_name="Дата рождения")
-    violations = models.ManyToManyField(ViolationType)
 
     @property
     def role_display(self):
-        return dict(self.ROLE_CHOICES).get(self.role, "Неизвестно")
+        if self.role:
+            return self.role.name
+        return "Неизвестно"
 
     def __str__(self):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()

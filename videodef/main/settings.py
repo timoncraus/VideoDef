@@ -42,12 +42,14 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'widget_tweaks',
     'channels',
+    'django_filters',
     # наши приложения:
     'main',
     'account',
     'chat',
     'game',
-    'videocall'
+    'videocall',
+    'resume'
 ]
 
 MIDDLEWARE = [
@@ -95,6 +97,10 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
 

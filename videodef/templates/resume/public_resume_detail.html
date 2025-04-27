@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">{{ resume.short_info }}</h1>
+    <div class="mb-4">
+        <p class="text-lg">{{ resume.detailed_info }}</p>
+    </div>
+    {% if resume.images.all %}
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            {% for image in resume.images.all %}
+                <img src="{{ image.image.url }}" class="rounded shadow">
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if resume.document %}
+        <div class="mt-4">
+            <p><strong>Документ:</strong> {{ resume.document.info }} — 
+                {% if resume.document.is_verified %}
+                    <span class="text-green-600">Проверено</span>
+                {% else %}
+                    <span class="text-red-600">Не проверено</span>
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+    <div class="mt-4">
+        <p><strong>Работает с нарушениями:</strong></p>
+        <ul class="list-disc list-inside">
+            {% for violation in resume.violation_types.all %}
+                <li>{{ violation.name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

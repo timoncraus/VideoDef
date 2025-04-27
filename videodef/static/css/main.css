@@ -56,6 +56,20 @@ h1 {
     letter-spacing: 2px;
 }
 
+a {
+    color: #47bb52;
+    text-decoration: underline;
+}
+
+input[type="checkbox"] {
+    transform: scale(2.5);
+    margin-right: 8px;
+}
+
+label {
+    font-size: 16px;
+}
+
 .navbar {
     background-color: #4D8CF2;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
