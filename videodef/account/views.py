@@ -1,3 +1,4 @@
+from django.db import DatabaseError
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from .forms import RegisterForm, LoginForm, UserEditForm, ProfileEditForm
@@ -18,29 +19,39 @@ def account(request):
         user_form = UserEditForm(request.POST, instance=user, auth_user=user)
         profile_form = ProfileEditForm(request.POST, request.FILES, instance=profile, auth_user=user)
         if user_form.is_valid() and profile_form:
-            user = user_form.save()
-            profile = profile_form.save()
-            login(request, user)
-            messages.success(request, 'Данные были изменены!')
-            return redirect('account')
+            try:
+                user = user_form.save()
+                profile = profile_form.save()
+                login(request, user)
+                messages.success(request, 'Данные были изменены!')
+                return redirect('account')
+            except DatabaseError as e:
+                messages.error(request, f"Ошибка при изменении профиля: {str(e)}")
+        else:
+            messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         user_form = UserEditForm(instance=user, auth_user=user)
         profile_form = ProfileEditForm(instance=profile, auth_user=user)
     return render(request, "account/edit-form.html", 
         {
             'forms': {'user_form': user_form, 'profile_form': profile_form},
-            "unique_id":user.unique_id,
-            "date_registr":user.date_registr
+            "unique_id": user.unique_id,
+            "date_registr": user.date_registr
             })
 
 def register_view(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Вы успешно зарегистрировались!')
-            return redirect('home')
+            try:
+                user = form.save()
+                login(request, user)
+                messages.success(request, 'Вы успешно зарегистрировались!')
+                return redirect('home')
+            except DatabaseError as e:
+                messages.error(request, f"Ошибка при сохранении профиля: {str(e)}")
+        else:
+            messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         form = RegisterForm()
     return render(request, 'account/register-form.html', { 'forms': {'register_form': form} })

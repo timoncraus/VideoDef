@@ -8,7 +8,7 @@ body {
 }
 
 header {
-    background-image: url('/static/images/oil_paint.png');
+    background-image: url('/static/images/oil_paint.jpg');
     background-size: cover;
     color: white;
     padding: 40px;
@@ -20,9 +20,9 @@ header {
     padding: 10px 13px;
     background-color: #4D8CF2;
     border-radius: 50%;
-    border: 3px solid #FFA500;
+    border: 5px solid #91e199;
     color: white;
-    font-size: 28px;
+    font-size: 20px;
     font-family: 'Arial', sans-serif;
     text-align: center;
 }
@@ -32,7 +32,7 @@ header {
     padding: 30px 40px;
     background-color: #4D8CF2;
     border-radius: 50%;
-    border: 5px solid #FFA500;
+    border: 5px solid #36653b;
     color: white;
     font-size: 28px;
     font-family: 'Arial', sans-serif;
@@ -47,7 +47,7 @@ header {
     background-color: #9fbcea;
     transform: scale(1.1);
     box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
-    border-color: #FF7F32;
+    border-color: #679f6d;
 }
 
 h1 {
@@ -69,7 +69,7 @@ h1 {
 }
 
 .navbar .nav-link:hover {
-    color: #FFC107 !important;
+    color: #6bf081 !important;
 }
 
 .navbar-toggler-icon {
@@ -147,7 +147,7 @@ h1 {
     bottom: -5px;
     width: 0;
     height: 2px;
-    background-color: #FFC107;
+    background-color: #6bf081;
     transition: width 0.3s ease;
 }
 
