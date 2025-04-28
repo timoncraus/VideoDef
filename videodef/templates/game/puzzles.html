@@ -46,14 +46,19 @@
     </div> -->
 
     <!-- Инициализация переменных и скриптов -->
-    <script>
-        const images = "{% static 'images' %}";
-    </script>
-    <script src="{% static 'js/game/puzzle.bundle.js' %}"></script>
-    <!-- Инициализация игры после загрузки DOM -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            createPuzzleSeparately();
-        });
-    </script>
+    
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    const images = "{% static 'images' %}";
+</script>
+<script src="{% static 'js/game/puzzle.bundle.js' %}"></script>
+<!-- Инициализация игры после загрузки DOM -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        createPuzzleSeparately();
+    });
+</script>
 {% endblock %}

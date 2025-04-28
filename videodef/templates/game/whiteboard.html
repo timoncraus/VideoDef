@@ -42,15 +42,19 @@
             <canvas id="draw-layer" class="canvas-layer" style="z-index: 1;"></canvas>
         </div>
     </div>
-
-    <!-- Панель настроек -->
-    <div class="settings-panel hidden">
-        <h3>Настройки</h3>
-        <button class="panel-button">сохранить холст</button>
-        <button class="panel-button">Загрузить холст</button>
-    </div>
 </div>
+{% endblock %}
 
+{% block horizontal_right %}
+<!-- Панель настроек -->
+<div class="settings-panel hidden">
+    <h3>Настройки</h3>
+    <button class="panel-button">Сохранить холст</button>
+    <button class="panel-button">Загрузить холст</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
     const images = "{% static 'images' %}";
 </script>

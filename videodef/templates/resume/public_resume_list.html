@@ -1,34 +1,37 @@
 {% extends "base.html" %}
 
+{% block horizontal_left %}
+    
+{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto py-8 flex flex-wrap gap-8">
-    <div class="w-full md:w-1/4 px-6">
-        <h1 class="text-3xl font-bold mb-6">Найти преподавателя</h1>
-        <form method="get" class="mb-6">
-            <div>
-                <h2 for="id_violation_types" class="block font-medium mb-2">Виды нарушений:</h2>
-                <div class="space-y-2">
-                    {% for field in filter.form.violation_types %}
-                        <div class="flex items-center">
-                            <input type="checkbox" id="{{ field.id_for_label }}" name="{{ field.name }}" class="mr-2 form-checkbox">
-                            <label for="{{ field.id_for_label }}" class="text-sm">{{ field.choice_label }}</label>
+<div class="container-resume-box">
+
+        <div class="resume-box">
+            <div class="search-teacher-box md:w-1/4 px-6">
+                <h1 class="text-3xl font-bold mb-6">Найти преподавателя</h1>
+                <form method="get" class="mb-6">
+                    <div>
+                        <h2 for="id_violation_types" class="block font-medium mb-2">Виды нарушений:</h2>
+                        <div class="space-y-2">
+                            {% for field in filter.form.violation_types %}
+                                <div class="violation-box">
+                                    {{ field.tag }}
+                                    <label for="{{ field.id_for_label }}" class="text-sm">{{ field.choice_label }}</label>
+                                </div>
+                            {% endfor %}
+        
                         </div>
-                    {% endfor %}
-
-                </div>
+                    </div>
+                    <button type="submit" class="bg-blue-500 py-2 px-4 rounded text-white mt-4 w-full">Применить фильтры</button>
+                </form>
             </div>
-            <button type="submit" class="bg-blue-500 py-2 px-4 rounded text-white mt-4 w-full">Применить фильтры</button>
-        </form>
-    </div>
-
-    <div class="w-full md:w-3/4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {% for resume in resumes %}
-                <div class="p-4 border rounded shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div class="public-resume-display p-4 border rounded shadow-lg hover:shadow-xl transition-shadow duration-300">
                     {% if resume.user.profile.photo %}
-                        <img src="{{ resume.user.profile.photo.url }}" alt="Аватар" class="w-full h-48 object-cover rounded-t-md mb-4">
+                        <img src="{{ resume.user.profile.photo.url }}" alt="Аватар" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
                     {% else %}
-                        <img src="/media/avatars/default.png" class="w-full h-48 object-cover rounded-t-md mb-4">
+                        <img src="/media/avatars/default.png" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
                     {% endif %}
                     <p class="text-gray-500 mb-2">{{ resume.user.profile }}</p>
                     <h2 class="text-xl font-semibold mb-2">{{ resume.short_info }}</h2>
@@ -38,6 +41,6 @@
                 <p>Нет подходящих резюме.</p>
             {% endfor %}
         </div>
-    </div>
+
 </div>
 {% endblock %}

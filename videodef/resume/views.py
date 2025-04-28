@@ -72,11 +72,21 @@ class ResumeFilter(django_filters.FilterSet):
         queryset=ViolationType.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         label="Виды нарушений",
+        method='filter_violation_types',
     )
 
     class Meta:
         model = Resume
         fields = ['violation_types']
+
+    def filter_violation_types(self, queryset, name, value):
+        if not value:
+            return queryset
+
+        for violation_type in value:
+            queryset = queryset.filter(violation_types=violation_type)
+        return queryset
+
 
 
 # Для родителя: поиск преподавателей
@@ -88,6 +98,11 @@ class PublicResumeListView(FilterView):
 
     def get_queryset(self):
         return Resume.objects.filter(status=Resume.ACTIVE)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['selected_violation_types'] = self.request.GET.getlist('violation_types')
+        return context
 
 
 # Для родителя: подробная страничка резюме

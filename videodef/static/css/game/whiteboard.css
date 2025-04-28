@@ -1,12 +1,15 @@
 /* Общий контейнер для доски */
+
 .board-container {
     display: flex;
     justify-content: flex-start;
-    height: 70vh;
+    height: 100vh;
     width: 100%;
 }
 
+
 /* Область для рисования и панели инструментов */
+
 .drawing-area {
     display: flex;
     flex-direction: column;
@@ -15,7 +18,9 @@
     overflow: hidden;
 }
 
+
 /* Холст для рисования */
+
 .canvas-wrapper {
     position: relative;
     height: calc(100% - 115px);
@@ -45,7 +50,9 @@ canvas {
     cursor: crosshair;
 }
 
+
 /* Панель инструментов */
+
 .toolbar {
     display: flex;
     gap: 10px;
@@ -176,12 +183,14 @@ canvas {
     display: block;
 }
 
+
 /* Панель настроек */
+
 .settings-panel {
     position: relative;
     top: 0;
     right: 0;
-    width: 250px;
+    width: 500px;
     height: 100%;
     background-color: #f9f9f9;
     border-left: 1px solid #ccc;
@@ -221,7 +230,9 @@ canvas {
     background-color: #3498db;
 }
 
+
 /* Добавленные игры и дополнительные элементы */
+
 .paste-game-wrapper {
     position: absolute;
     border: 2px solid #ccc;

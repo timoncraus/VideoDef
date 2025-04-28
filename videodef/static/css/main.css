@@ -61,15 +61,6 @@ a {
     text-decoration: underline;
 }
 
-input[type="checkbox"] {
-    transform: scale(2.5);
-    margin-right: 8px;
-}
-
-label {
-    font-size: 16px;
-}
-
 .navbar {
     background-color: #4D8CF2;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -92,6 +83,11 @@ label {
 
 .container {
     margin-top: 30px;
+}
+
+.horizontal-container {
+    display: flex;
+    justify-content: flex-start;
 }
 
 .btn-primary {
@@ -238,4 +234,43 @@ button:hover {
 .non_field_errors li {
     color: #c62828;
     font-weight: bold;
+}
+
+.violation-box {
+    display: grid;
+    grid-template-columns: 20% 80%;
+}
+
+input[type="checkbox"] {
+    height: 40px;
+    width: 80px;
+    margin: 5px 10px;
+}
+
+.text-sm {
+    font-size: 16px;
+}
+
+.container-resume-box {
+    display: flex;
+    justify-content: center;
+}
+
+.resume-box {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+    text-align: center;
+}
+
+.public-resume-display {}
+
+.resume-avatar {
+    height: 200px;
+}
+
+.search-teacher-box {
+    text-align: left;
+    max-width: 600px;
+    margin: 25px;
 }

@@ -322,24 +322,24 @@ function addGamePasteGame() {
     gameWrapper.addEventListener('click', (e) => {
         if (!e.target.closest('.paste-game-close') && !e.target.classList.contains('resize-handle')) {
             const gameName = gameWrapper.dataset.gameName;
-    
+
             // Сбрасываем флаг для всех остальных gameWrapper
             document.querySelectorAll('.paste-game-wrapper').forEach(wrapper => {
                 if (wrapper !== gameWrapper) {
-                    wrapper.dataset.settingsUpdated = 'false';  // Сбрасываем флаг для других игр
+                    wrapper.dataset.settingsUpdated = 'false'; // Сбрасываем флаг для других игр
                 }
             });
-    
+
             // Проверка, был ли уже обновлен набор настроек для этой игры
             if (gameName && gameWrapper.dataset.settingsUpdated !== 'true') {
                 updateGameSettings(gameName);
-                gameWrapper.dataset.settingsUpdated = 'true';  // Устанавливаем флаг, что настройки обновлены
+                gameWrapper.dataset.settingsUpdated = 'true'; // Устанавливаем флаг, что настройки обновлены
             }
-    
+
             document.querySelectorAll('.paste-game-wrapper').forEach(wrapper => {
                 wrapper.classList.remove('active-game');
             });
-    
+
             gameWrapper.classList.add('active-game');
         }
     });
@@ -422,8 +422,8 @@ function makeResizable(gameWrapper) {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
-        const newWidth = Math.max(400, startWidth + dx);
-        const newHeight = Math.max(300, startHeight + dy);
+        const newWidth = Math.max(200, startWidth + dx);
+        const newHeight = Math.max(150, startHeight + dy);
 
         gameWrapper.style.width = `${newWidth}px`;
         gameWrapper.style.height = `${newHeight}px`;
@@ -445,7 +445,7 @@ const settingsPanel = document.querySelector('.settings-panel');
 // Открытие/Скрытие настроек
 toggleButton.addEventListener('click', () => {
     settingsPanel.classList.toggle('hidden');
-    
+
     if (settingsPanel.classList.contains('hidden')) {
         toggleButton.textContent = 'Открыть настройки';
     } else {
@@ -509,8 +509,5 @@ function updateGameSettings(gameName) {
 
         // Добавляем в панель настроек
         settingsPanel.appendChild(settingsContainer);
-    }
-
-    else if (gameName === "another-game") {
-    }
+    } else if (gameName === "another-game") {}
 }
