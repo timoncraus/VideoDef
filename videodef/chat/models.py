@@ -9,6 +9,10 @@ class SmallChat(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = "Чат"
+        verbose_name_plural = "Чаты"
 
 
 class Message(models.Model):
@@ -19,3 +23,7 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender.username}: {self.content[:20]}"
+    
+    class Meta:
+        verbose_name = "Сообщение"
+        verbose_name_plural = "Сообщения"

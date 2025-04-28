@@ -6,7 +6,8 @@ class ViolationType(models.Model):
     name = models.CharField(max_length=300)
 
     class Meta:
-        verbose_name = "Виды нарушений"
+        verbose_name = "Вид нарушений"
+        verbose_name_plural = "Виды нарушений"
 
     def __str__(self):
         return self.name

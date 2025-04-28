@@ -102,6 +102,10 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()
+    
+    class Meta:
+        verbose_name = "Профиль"
+        verbose_name_plural = "Профили"
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -115,6 +119,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_registr = models.DateTimeField(auto_now_add=True, verbose_name="Дата регистрации")
     last_seen = models.DateTimeField(auto_now=True, verbose_name="Последний раз в сети")
     profile = models.OneToOneField(Profile, null=True, blank=True, on_delete=models.CASCADE, related_name="user", verbose_name="Профиль")
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
 
     objects = UserManager()
 
@@ -132,3 +138,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.unique_id:
             self.unique_id = self.generate_unique_id()
         super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
