@@ -1,3 +1,4 @@
+/* Основной контейнер для пазла */
 .puzzle-wrapper {
     width: 400px;
     height: 300px;
@@ -5,6 +6,7 @@
     margin: 0 auto;
 }
 
+/* Контейнер для элементов пазла */
 .puzzle-container { 
     width: 85%;
     height: 85%;
@@ -15,6 +17,7 @@
     overflow: hidden;
 }
 
+/* Стили для отдельного элемента пазла */
 .puzzle-piece {
     width: 100px;
     height: 100px;
@@ -27,15 +30,18 @@
     border-radius: 4px;
 }
 
+/* Эффекты при наведении на элемент */
 .puzzle-piece:hover {
     box-shadow: 0 0 8px #0295c7;
 }
 
+/* Стиль для выбранного элемента */
 .puzzle-piece.selected {
     border: 2px solid #005f7f;
     box-shadow: 0 0 12px #005f7f;
 }
 
+/* Сообщение о победе */
 #game-message {
     font-size: 1.5em;
     color: #4CAF50;
@@ -46,7 +52,7 @@
     margin-top: 20px;
 }
 
-/* Стартовое окно */
+/* Стили модального окна */
 .modal {
     position: fixed;
     top: 0;
@@ -60,6 +66,7 @@
     z-index: 1000;
 }
 
+/* Контент модального окна */
 .modal-content {
     background: white;
     padding: 30px;
@@ -69,6 +76,7 @@
     width: 90%;
 }
 
+/* Контейнер для пресетов изображений */
 .preset-images {
     display: flex;
     justify-content: center;
@@ -80,6 +88,7 @@
     padding: 10px 0;
 }
 
+/* Стили для пресетов изображений */
 .preset {
     width: 80px;
     height: 80px;
@@ -90,6 +99,7 @@
     transition: border 0.2s, transform 0.2s;
 }
 
+/* Эффекты для пресетов */
 .preset:hover {
     border-color: #00bfff;
     transform: scale(1.05);
@@ -101,18 +111,21 @@
     box-shadow: 0 0 10px #005f7f;
 }
 
+/* Стили для кнопки загрузки */
 .upload-label {
     display: block;
     margin: 15px 0;
     font-weight: bold;
 }
 
+/* Стили выпадающего списка сложности */
 #difficulty {
     margin: 15px 0;
     padding: 8px;
     font-size: 16px;
 }
 
+/* Стили кнопки начала игры */
 #start-game {
     padding: 10px 20px;
     font-size: 1em;

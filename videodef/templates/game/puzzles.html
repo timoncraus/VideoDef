@@ -6,20 +6,24 @@
 {% block page_name %}Пазлы{% endblock %}
 
 {% block content %}
+<!-- Модальное окно настроек -->
     <div id="start-modal" class="modal">
         <div class="modal-content">
             <h2>Выберите изображение для пазла</h2>
 
+            <!-- Пресеты изображений -->
             <div class="preset-images">
                 <img src="{% static 'images/puzzle_test.png' %}" class="preset" data-src="{% static 'images/puzzle_test.png' %}">
                 <img src="{% static 'images/masha-i-medvedi.png' %}" class="preset" data-src="{% static 'images/masha-i-medvedi.png' %}">
             </div>
 
+            <!-- Загрузка пользовательского изображения -->
             <label class="upload-label">
                 Загрузить своё:
                 <input type="file" id="custom-image" accept="image/*">
             </label>
 
+            <!-- Выбор сложности пазла -->
             <label for="difficulty">Выберите сложность:</label>
             <select id="difficulty">
                 <option value="2" selected>2x2</option>
@@ -41,10 +45,12 @@
         Поздравляем! Вы собрали пазл!
     </div> -->
 
+    <!-- Инициализация переменных и скриптов -->
     <script>
         const images = "{% static 'images' %}";
     </script>
     <script src="{% static 'js/game/puzzle.bundle.js' %}"></script>
+    <!-- Инициализация игры после загрузки DOM -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             createPuzzleSeparately();
