@@ -1,33 +1,42 @@
 import { createPuzzleOnBoard, puzzleParams } from './puzzle/index.js';
 
+// Активация режима работы на интерактивной доске
 puzzleParams.onWhiteboard = true;
 
+// Получение ссылок на элементы canvas
 const imageCanvas = document.getElementById('image-layer');
 const drawCanvas = document.getElementById('draw-layer');
 
+// Контексты рисования
 const imageCtx = imageCanvas.getContext('2d');
 const drawCtx = drawCanvas.getContext('2d');
 
-let drawing = false;
-let prev = {};
-let images = [];
-let activeImage = null;
-let dragOffset = { x: 0, y: 0 };
-let isResizing = false;
-let isDragging = false;
-let currentTool = 'pen';
-let currentLineWidth = 2;
-let currentColor = '#000000';
+// Состояние приложения
+let drawing = false; // Флаг процесса рисования
+let prev = {}; // Предыдущие координаты курсора
+let imagesList = []; // Список загруженных изображений
+let activeImage = null; // Активное изображение для перемещения
+let dragOffset = { x: 0, y: 0 }; // Смещение при перетаскивании
+let isResizing = false; // Флаг изменения размера
+let isDragging = false; // Флаг перетаскивания
+let currentTool = 'pen'; // Текущий инструмент
+let currentLineWidth = 2; // Толщина линии
+let currentColor = '#000000'; // Цвет по умолчанию
 
+// Инициализация WebSocket соединения
 const ws = new WebSocket(`ws://${window.location.host}/ws/whiteboard/`);
+
+// Обработчик входящих сообщений
 ws.onmessage = (e) => {
     const data = JSON.parse(e.data);
 
+    // Обработка рисования
     if (data.type === "draw") {
         const { x0, y0, x1, y1, color, lineWidth } = data;
         drawLine(drawCtx, x0, y0, x1, y1, color, lineWidth);
     }
 
+    // Обработка загрузки изображений
     if (data.type === 'image') {
         const img = new Image();
         img.onload = () => {
@@ -38,20 +47,21 @@ ws.onmessage = (e) => {
                 width: 200,
                 height: 200
             };
-            images.push(imageObj);
+            imagesList.push(imageObj);
             redrawImages();
         };
         img.src = data.dataURL;
     }
 
+    // Обработка очистки доски
     if (data.type === 'clear') {
         drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
         imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-        images = [];
+        imagesList = [];
     }
 };
 
-
+// Инициализация инструментов
 document.getElementById('pen_btn').addEventListener('click', () => {
     currentTool = 'pen';
     toggleToolButtons('pen_btn');
@@ -60,6 +70,8 @@ document.getElementById('eraser_btn').addEventListener('click', () => {
     currentTool = 'eraser';
     toggleToolButtons('eraser_btn');
 });
+
+// Обработчики параметров рисования
 document.getElementById('colorPicker').addEventListener('input', (e) => {
     currentColor = e.target.value;
 });
@@ -67,11 +79,17 @@ document.getElementById('thickness').addEventListener('input', (e) => {
     currentLineWidth = parseInt(e.target.value);
 });
 
+/**
+ * Управляет визуальной активностью кнопок инструментов.
+ * Убирает класс 'active' со всех кнопок и добавляет его выбранной кнопке.
+ * @param {string} activeId - ID активной кнопки инструмента
+ */
 function toggleToolButtons(activeId) {
     document.querySelectorAll('.tool').forEach(btn => btn.classList.remove('active'));
     document.getElementById(activeId).classList.add('active');
 }
 
+// Обработчики событий мыши
 drawCanvas.addEventListener('mousedown', (e) => {
     const { offsetX: x, offsetY: y } = e;
     activeImage = getImageAt(x, y);
@@ -126,6 +144,17 @@ drawCanvas.addEventListener('mousemove', (e) => {
     }
 });
 
+
+/**
+ * Рисует линию на заданном контексте.
+ * @param {CanvasRenderingContext2D} ctx - Контекст рисования
+ * @param {number} x0 - Начальная координата X
+ * @param {number} y0 - Начальная координата Y
+ * @param {number} x1 - Конечная координата X
+ * @param {number} y1 - Конечная координата Y
+ * @param {string} color - Цвет линии
+ * @param {number} lineWidth - Толщина линии
+ */
 function drawLine(ctx, x0, y0, x1, y1, color, lineWidth) {
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
@@ -137,6 +166,7 @@ function drawLine(ctx, x0, y0, x1, y1, color, lineWidth) {
     ctx.stroke();
 }
 
+// Загрузка пользовательских изображений
 document.getElementById('img-upload').addEventListener('change', function() {
     const file = this.files[0];
     if (!file) return;
@@ -149,6 +179,9 @@ document.getElementById('img-upload').addEventListener('change', function() {
     reader.readAsDataURL(file);
 });
 
+/**
+ * Очищает доску и сбрасывает загруженные изображения.
+ */
 function clearBoard() {
     ws.send(JSON.stringify({ type: 'clear' }));
     document.getElementById('img-upload').value = '';
@@ -158,17 +191,21 @@ document.querySelector("#clear_btn").addEventListener("click", () => {
     clearBoard();
 });
 
+/**
+ * Перерисовывает все изображения на слое изображений и отображает маркеры изменения размера.
+ */
 function redrawImages() {
     imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-    images.forEach(imgObj => {
+    imagesList.forEach(imgObj => {
         imageCtx.drawImage(imgObj.img, imgObj.x, imgObj.y, imgObj.width, imgObj.height);
         drawResizeHandle(imageCtx, imgObj);
     });
 }
 
+// Вспомогательные функции
 function getImageAt(x, y) {
-    for (let i = images.length - 1; i >= 0; i--) {
-        const img = images[i];
+    for (let i = imagesList.length - 1; i >= 0; i--) {
+        const img = imagesList[i];
         if (x >= img.x && x <= img.x + img.width &&
             y >= img.y && y <= img.y + img.height) {
             return img;
@@ -191,6 +228,9 @@ function overResizeHandle(x, y, imgObj) {
         y <= imgObj.y + imgObj.height;
 }
 
+/**
+ * Адаптирует размер холста (canvas) под размеры родительского контейнера.
+ */
 function resizeCanvasToDisplaySize() {
     const wrapper = imageCanvas.parentElement;
     const width = wrapper.clientWidth;
@@ -208,6 +248,7 @@ window.addEventListener('load', resizeCanvasToDisplaySize);
 window.addEventListener('resize', resizeCanvasToDisplaySize);
 
 
+// Инициализация меню игр
 const dropdown = document.getElementById("game-menu");
 const gamesBtn = document.getElementById("games_btn");
 const gameMenu = document.getElementById("game-menu");
@@ -221,6 +262,9 @@ window.addEventListener("resize", () => {
     updategameMenuPos();
 })
 
+/**
+ * Обновляет позицию выпадающего меню игр относительно кнопки.
+ */
 function updategameMenuPos() {
     const rect = gamesBtn.getBoundingClientRect();
     gameMenu.style.top = `${rect.bottom + window.scrollY}px`;
@@ -237,13 +281,22 @@ document.querySelectorAll(".game-option").forEach(option => {
     option.addEventListener("click", () => {
         const gameName = option.dataset.name;
         const gameWrapper = addGamePasteGame();
+        gameWrapper.dataset.gameName = gameName;
+
+        updateGameSettings(gameName);
+
         if (gameName === "puzzles") {
             createPuzzleOnBoard(gameWrapper);
         }
         dropdown.classList.remove("show");
+
     });
 });
 
+/**
+ * Создает и добавляет контейнер для вставляемой игры на доску.
+ * @returns {HTMLDivElement} gameWrapper - созданный контейнер игры
+ */
 function addGamePasteGame() {
     const gameWrapper = document.createElement('div');
     gameWrapper.className = 'paste-game-wrapper';
@@ -256,16 +309,50 @@ function addGamePasteGame() {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'paste-game-close';
     closeBtn.textContent = '×';
-    closeBtn.onclick = () => gameWrapper.remove();
+    closeBtn.onclick = () => {
+        clearDynamicSettings()
+        gameWrapper.remove()
+    };
 
     gameWrapper.appendChild(closeBtn);
     document.querySelector('.canvas-wrapper').appendChild(gameWrapper);
     makeDraggable(gameWrapper);
+    makeResizable(gameWrapper);
+
+    gameWrapper.addEventListener('click', (e) => {
+        if (!e.target.closest('.paste-game-close') && !e.target.classList.contains('resize-handle')) {
+            const gameName = gameWrapper.dataset.gameName;
+    
+            // Сбрасываем флаг для всех остальных gameWrapper
+            document.querySelectorAll('.paste-game-wrapper').forEach(wrapper => {
+                if (wrapper !== gameWrapper) {
+                    wrapper.dataset.settingsUpdated = 'false';  // Сбрасываем флаг для других игр
+                }
+            });
+    
+            // Проверка, был ли уже обновлен набор настроек для этой игры
+            if (gameName && gameWrapper.dataset.settingsUpdated !== 'true') {
+                updateGameSettings(gameName);
+                gameWrapper.dataset.settingsUpdated = 'true';  // Устанавливаем флаг, что настройки обновлены
+            }
+    
+            document.querySelectorAll('.paste-game-wrapper').forEach(wrapper => {
+                wrapper.classList.remove('active-game');
+            });
+    
+            gameWrapper.classList.add('active-game');
+        }
+    });
+
     return gameWrapper;
 }
 
 let someonesDragging = false;
 
+/**
+ * Делает контейнер игры перетаскиваемым.
+ * @param {HTMLDivElement} gameWrapper - Контейнер игры
+ */
 function makeDraggable(gameWrapper) {
     gameWrapper.isDragging = false;
     gameWrapper.offsetX = 0;
@@ -301,4 +388,129 @@ function makeDraggable(gameWrapper) {
             document.body.style.userSelect = '';
         }
     });
+}
+
+/**
+ * Делает контейнер игры изменяемым по размеру.
+ * @param {HTMLDivElement} gameWrapper - Контейнер игры
+ */
+function makeResizable(gameWrapper) {
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'resize-handle';
+    gameWrapper.appendChild(resizeHandle);
+
+    gameWrapper.isResizing = false;
+    let startX, startY, startWidth, startHeight;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+        e.stopPropagation(); // чтобы drag и resize не конфликтовали
+        gameWrapper.isResizing = true;
+        someonesDragging = true;
+
+        const rect = gameWrapper.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = rect.width;
+        startHeight = rect.height;
+
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!gameWrapper.isResizing) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        const newWidth = Math.max(400, startWidth + dx);
+        const newHeight = Math.max(300, startHeight + dy);
+
+        gameWrapper.style.width = `${newWidth}px`;
+        gameWrapper.style.height = `${newHeight}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (gameWrapper.isResizing) {
+            gameWrapper.isResizing = false;
+            someonesDragging = false;
+            document.body.style.userSelect = '';
+        }
+    });
+}
+
+// Панель настроек
+const toggleButton = document.getElementById('toggle-settings-btn');
+const settingsPanel = document.querySelector('.settings-panel');
+
+// Открытие/Скрытие настроек
+toggleButton.addEventListener('click', () => {
+    settingsPanel.classList.toggle('hidden');
+    
+    if (settingsPanel.classList.contains('hidden')) {
+        toggleButton.textContent = 'Открыть настройки';
+    } else {
+        toggleButton.textContent = 'Закрыть настройки';
+    }
+});
+
+/**
+ * Удаляет все динамически созданные элементы настроек игр.
+ */
+function clearDynamicSettings() {
+    const dynamicElements = settingsPanel.querySelectorAll('.dynamic-setting');
+    dynamicElements.forEach(el => el.remove());
+}
+
+/**
+ * Обновляет панель настроек в зависимости от выбранной игры.
+ * @param {string} gameName - Название выбранной игры
+ */
+function updateGameSettings(gameName) {
+    clearDynamicSettings();
+
+    if (gameName === "puzzles") {
+        // Очищаем существующие настройки для пазлов, если они были добавлены ранее
+        const existingSettings = document.querySelector('.puzzle-settings-container');
+        if (existingSettings) {
+            existingSettings.remove();
+        }
+
+        const settingsContainer = document.createElement('div');
+        settingsContainer.className = "dynamic-setting puzzle-settings-container"; // Контейнер для настроек пазлов
+
+        // Содержимое для выбора изображения и сложности
+        const content = `
+            <div class="modal-content">
+                <h2>Выберите изображение для пазла</h2>
+
+                <div class="preset-images">
+                    <img src="${images}/puzzle_test.png" class="preset" data-src="${images}/puzzle_test.png">
+                    <img src="${images}/masha-i-medvedi.png" class="preset" data-src="${images}/masha-i-medvedi.png">
+                </div>
+
+                <label class="upload-label">
+                    Загрузить своё:
+                    <input type="file" id="custom-image" accept="image/*">
+                </label>
+
+                <label for="difficulty">Выберите сложность:</label>
+                <select id="difficulty">
+                    <option value="2" selected>2x2</option>
+                    <option value="3">3x3</option>
+                    <option value="4">4x4</option>
+                </select>
+
+                <button id="start-game">Начать игру</button>
+            </div>
+        `;
+
+        // Вставляем содержимое в контейнер
+        settingsContainer.innerHTML = content;
+
+        // Добавляем в панель настроек
+        settingsPanel.appendChild(settingsContainer);
+    }
+
+    else if (gameName === "another-game") {
+    }
 }

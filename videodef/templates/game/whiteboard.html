@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} 
 {% load static %}
 {% block style %}
 <link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
@@ -8,34 +8,47 @@
 {% block page_name %}Интерактивная доска{% endblock %}
 
 {% block content %}
-<div class="toolbar">
-    <button id="pen_btn" class="tool active">✏️ Кисть</button>
-    <button id="eraser_btn" class="tool">🧽 Ластик</button>
+<div class="board-container">
+    <div class="drawing-area">
+        <!-- Панель инструментов -->
+        <div class="toolbar">
+            <button id="pen_btn" class="tool active">✏️ Кисть</button>
+            <button id="eraser_btn" class="tool">🧽 Ластик</button>
 
-    <label for="colorPicker">Цвет:</label>
-    <input type="color" id="colorPicker" value="#000000">
+            <label for="colorPicker">Цвет:</label>
+            <input type="color" id="colorPicker" value="#000000">
 
-    <label for="thickness">Толщина:</label>
-    <input type="range" id="thickness" min="1" max="20" value="2">
+            <label for="thickness">Толщина:</label>
+            <input type="range" id="thickness" min="1" max="20" value="2">
 
-    <div class="dropdown">
-        <button id="games_btn" class="tool">🎮 Игры ▼</button>
+            <div class="dropdown">
+                <button id="games_btn" class="tool">🎮 Игры ▼</button>
+            </div>
+            <div class="dropdown-content" id="game-menu">
+                <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
+                <div class="game-option" data-name="cut-images">✂️ Разрезные картинки</div>
+                <div class="game-option" data-name="grid-draw">📐 Дорисовать по клеточкам</div>
+            </div>
+
+            <button id="toggle-settings-btn">Открыть настройки</button>
+
+            <input type="file" id="img-upload" title="Загрузить изображение">
+            <button id="clear_btn">🗑️ Очистить холст</button>
+        </div>
+
+        <!-- Холст для рисования -->
+        <div class="canvas-wrapper">
+            <canvas id="image-layer" class="canvas-layer" style="z-index: 0;"></canvas>
+            <canvas id="draw-layer" class="canvas-layer" style="z-index: 1;"></canvas>
+        </div>
     </div>
-    <div class="dropdown-content" id="game-menu">
-        <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
-        <div class="game-option" data-name="cut-images">✂️ Разрезные картинки</div>
-        <div class="game-option" data-name="grid-draw">📐 Дорисовать по клеточкам</div>
+
+    <!-- Панель настроек -->
+    <div class="settings-panel hidden">
+        <h3>Настройки</h3>
+        <button class="panel-button">сохранить холст</button>
+        <button class="panel-button">Загрузить холст</button>
     </div>
-    
-
-    <input type="file" id="img-upload" title="Загрузить изображение">
-    <button id="clear_btn">🗑️ Очистить холст</button>
-
-</div>
-
-<div class="canvas-wrapper">
-    <canvas id="image-layer" class="canvas-layer" style="z-index: 0;"></canvas>
-    <canvas id="draw-layer" class="canvas-layer" style="z-index: 1;"></canvas>
 </div>
 
 <script>
