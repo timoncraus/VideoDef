@@ -139,8 +139,8 @@ function handlePieceClick(puzzleContainer, puzzleParams, piece, message) {
 
 // Перемещение элементов пазла
 function swapPieces(puzzleContainer, puzzleParams, p1, p2) {
-    const i1 = Array.from(document.querySelectorAll('.puzzle-piece')).indexOf(p1);
-    const i2 = Array.from(document.querySelectorAll('.puzzle-piece')).indexOf(p2);
+    const i1 = Array.from(puzzleContainer.querySelectorAll('.puzzle-piece')).indexOf(p1);
+    const i2 = Array.from(puzzleContainer.querySelectorAll('.puzzle-piece')).indexOf(p2);
     [puzzleParams.piecePositions[i1], puzzleParams.piecePositions[i2]] = [puzzleParams.piecePositions[i2], puzzleParams.piecePositions[i1]];
     placePieces(puzzleContainer, puzzleParams);
 }
@@ -158,9 +158,6 @@ function createGameMessage() {
     const message = document.createElement('div');
     message.id = 'game-message';
     message.style.display = 'none';
-    message.style.textAlign = 'center';
-    message.style.fontSize = '1.5em';
-    message.style.marginTop = '20px';
     message.textContent = 'Поздравляем! Вы собрали пазл!';
     return message;
 }

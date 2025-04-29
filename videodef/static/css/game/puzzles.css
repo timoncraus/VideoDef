@@ -1,9 +1,20 @@
-/* Основной контейнер для пазла */
+/* Общий контейнер страницы */
+.puzzle-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 40px;
+}
+
+/* Обёртка пазла */
 .puzzle-wrapper {
-    width: 400px;
-    height: 300px;
+    width: 600px;
+    height: 600px;
+    background: white;
+    border: 3px solid #ccc;
+    border-radius: 10px;
     position: relative;
-    margin: 0 auto;
 }
 
 /* Контейнер для элементов пазла */
@@ -44,36 +55,35 @@
 /* Сообщение о победе */
 #game-message {
     font-size: 1.5em;
+    text-align: center;
     color: #4CAF50;
     background-color: #e8f5e9;
-    padding: 20px;
+    padding: 15px;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin-top: 20px;
 }
 
-/* Стили модального окна */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+/* Панель настроек */
+.puzzles-settings {
+    width: 35%;
+    height: 600px;
+    background: white;
+    border: 3px solid #005f7f;
+    border-radius: 10px;
+    padding: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    overflow-y: auto;
 }
 
 /* Контент модального окна */
 .modal-content {
     background: white;
-    padding: 30px;
+    padding: 15px;
     border-radius: 10px;
     text-align: center;
     max-width: 500px;
-    width: 90%;
+    width: 100%;
 }
 
 /* Контейнер для пресетов изображений */
@@ -86,6 +96,7 @@
     gap: 10px;
     margin: 15px 0;
     padding: 10px 0;
+    overflow-x: scroll;
 }
 
 /* Стили для пресетов изображений */

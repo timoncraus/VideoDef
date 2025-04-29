@@ -6,8 +6,14 @@
 {% block page_name %}Пазлы{% endblock %}
 
 {% block content %}
-<!-- Модальное окно настроек -->
-    <div id="start-modal" class="modal">
+<div class="puzzle-page-wrapper">
+    <!-- Левая часть: доска с пазлом -->
+    <div id="puzzle-wrapper" class="puzzle-wrapper">
+        <!--Здесь скрипт вставит пазл-->
+    </div>
+
+    <!-- Окно настроек -->
+    <div id="puzzles-settings" class="puzzles-settings">
         <div class="modal-content">
             <h2>Выберите изображение для пазла</h2>
 
@@ -34,6 +40,7 @@
             <button id="start-game">Начать игру</button>
         </div>
     </div>
+</div>
 
     <!-- <div class="puzzle-container">
         {% for i in "123456789" %}
