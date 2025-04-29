@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-2xl mx-auto py-8">
+<div class="max-w-2xl mx-auto py-8 resume-create-box">
     <h1 class="text-3xl font-bold mb-6">{% if object %}Редактировать резюме{% else %}Создать резюме{% endif %}</h1>
     <form method="post" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}

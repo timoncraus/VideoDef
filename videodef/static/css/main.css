@@ -236,12 +236,41 @@ button:hover {
     font-weight: bold;
 }
 
+.back-button {
+    display: inline-block;
+    top: 20px;
+    left: 20px;
+    background-color: #ccc;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 1000;
+    height: 50px;
+    width: 50px;
+}
+
+.back-button:hover {
+    background-color: #e4e4e4;
+}
+
 .violation-box {
     display: grid;
     grid-template-columns: 20% 80%;
 }
 
-input[type="checkbox"] {
+.violation-box input[type="checkbox"] {
+    height: 40px;
+    width: 80px;
+    margin: 5px 10px;
+}
+
+.resume-create-box input[type="checkbox"] {
     height: 40px;
     width: 80px;
     margin: 5px 10px;

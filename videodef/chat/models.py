@@ -3,12 +3,11 @@ from account.models import User
 
 
 class SmallChat(models.Model):
-    name = models.CharField(max_length=255)
     user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='smallchat_user1_set')
     user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='smallchat_user2_set')
 
     def __str__(self):
-        return self.name
+        return f"Чат между пользователями {user1} и {user2}"
     
     class Meta:
         verbose_name = "Чат"

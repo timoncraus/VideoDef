@@ -484,8 +484,8 @@ function updateGameSettings(gameName) {
                 <h2>Выберите изображение для пазла</h2>
 
                 <div class="preset-images">
-                    <img src="${images}/puzzle_test.png" class="preset" data-src="${images}/puzzle_test.png">
-                    <img src="${images}/masha-i-medvedi.png" class="preset" data-src="${images}/masha-i-medvedi.png">
+                    <img src="${images}/british-cat.jpg" class="preset" data-src="${images}/british-cat.jpg">
+                    <img src="${images}/tree.png" class="preset" data-src="${images}/tree.png">
                 </div>
 
                 <label class="upload-label">

@@ -38,6 +38,7 @@ account_patterns = [
 chat_patterns = [
     path('', chat_views.chats, name='chats'),
     path('<int:chat_id>/', chat_views.chat_room, name='chat_room'),
+    path('get/<str:user1_id>/<str:user2_id>/', chat_views.get_chat, name='get_chat'),
 ]
 
 
