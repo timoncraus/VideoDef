@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.utils.timezone import now
 from .models import SmallChat, Message
@@ -21,8 +22,13 @@ def chats(request):
     return render(request, 'chat/chats.html', {'chats_info': chats_info})
 
 def chat_room(request, chat_id):
-    chat = SmallChat.objects.get(id=chat_id)
+    chat = get_object_or_404(SmallChat, id=chat_id)
+    
+    if request.user != chat.user1 and request.user != chat.user2:
+        return HttpResponseForbidden("Вы не участник этого чата.")
+
     return render(request, 'chat/chat_room.html', {'chat': chat, 'curr_date': now()})
+
 
 def get_chat(request, user1_id, user2_id):
     if user1_id == user2_id:

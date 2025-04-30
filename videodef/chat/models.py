@@ -7,7 +7,7 @@ class SmallChat(models.Model):
     user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='smallchat_user2_set')
 
     def __str__(self):
-        return f"Чат между пользователями {user1} и {user2}"
+        return f"Чат между пользователями {self.user1} и {self.user2}"
     
     class Meta:
         verbose_name = "Чат"

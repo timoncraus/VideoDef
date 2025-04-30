@@ -1,7 +1,9 @@
 from django.db import DatabaseError
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from .forms import RegisterForm, LoginForm, UserEditForm, ProfileEditForm
+from .models import User
+from resume.models import Resume
 from django.contrib import messages
 
 def home(request):
@@ -38,6 +40,11 @@ def account(request):
             "unique_id": user.unique_id,
             "date_registr": user.date_registr
         })
+
+def view_other_user(request, user_id):
+    user_info = get_object_or_404(User, unique_id=user_id)
+    resumes = Resume.objects.filter(status=Resume.ACTIVE, user=user_info)
+    return render(request, 'account/user_view.html', {'user_info': user_info, 'resumes': resumes})
 
 def register_view(request):
     if request.method == 'POST':

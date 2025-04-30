@@ -33,6 +33,7 @@ account_patterns = [
     path("register/", account_views.register_view, name="register"),
     path("login/", account_views.login_view, name="login"),
     path("logout/", account_views.logout_view, name="logout"),
+    path('view/<str:user_id>/', account_views.view_other_user, name='view_other_user'),
 ]
 
 chat_patterns = [

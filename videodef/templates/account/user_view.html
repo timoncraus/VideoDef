@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block page_name %}Профиль пользователя{% endblock %}
+{% block content %}
+    <h2>{{ user_info.profile }}</h2>
+    <div class="mb-3 mt-3">
+        {% if user_info.profile.photo %}
+            <img src="{{ user_info.profile.photo.url }}" style="width:150px;height:150px;">
+        {% else %}
+            <img src="/media/avatars/default.png">
+        {% endif %}
+    </div>
+
+    <a href="{% url 'get_chat' user_info.unique_id request.user.unique_id %}">Написать в чат</a>
+
+    <p><strong>ID:</strong> {{ user_info.unique_id }}</p>
+    <p><strong>Дата регистрации:</strong> {{ user_info.date_registr|date:"d.m.Y" }}</p>
+    <p><strong>Логин:</strong> {{ user_info.username }}</p>
+    <p><strong>Email:</strong> {{ user_info.email }}</p>
+    <p><strong>Телефон:</strong> {{ user_info.phone_number }}</p>
+
+    <p><strong>Имя:</strong> {{ user_info.profile.first_name }}</p>
+    <p><strong>Фамилия:</strong> {{ user_info.profile.last_name }}</p>
+    <p><strong>Отчество:</strong> {{ user_info.profile.patronymic }}</p>
+    <p><strong>Дата рождения:</strong> {{ user_info.profile.date_birth|date:"d.m.Y" }}</p>
+    <p><strong>Роль:</strong> {{ user_info.profile.role }}</p>
+    <p><strong>Пол:</strong> {{ user_info.profile.gender }}</p>
+
+    <p><strong>Активные резюме:</strong></p>
+    <div class="mt-6 space-y-4">
+        {% for resume in resumes %}
+            <div class="p-4 border rounded shadow-sm flex justify-between items-center">
+                <div>
+                    <p class="text-xl">{{ resume.short_info }}</p>
+                    <a href="{% url 'public_resume_detail' resume.pk %}" class="text-blue-600 mt-2 inline-block">Подробнее</a>
+                </div>
+            </div>
+        {% empty %}
+            <p>Активных резюме пока нет.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

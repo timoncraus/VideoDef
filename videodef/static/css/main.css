@@ -61,6 +61,10 @@ a {
     text-decoration: underline;
 }
 
+.chat-room-user-view-link {
+    color: white;
+}
+
 .navbar {
     background-color: #4D8CF2;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
