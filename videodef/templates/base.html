@@ -51,6 +51,9 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
+                            </li>
                         {% endif %}
     
                         {% if request.user.profile.role.name == 'Родитель' %}

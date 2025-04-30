@@ -1,6 +1,6 @@
 from django.db import models
 from account.models import User
-
+from document.models import Document
 
 class ViolationType(models.Model):
     name = models.CharField(max_length=300)
@@ -11,19 +11,6 @@ class ViolationType(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class Document(models.Model):
-    photo = models.ImageField(upload_to='documents/')
-    info = models.TextField(verbose_name="Информация")
-    is_verified = models.BooleanField(default=False, verbose_name="Проверено администратором")
-
-    class Meta:
-        verbose_name = "Документ"
-        verbose_name_plural = "Документы"
-
-    def __str__(self):
-        return f"Документ №{self.id} ({'Проверен' if self.is_verified else 'Не проверен'})"
 
 
 class Resume(models.Model):
