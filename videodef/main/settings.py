@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'chat',
     'game',
     'videocall',
-    'resume'
+    'resume',
+    'document'
 ]
 
 MIDDLEWARE = [
