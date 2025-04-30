@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+
+{% block page_name %}
+    {% if resume %}Резюме № {{ resume.id }}{% else %}Резюме не найдено{% endif %}
+{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto py-8">
     {% if resume.user.profile.photo %}
@@ -22,13 +26,13 @@
         <p><strong>Прикрепленные документы:</p></strong>
         {% for document in resume.documents.all %}
             <div class="mt-4">
-                <p>Документ: {{ document.info }} — 
-                    {% if document.is_verified %}
-                        <span class="text-green-600">Проверено</span>
-                    {% else %}
-                        <span class="text-red-600">Не проверено</span>
-                    {% endif %}
+                <p>
+                    <a href="{% url 'public_document_detail' document.id %}">
+                        Документ: {{ document.info }} 
+                    </a>
+                    — {{ document.ver_status }}
                 </p>
+                
             </div>
         {% endfor %}
     {% else %}

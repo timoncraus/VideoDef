@@ -65,3 +65,9 @@ class DocumentDeleteView(LoginRequiredMixin, DeleteView):
     model = Document
     template_name = 'document/my_document_confirm_delete.html'
     success_url = reverse_lazy('my_documents')
+
+# Для родителя: подробная страничка документа
+class DocumentDetailView(DetailView):
+    model = Document
+    template_name = 'document/public_document_detail.html'
+    context_object_name = 'document'

@@ -8,6 +8,10 @@
     <form method="post" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
 
+        {% if object %}
+            <p><a href="{% url 'public_document_detail' object.id %}">Посмотреть на мой документ со стороны</a></p>
+        {% endif %}
+
         {% include "field/default_field.html" with field=form.name %}
         {% include "field/default_field.html" with field=form.info %}
 

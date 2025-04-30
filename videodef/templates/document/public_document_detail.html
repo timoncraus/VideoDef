@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block page_name %}
+    {% if document %}Документ № {{ document.id }}{% else %}Документ не найден{% endif %}
+{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8">
+    {% if document.user.profile.photo %}
+        <img src="{{ document.user.profile.photo.url }}" alt="Аватар" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
+    {% else %}
+        <img src="/static/images/default.png" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
+    {% endif %}
+    <p><a href="{% url 'view_other_user' document.user.unique_id %}" class="text-gray-500 mb-2">{{ document.user.profile }}</a></p>
+    <h1 class="text-3xl font-bold mb-6">{{ document.name }}</h1>
+    <div class="mb-4">
+        <p class="text-lg">{{ document.info }}</p>
+        <p class="text-lg">Статус проверки: {{ document.ver_status }}</p>
+    </div>
+    {% if document.images.all %}
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            {% for image in document.images.all %}
+                <img src="{{ image.image.url }}" class="rounded shadow">
+            {% endfor %}
+        </div>
+    {% endif %}
+    <a href="{% url 'get_chat' document.user.unique_id request.user.unique_id %}">Написать в чат</a>
+</div>
+{% endblock %}

@@ -73,6 +73,9 @@ document_urlpatterns = [
     path('create/', document_views.DocumentCreateView.as_view(), name='create_my_document'),
     path('edit/<int:pk>/', document_views.DocumentUpdateView.as_view(), name='edit_my_document'),
     path('delete/<int:pk>/', document_views.DocumentDeleteView.as_view(), name='document_confirm_delete'),
+
+    # для родителей:
+    path('view/<int:pk>/', document_views.DocumentDetailView.as_view(), name='public_document_detail'),
 ]
 
 urlpatterns = [
