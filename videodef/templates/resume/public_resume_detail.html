@@ -18,16 +18,19 @@
             {% endfor %}
         </div>
     {% endif %}
-    {% if resume.document %}
-        <div class="mt-4">
-            <p><strong>Документ:</strong> {{ resume.document.info }} — 
-                {% if resume.document.is_verified %}
-                    <span class="text-green-600">Проверено</span>
-                {% else %}
-                    <span class="text-red-600">Не проверено</span>
-                {% endif %}
-            </p>
-        </div>
+    {% if resume.documents %}
+        <p><strong>Прикрепленные документы:</p></strong>
+        {% for document in resume.documents.all %}
+            <div class="mt-4">
+                <p>Документ: {{ document.info }} — 
+                    {% if document.is_verified %}
+                        <span class="text-green-600">Проверено</span>
+                    {% else %}
+                        <span class="text-red-600">Не проверено</span>
+                    {% endif %}
+                </p>
+            </div>
+        {% endfor %}
     {% else %}
         <p><strong>Документов не прикреплено</strong></p>
     {% endif %}

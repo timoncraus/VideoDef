@@ -43,4 +43,6 @@ class DocumentImage(models.Model):
         verbose_name_plural = "Изображения документа"
 
     def __str__(self):
-        return f"Изображение для документа №{self.document.id}"
+        if self.id:
+            return f"Изображение №{self.id} для документа №{self.document.id}"
+        return f"Несозданное изображение для документа №{self.document.id}"

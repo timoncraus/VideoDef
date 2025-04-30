@@ -15,7 +15,9 @@
         {% include "field/default_field.html" with field=form.short_info %}
         {% include "field/default_field.html" with field=form.detailed_info %}
         {% include "field/default_field.html" with field=form.status %}
-        {% include "field/default_field.html" with field=form.document %}
+        <p>Прикрепить документы:</p>
+        {{ form.documents }}
+        <p>Указать виды нарушений:</p>
         {{ form.violation_types }}
 
         {{ images_formset.management_form }}

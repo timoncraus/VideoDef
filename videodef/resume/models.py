@@ -26,7 +26,7 @@ class Resume(models.Model):
     short_info = models.CharField(max_length=400, verbose_name="Краткая информация")
     detailed_info = models.TextField(max_length=5000, verbose_name="Подробная информация")
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=DRAFT, verbose_name="Статус резюме")
-    document = models.ForeignKey(Document, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Документ")
+    documents = models.ManyToManyField(Document, blank=True, verbose_name="Документы")
     violation_types = models.ManyToManyField(ViolationType, blank=True, verbose_name="Виды нарушений")
 
     created_at = models.DateTimeField(auto_now_add=True)

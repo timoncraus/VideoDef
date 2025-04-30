@@ -36,6 +36,11 @@ class ResumeCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['images_formset'] = ResumeInitialImageFormSet()
         return context
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 
 # Для преподавателя: редактирование резюме
@@ -58,6 +63,11 @@ class ResumeUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('edit_my_resume', kwargs={'pk': self.object.pk})
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 
 # Для преподавателя: удаление резюме
