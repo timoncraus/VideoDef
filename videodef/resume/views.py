@@ -1,8 +1,7 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
-from django.urls import reverse_lazy
-from django.shortcuts import get_object_or_404
-from .models import Resume, ResumeImage, ViolationType
-from .forms import ResumeForm, ResumeImageFormSet
+from django.urls import reverse, reverse_lazy
+from .models import Resume, ViolationType
+from .forms import ResumeForm, ResumeImageFormSet, ResumeInitialImageFormSet
 from django.contrib.auth.mixins import LoginRequiredMixin
 import django_filters
 from django import forms
@@ -28,14 +27,14 @@ class ResumeCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         response = super().form_valid(form)
-        images_formset = ResumeImageFormSet(self.request.POST, self.request.FILES, instance=self.object)
+        images_formset = ResumeInitialImageFormSet(self.request.POST, self.request.FILES, instance=self.object)
         if images_formset.is_valid():
             images_formset.save()
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['images_formset'] = ResumeImageFormSet()
+        context['images_formset'] = ResumeInitialImageFormSet()
         return context
 
 
@@ -44,7 +43,6 @@ class ResumeUpdateView(LoginRequiredMixin, UpdateView):
     model = Resume
     form_class = ResumeForm
     template_name = 'resume/my_resume_create.html'
-    success_url = reverse_lazy('my_resumes')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -57,6 +55,9 @@ class ResumeUpdateView(LoginRequiredMixin, UpdateView):
         if images_formset.is_valid():
             images_formset.save()
         return response
+    
+    def get_success_url(self):
+        return reverse('edit_my_resume', kwargs={'pk': self.object.pk})
 
 
 # Для преподавателя: удаление резюме

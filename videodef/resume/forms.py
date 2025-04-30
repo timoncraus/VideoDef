@@ -14,7 +14,16 @@ ResumeImageFormSet = inlineformset_factory(
     Resume,
     ResumeImage,
     fields=('image',),
-    extra=5,
-    max_num=5,
+    extra=3,
+    max_num=3,
     can_delete=True
+)
+
+ResumeInitialImageFormSet = inlineformset_factory(
+    Resume,
+    ResumeImage,
+    fields=('image',),
+    extra=3,
+    max_num=3,
+    can_delete=False
 )

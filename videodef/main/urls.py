@@ -25,6 +25,7 @@ from chat import views as chat_views
 from videocall import views as videocall_views
 from game import views as game_views
 from resume import views as resume_views
+from document import views as document_views
 
 account_patterns = [
     path('', account_views.home, name="home"),
@@ -57,13 +58,21 @@ resume_urlpatterns = [
     # для преподавателей:
     path('my/', resume_views.ResumeListView.as_view(), name='my_resumes'),
     path('create/', resume_views.ResumeCreateView.as_view(), name='create_my_resume'),
-    path('edit/<int:pk>/', resume_views.ResumeUpdateView.as_view(), name='edit_my_resume_form'),
+    path('edit/<int:pk>/', resume_views.ResumeUpdateView.as_view(), name='edit_my_resume'),
     path('delete/<int:pk>/', resume_views.ResumeDeleteView.as_view(), name='resume_confirm_delete'),
    
 
     # для родителей:
     path('search/', resume_views.PublicResumeListView.as_view(), name='public_resume_list'),
     path('view/<int:pk>/', resume_views.ResumeDetailView.as_view(), name='public_resume_detail'),
+]
+
+document_urlpatterns = [
+    # для преподавателей:
+    path('my/', document_views.DocumentListView.as_view(), name='my_documents'),
+    path('create/', document_views.DocumentCreateView.as_view(), name='create_my_document'),
+    path('edit/<int:pk>/', document_views.DocumentUpdateView.as_view(), name='edit_my_document'),
+    path('delete/<int:pk>/', document_views.DocumentDeleteView.as_view(), name='document_confirm_delete'),
 ]
 
 urlpatterns = [
@@ -73,6 +82,7 @@ urlpatterns = [
     path('videocall/', include(videocall_patterns)),
     path('games/', include(game_patterns)),
     path('resumes/', include(resume_urlpatterns)),
+    path('documents/', include(document_urlpatterns)),
 ]
 
 if settings.DEBUG:

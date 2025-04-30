@@ -49,10 +49,10 @@
     
                         {% if request.user.profile.role.name == 'Преподаватель' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
+                                <a class="nav-link" href="{% url 'my_documents' %}"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
+                                <a class="nav-link" href="{% url 'my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
                             </li>
                         {% endif %}
     

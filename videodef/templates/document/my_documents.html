@@ -11,8 +11,8 @@
                     <p class="text-gray-500">{{ document.ver_status }}</p>
                 </div>
                 <div class="flex space-x-2">
-                    <a href="{% url 'edit_my_document_form' resume.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
-                    <a href="{% url 'resume_confirm_delete' resume.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
+                    <a href="{% url 'edit_my_document' document.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
+                    <a href="{% url 'document_confirm_delete' document.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
                 </div>
             </div>
         {% empty %}

@@ -22,18 +22,18 @@
             });
         </script>
 
-        {% include "account/default_field.html" with field=forms.register_form.first_name %}
-        {% include "account/default_field.html" with field=forms.register_form.last_name %}
-        {% include "account/default_field.html" with field=forms.register_form.patronymic %}
-        {% include "account/date_field.html" with field=forms.register_form.date_birth %}
-        {% include "account/default_field.html" with field=forms.register_form.role %}
-        {% include "account/default_field.html" with field=forms.register_form.gender %}
+        {% include "field/default_field.html" with field=forms.register_form.first_name %}
+        {% include "field/default_field.html" with field=forms.register_form.last_name %}
+        {% include "field/default_field.html" with field=forms.register_form.patronymic %}
+        {% include "field/date_field.html" with field=forms.register_form.date_birth %}
+        {% include "field/default_field.html" with field=forms.register_form.role %}
+        {% include "field/default_field.html" with field=forms.register_form.gender %}
 
-        {% include "account/default_field.html" with field=forms.register_form.username %}
-        {% include "account/default_field.html" with field=forms.register_form.email %}
-        {% include "account/default_field.html" with field=forms.register_form.phone_number %}
-        {% include "account/default_field.html" with field=forms.register_form.password1 %}
-        {% include "account/default_field.html" with field=forms.register_form.password2 %}
+        {% include "field/default_field.html" with field=forms.register_form.username %}
+        {% include "field/default_field.html" with field=forms.register_form.email %}
+        {% include "field/default_field.html" with field=forms.register_form.phone_number %}
+        {% include "field/default_field.html" with field=forms.register_form.password1 %}
+        {% include "field/default_field.html" with field=forms.register_form.password2 %}
 
         <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
     </form>

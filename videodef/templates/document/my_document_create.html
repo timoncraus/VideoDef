@@ -1,22 +1,15 @@
 {% extends "base.html" %}
 
 {% block page_name %}
-    {% if object %}Редактировать резюме № {{ object.id }}{% else %}Создать резюме{% endif %}
+    {% if object %}Редактировать документ № {{ object.id }}{% else %}Создать документ{% endif %}
 {% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto py-8 resume-create-box">
     <form method="post" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
 
-        {% if object %}
-            <p><a href="{% url 'public_resume_detail' object.id %}">Посмотреть на мое резюме со стороны</a></p>
-        {% endif %}
-
-        {% include "field/default_field.html" with field=form.short_info %}
-        {% include "field/default_field.html" with field=form.detailed_info %}
-        {% include "field/default_field.html" with field=form.status %}
-        {% include "field/default_field.html" with field=form.document %}
-        {{ form.violation_types }}
+        {% include "field/default_field.html" with field=form.name %}
+        {% include "field/default_field.html" with field=form.info %}
 
         {{ images_formset.management_form }}
         {% for form in images_formset.forms %}

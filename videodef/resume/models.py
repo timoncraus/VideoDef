@@ -24,7 +24,7 @@ class Resume(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resumes')
     short_info = models.CharField(max_length=400, verbose_name="Краткая информация")
-    detailed_info = models.TextField(verbose_name="Подробная информация", max_length=5000)
+    detailed_info = models.TextField(max_length=5000, verbose_name="Подробная информация")
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=DRAFT, verbose_name="Статус резюме")
     document = models.ForeignKey(Document, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Документ")
     violation_types = models.ManyToManyField(ViolationType, blank=True, verbose_name="Виды нарушений")
@@ -49,4 +49,6 @@ class ResumeImage(models.Model):
         verbose_name_plural = "Изображения резюме"
 
     def __str__(self):
-        return f"Изображение для резюме №{self.resume.id}"
+        if self.id:
+            return f"Изображение №{self.id} для резюме №{self.resume.id}"
+        return f"Несозданное изображение для резюме №{self.resume.id}"
