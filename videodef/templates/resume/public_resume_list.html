@@ -31,7 +31,7 @@
                     {% if resume.user.profile.photo %}
                         <img src="{{ resume.user.profile.photo.url }}" alt="Аватар" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
                     {% else %}
-                        <img src="/media/avatars/default.png" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
+                        <img src="/static/images/default.png" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
                     {% endif %}
                     <p class="text-gray-500 mb-2">{{ resume.user.profile }}</p>
                     <h2 class="text-xl font-semibold mb-2">{{ resume.short_info }}</h2>

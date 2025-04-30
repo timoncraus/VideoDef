@@ -15,6 +15,11 @@ header {
     text-align: center;
 }
 
+.circle-img {
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 .small-circle-text {
     display: inline-block;
     padding: 10px 13px;

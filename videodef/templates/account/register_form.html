@@ -10,7 +10,7 @@
             <br>
             <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
             <br>
-            <img id="preview" src="{{ form.photo.value|default:'/media/avatars/default.png' }}" alt="Аватар" width="100" height="100" alt="Предпросмотр" style="width:150px;height:150px;">
+            <img id="preview" src="{{ form.photo.value|default:'/static/images/default.png' }}" alt="Аватар" width="100" height="100" alt="Предпросмотр" style="width:150px;height:150px;">
         </div>
         <script>
             document.getElementById('id_photo').addEventListener('change', function(event) {
