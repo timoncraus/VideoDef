@@ -1,7 +1,4 @@
-import { createPuzzleOnBoard, puzzleParams } from './puzzle/index.js';
-
-// Активация режима работы на интерактивной доске
-puzzleParams.onWhiteboard = true;
+import { createPuzzleOnBoard, setupWhiteboardPuzzleSaveLoad } from './puzzle/index.js';
 
 // Получение ссылок на элементы canvas
 const imageCanvas = document.getElementById('image-layer');
@@ -277,7 +274,12 @@ window.addEventListener("click", (e) => {
     }
 });
 
+// Обработка добавления игры на доску
 document.querySelectorAll(".game-option").forEach(option => {
+    if (option.dataset.listenerAttached === 'true') {
+        return;
+    }
+
     option.addEventListener("click", () => {
         const gameName = option.dataset.name;
         const gameWrapper = addGamePasteGame();
@@ -290,7 +292,13 @@ document.querySelectorAll(".game-option").forEach(option => {
         }
         dropdown.classList.remove("show");
 
+        setTimeout(() => {
+            if (document.body.contains(gameWrapper)) {
+                gameWrapper.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            }
+        }, 0);
     });
+    option.dataset.listenerAttached = 'true';
 });
 
 /**
@@ -310,8 +318,11 @@ function addGamePasteGame() {
     closeBtn.className = 'paste-game-close';
     closeBtn.textContent = '×';
     closeBtn.onclick = () => {
-        clearDynamicSettings()
-        gameWrapper.remove()
+        // Если удаляем активный элемент, очищаем настройки
+        if (gameWrapper.classList.contains('active-game')) {
+            clearDynamicSettings();
+        }
+        gameWrapper.remove();
     };
 
     gameWrapper.appendChild(closeBtn);
@@ -319,28 +330,43 @@ function addGamePasteGame() {
     makeDraggable(gameWrapper);
     makeResizable(gameWrapper);
 
-    gameWrapper.addEventListener('click', (e) => {
-        if (!e.target.closest('.paste-game-close') && !e.target.classList.contains('resize-handle')) {
+    gameWrapper.addEventListener('mousedown', (e) => {
+        // Игнорируем клики на кнопку закрытия и кружок изменения размера
+        if (e.target.closest('.paste-game-close') || e.target.classList.contains('resize-handle')) {
+            return;
+        }
+
+        // Проверяем, стал ли wrapper активным
+        if (!gameWrapper.classList.contains('active-game')) {
             const gameName = gameWrapper.dataset.gameName;
 
-            // Сбрасываем флаг для всех остальных gameWrapper
-            document.querySelectorAll('.paste-game-wrapper').forEach(wrapper => {
-                if (wrapper !== gameWrapper) {
-                    wrapper.dataset.settingsUpdated = 'false'; // Сбрасываем флаг для других игр
-                }
+            // Снимаем активность и флаг 'settingsUpdated' со всех остальных
+            document.querySelectorAll('.paste-game-wrapper.active-game').forEach(activeWrapper => {
+                activeWrapper.classList.remove('active-game');
+                activeWrapper.dataset.settingsUpdated = 'false';
+                activeWrapper.style.borderColor = '';
+                 activeWrapper.style.zIndex = '';
             });
 
-            // Проверка, был ли уже обновлен набор настроек для этой игры
+            // Делаем текущий активным
+            gameWrapper.classList.add('active-game');
+            gameWrapper.style.borderColor = 'blue';
+            gameWrapper.style.zIndex = '100';
+
+            // Обновляем панель настроек, если нужно
             if (gameName && gameWrapper.dataset.settingsUpdated !== 'true') {
                 updateGameSettings(gameName);
-                gameWrapper.dataset.settingsUpdated = 'true'; // Устанавливаем флаг, что настройки обновлены
+                gameWrapper.dataset.settingsUpdated = 'true';
+
+                // Вызываем настройку обработчиков
+                if (gameName === "puzzles") {
+                    setupWhiteboardPuzzleSaveLoad();
+                }
+            } else if (!gameName) {
+                 clearDynamicSettings();
             }
-
-            document.querySelectorAll('.paste-game-wrapper').forEach(wrapper => {
-                wrapper.classList.remove('active-game');
-            });
-
-            gameWrapper.classList.add('active-game');
+        } else {
+             gameWrapper.style.zIndex = '100';
         }
     });
 
@@ -457,8 +483,14 @@ toggleButton.addEventListener('click', () => {
  * Удаляет все динамически созданные элементы настроек игр.
  */
 function clearDynamicSettings() {
+    const settingsPanel = document.querySelector('.settings-panel');
+    if (!settingsPanel) return;
     const dynamicElements = settingsPanel.querySelectorAll('.dynamic-setting');
     dynamicElements.forEach(el => el.remove());
+    const puzzleSettingsContainer = settingsPanel.querySelector('.puzzle-settings-container');
+    if (puzzleSettingsContainer) {
+        puzzleSettingsContainer.remove();
+    }
 }
 
 /**
@@ -466,6 +498,16 @@ function clearDynamicSettings() {
  * @param {string} gameName - Название выбранной игры
  */
 function updateGameSettings(gameName) {
+    const settingsPanel = document.querySelector('.settings-panel');
+    if (!settingsPanel) {
+        console.error("Не найдена панель настроек для обновления настроек игры");
+        return;
+    }
+    if (typeof images === 'undefined') {
+         console.error("'переменная images (путь к статическим изображениям) не определена.");
+         return;
+    }
+
     clearDynamicSettings();
 
     if (gameName === "puzzles") {
@@ -478,9 +520,13 @@ function updateGameSettings(gameName) {
         const settingsContainer = document.createElement('div');
         settingsContainer.className = "dynamic-setting puzzle-settings-container"; // Контейнер для настроек пазлов
 
-        // Содержимое для выбора изображения и сложности
+        // Содержимое настроек
         const content = `
             <div class="modal-content">
+                <h2>Настройки пазла</h2>
+                <label for="puzzle-name">Название для сохранения:</label>
+                <input type="text" id="puzzle-name" placeholder="Название пазла" style="width: 80%; padding: 8px; margin-bottom: 15px;">
+
                 <h2>Выберите изображение для пазла</h2>
 
                 <div class="preset-images">
@@ -493,6 +539,11 @@ function updateGameSettings(gameName) {
                     <input type="file" id="custom-image" accept="image/*">
                 </label>
 
+                <div id="image-preview-container" class="image-preview-container" style="display: none; margin-top: 10px; text-align: center;">
+                    <img id="image-preview" src="#" alt="Предпросмотр" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; margin-bottom: 5px;">
+                    <p id="image-preview-text" style="font-size: 0.9em; color: #555;">Используется загруженное изображение.</p>
+                </div>
+
                 <label for="difficulty">Выберите сложность:</label>
                 <select id="difficulty">
                     <option value="2" selected>2x2</option>
@@ -500,7 +551,11 @@ function updateGameSettings(gameName) {
                     <option value="4">4x4</option>
                 </select>
 
-                <button id="start-game">Начать игру</button>
+                <div class="settings-buttons">
+                    <button id="start-game">Начать игру</button> <!-- Эта кнопка будет скрыта JS -->
+                    <button id="save-puzzle-btn">Сохранить</button>
+                    <button id="load-puzzle-btn">Загрузить</button>
+                </div>
             </div>
         `;
 

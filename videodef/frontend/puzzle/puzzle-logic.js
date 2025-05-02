@@ -7,7 +7,7 @@ export function getPuzzleParts() {
     let puzzleParams = {
         gridSize: 2,          // Размер сетки (2x2)
         piecePositions: [],   // Позиции элементов
-        selectedImage: images + '/puzzle_test.png', // Изображение по умолчанию
+        selectedImage: images + '/british-cat.jpg', // Изображение по умолчанию
         selectedPiece: null   // Выбранный элемент
     }
 
@@ -22,17 +22,26 @@ export function getPuzzleParts() {
  * @param {HTMLElement} puzzleContainer - Контейнер для элементов
  * @param {Object} puzzleParams - Параметры пазла
  * @param {HTMLElement} message - Элемент для отображения сообщений
+ * @param {boolean} useExistingPositions - Если true, использует puzzleParams.piecePositions, иначе генерирует новые
  */
-export function createPuzzle(puzzleContainer, puzzleParams, message) {
+export function createPuzzle(puzzleContainer, puzzleParams, message, useExistingPositions = false) {
     puzzleContainer.innerHTML = '';
-    // Перемешиваем позиции элементов пазла
-    puzzleParams.piecePositions = shuffle([...Array(puzzleParams.gridSize * puzzleParams.gridSize).keys()]);
+    message.style.display = 'none';
+
+    // Генерируем новые позиции только если не используем существующие
+    if (!useExistingPositions || !puzzleParams.piecePositions || puzzleParams.piecePositions.length !== puzzleParams.gridSize * puzzleParams.gridSize) {
+        console.log("Generating new shuffled positions...");
+        puzzleParams.piecePositions = shuffle([...Array(puzzleParams.gridSize * puzzleParams.gridSize).keys()]);
+    } else {
+        console.log("Using existing positions:", puzzleParams.piecePositions);
+    }
 
     // Создание элементов пазла
     for (let i = 0; i < puzzleParams.gridSize * puzzleParams.gridSize; i++) {
         const piece = document.createElement('div');
         piece.classList.add('puzzle-piece');
         piece.id = `piece-${i + 1}`;
+        // data-index всегда соответствует оригинальному индексу куска (0..N-1)
         piece.setAttribute('data-index', i);
         
         // Расчет размеров элемента
@@ -49,6 +58,24 @@ export function createPuzzle(puzzleContainer, puzzleParams, message) {
         puzzleContainer.appendChild(piece);
     }
 
+    // Установка фона и расстановка по местам
+    updatePuzzleImage(puzzleContainer, puzzleParams);
+}
+
+/**
+ * Обновляет фоновое изображение и расставляет элементы пазла
+ * @param {HTMLElement} puzzleContainer - Контейнер с элементами пазла
+ * @param {Object} puzzleParams - Параметры пазла
+ */
+export function updatePuzzleImage(puzzleContainer, puzzleParams) {
+    const pieces = puzzleContainer.querySelectorAll('.puzzle-piece');
+    pieces.forEach((piece, idx) => {
+        piece.style.backgroundImage = `url("${puzzleParams.selectedImage}")`;
+        // Расчет фоновой позиции для текущего куска (индекс idx)
+        const row = Math.floor(idx / puzzleParams.gridSize);
+        const col = idx % puzzleParams.gridSize;
+        piece.style.backgroundPosition = `${(col * -100)}% ${(row * -100)}%`;
+    });
     placePieces(puzzleContainer, puzzleParams);
 }
 

@@ -136,15 +136,62 @@
     font-size: 16px;
 }
 
-/* Стили кнопки начала игры */
-#start-game {
-    padding: 10px 20px;
-    font-size: 1em;
+/* Контейнер для предпросмотра изображения */
+.image-preview-container {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px dashed #ccc;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#image-preview {
+    display: block;
+    max-width: 120px;
+    max-height: 120px;
+    border: 1px solid #ddd;
+    margin-bottom: 8px;
+    object-fit: cover;
+}
+
+#image-preview-text {
+    font-size: 0.85em;
+    color: #666;
+    margin: 0;
+}
+
+/* Контейнер для кнопок в настройках */
+.settings-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Общие стили для кнопок Начать игру/Сохранить/Загрузить */
+#start-game,
+#save-puzzle-btn,
+#load-puzzle-btn {
+    padding: 10px 15px;
+    font-size: 0.9em;
     background-color: #00bfff;
-    border: 3px solid #005f7f;
-    border-radius: 8px;
-    font-size: 18px;
+    border: 2px solid #005f7f;
+    border-radius: 6px;
     font-weight: bold;
     color: white;
     cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    flex-grow: 1;
+    min-width: 100px;
+}
+
+#start-game:hover,
+#save-puzzle-btn:hover,
+#load-puzzle-btn:hover {
+    background-color: #00a0cc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }

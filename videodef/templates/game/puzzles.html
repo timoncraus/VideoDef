@@ -1,7 +1,10 @@
 {% extends 'base.html' %} 
 {% load static %}
 
-{% block style %}<link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />{% endblock %}
+{% block style %}
+<link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
+<link rel="stylesheet" href="{% static 'css/game/game_load_window.css' %}" />
+{% endblock %}
 
 {% block page_name %}Пазлы{% endblock %}
 
@@ -15,6 +18,12 @@
     <!-- Окно настроек -->
     <div id="puzzles-settings" class="puzzles-settings">
         <div class="modal-content">
+            <h2>Настройки пазла</h2>
+
+            <!-- Имя для сохранения -->
+            <label for="puzzle-name">Название для сохранения:</label>
+            <input type="text" id="puzzle-name" placeholder="Название пазла" style="width: 80%; padding: 8px; margin-bottom: 15px;">
+
             <h2>Выберите изображение для пазла</h2>
 
             <!-- Пресеты изображений -->
@@ -28,6 +37,12 @@
                 Загрузить своё:
                 <input type="file" id="custom-image" accept="image/*">
             </label>
+            
+            <!-- Элемент для предпросмотра/индикации загруженного изображения -->
+            <div id="image-preview-container" class="image-preview-container" style="display: none; margin-top: 10px; text-align: center;">
+                <img id="image-preview" src="#" alt="Предпросмотр" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; margin-bottom: 5px;">
+                <p id="image-preview-text" style="font-size: 0.9em; color: #555;">Используется загруженное изображение.</p>
+            </div>
 
             <!-- Выбор сложности пазла -->
             <label for="difficulty">Выберите сложность:</label>
@@ -37,7 +52,27 @@
                 <option value="4">4x4</option>
             </select>
 
-            <button id="start-game">Начать игру</button>
+            <!-- Кнопки управления -->
+            <div class="settings-buttons">
+                <button id="start-game">Начать игру</button>
+                <button id="save-puzzle-btn">Сохранить</button>
+                <button id="load-puzzle-btn">Загрузить</button>
+           </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для загрузки пазлов (изначально скрыто) -->
+<div id="load-puzzle-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <h2>Выберите сохраненный пазл</h2>
+        <div id="load-list-container">
+            <!-- Сюда JS добавит список пазлов -->
+            <p>Загрузка...</p>
+        </div>
+        <div class="modal-buttons">
+            <button id="load-confirm-btn" disabled>Загрузить выбранный</button>
+            <button id="load-cancel-btn">Отмена</button>
         </div>
     </div>
 </div>
@@ -59,6 +94,9 @@
 
 {% block scripts %}
 <script>
+    const savePuzzleUrl = "{% url 'save_puzzle' %}";
+    const loadPuzzlesUrl = "{% url 'load_puzzles' %}";
+    const csrfToken = "{{ csrf_token }}";
     const images = "{% static 'images' %}";
 </script>
 <script src="{% static 'js/game/puzzle.bundle.js' %}"></script>

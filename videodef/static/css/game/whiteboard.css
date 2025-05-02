@@ -191,7 +191,6 @@ canvas {
     top: 0;
     right: 0;
     width: 500px;
-    height: 100%;
     background-color: #f9f9f9;
     border-left: 1px solid #ccc;
     box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);

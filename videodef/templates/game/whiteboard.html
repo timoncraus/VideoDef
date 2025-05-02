@@ -3,6 +3,7 @@
 {% block style %}
 <link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
 <link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
+<link rel="stylesheet" href="{% static 'css/game/game_load_window.css' %}" />
 {% endblock %}
 
 {% block page_name %}Интерактивная доска{% endblock %}
@@ -43,6 +44,21 @@
         </div>
     </div>
 </div>
+
+<!-- Модальное окно для загрузки игр -->
+<div id="load-puzzle-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <h2>Выберите сохраненную игру</h2>
+        <div id="load-list-container">
+            <p>Загрузка...</p>
+        </div>
+        <div class="modal-buttons">
+            <button id="load-confirm-btn" disabled>Загрузить выбранный</button>
+            <button id="load-cancel-btn">Отмена</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block horizontal_right %}
@@ -57,6 +73,9 @@
 {% block scripts %}
 <script>
     const images = "{% static 'images' %}";
+    const savePuzzleUrl = "{% url 'save_puzzle' %}";
+    const loadPuzzlesUrl = "{% url 'load_puzzles' %}";
+    const csrfToken = "{{ csrf_token }}";
 </script>
 <script src="{% static 'js/game/whiteboard.bundle.js' %}"></script>
 {% endblock %}
