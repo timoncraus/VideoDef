@@ -81,7 +81,7 @@
             {% include "messages.html" %}
             {% include "non_field_errors.html" %}
 
-            <h2 class="display-4 text-center mb-4">{% block page_name %}{% endblock %}</h2>
+            <h2 class="display-4 text-center mb-4 page_name">{% block page_name %}{% endblock %}</h2>
             
             {% block content %}{% endblock %}
         </div>

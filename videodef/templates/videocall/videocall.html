@@ -3,11 +3,17 @@
 <head>
     <title>ВидеоЗвонок</title>
     <style>
-        #videos { display: flex; gap: 20px; }
-        video { width: 45%; height: auto; background: black; }
+        #videos { display: flex; justify-content: space-around; }
+        video { width: 35%; height: auto; background: black; }
+        #controls { display: flex; }
+        .video-call-page header,
+        .video-call-page nav,
+        .video-call-page .page_name {
+            display: none;
+        }
     </style>
 </head>
-<body>
+<body class="video-call-page">
     <div id="videos" data-room-name="{{ room_name }}">
         <video id="localVideo" autoplay muted></video>
         <video id="remoteVideo" autoplay></video>
@@ -25,12 +31,12 @@
 
     <script>
         const roomName = document.getElementById('videos').dataset.roomName;
-        const ws = new WebSocket(`ws://${window.location.host}/ws/videocall/${roomName}/`);
+        let ws = new WebSocket(`ws://${window.location.host}/ws/videocall/${roomName}/`);
 
         const configuration = {
             iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
         };
-        const peerConnection = new RTCPeerConnection(configuration);
+        let peerConnection = new RTCPeerConnection(configuration);
         console.log(peerConnection)
 
         const localVideo = document.getElementById("localVideo");
@@ -38,26 +44,51 @@
 
         let pendingCandidates = [];
 
-        peerConnection.ontrack = event => {
-            if (remoteVideo.srcObject !== event.streams[0]) {
-                remoteVideo.srcObject = event.streams[0];
-                console.log("Получен удалённый видеопоток.");
-            }
-        };
 
-        peerConnection.onicecandidate = event => {
-            if (event.candidate) {
-                ws.send(JSON.stringify({ type: 'ice', candidate: event.candidate }));
-            }
-        };
+        function setPeerConnectionOntrack() {
+            peerConnection.ontrack = event => {
+                console.log("Received track: ", event);
+                if (event.streams.length > 0) {
+                    const remoteStream = event.streams[0];
+                    if (remoteVideo.srcObject !== remoteStream) {
+                        remoteVideo.srcObject = remoteStream;
+                        console.log("Обновлен удалённый видеопоток.");
+                    }
+                }
+            };
+        }
+        
+        setPeerConnectionOntrack();
+
+        function setPeerConnectionOnicecandidate() {
+            console.log(222)
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    ws.send(JSON.stringify({ type: 'ice', candidate: event.candidate }));
+                }
+            };
+        }
+        setPeerConnectionOnicecandidate();
+
+        
 
         peerConnection.oniceconnectionstatechange = () => {
             console.log("ICE состояние:", peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.log("0000 Очищаем все состояние")
+                peerConnection.close();
+                peerConnection = new RTCPeerConnection(configuration);
+                setPeerConnectionOntrack();  // повторно устанавливаем обработчики
+                setPeerConnectionOnicecandidate();
+            }
         };
 
         peerConnection.onconnectionstatechange = () => {
             console.log("Connection состояние:", peerConnection.connectionState);
         };
+
+        console.log("Initiator Peer Connection State: ", peerConnection.connectionState);
+        console.log("Remote Description: ", peerConnection.remoteDescription);
 
         // Выбираем камеру, отличную от DroidCam
         navigator.mediaDevices.enumerateDevices()
@@ -92,6 +123,22 @@
             const data = JSON.parse(event.data);
             console.log("WS message received:", data);
 
+            if (data.type === 'ready' && isInitiator) {
+                console.log("🎬 Оба участника на месте, отправляем offer");
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                ws.send(JSON.stringify({ type: 'offer', offer }));
+            }
+
+            if (data.type === 'resend_offer' && isInitiator) {
+                console.log("♻️ Пересоздаём offer по запросу");
+                console.log("WebSocket закрыт, обновляем страницу...");
+                location.reload(); // Перезагружает текущую страницу
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                ws.send(JSON.stringify({ type: 'offer', offer }));
+            }
+
             if (data.type === 'role') {
                 console.log("Your role:", data.initiator ? "initiator" : "receiver");
             }
@@ -101,12 +148,6 @@
 
             if (data.type === 'role') {
                 isInitiator = data.initiator;
-                if (isInitiator) {
-                    console.log("Создаю offer. Треки:", peerConnection.getSenders());
-                    const offer = await peerConnection.createOffer();
-                    await peerConnection.setLocalDescription(offer);
-                    ws.send(JSON.stringify({ type: 'offer', offer }));
-                }
             } else if (data.type === 'offer') {
                 if (isInitiator) {
                     console.log("👀 Пропускаем свой же offer");
@@ -149,13 +190,13 @@
     </script>
 
     <script>
-        let localStream;
-
         function toggleMic() {
+            let localStream = document.getElementById("localVideo").srcObject;
             localStream.getAudioTracks().forEach(track => track.enabled = !track.enabled);
         }
 
         function toggleCam() {
+            let localStream = document.getElementById("localVideo").srcObject;
             localStream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
         }
 
