@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ВидеоЗвонок</title>
+    <style>
+        #videos { display: flex; gap: 20px; }
+        video { width: 45%; height: auto; background: black; }
+    </style>
+</head>
+<body>
+    <div id="videos">
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+    </div>
+
+    <script>
+        const roomName = "testroom";
+        const ws = new WebSocket(`ws://${window.location.host}/ws/videocall/${roomName}/`);
+
+        const configuration = {
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+        };
+        const peerConnection = new RTCPeerConnection(configuration);
+        console.log(peerConnection)
+
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+
+        let pendingCandidates = [];
+
+        peerConnection.ontrack = event => {
+            if (remoteVideo.srcObject !== event.streams[0]) {
+                remoteVideo.srcObject = event.streams[0];
+                console.log("Получен удалённый видеопоток.");
+            }
+        };
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                ws.send(JSON.stringify({ type: 'ice', candidate: event.candidate }));
+            }
+        };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log("ICE состояние:", peerConnection.iceConnectionState);
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            console.log("Connection состояние:", peerConnection.connectionState);
+        };
+
+        // Выбираем камеру, отличную от DroidCam
+        navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+            const videoDevice = devices.find(d => d.kind === 'videoinput' && !d.label.toLowerCase().includes('droidcam'));
+            if (!videoDevice) throw new Error("Нет подходящей камеры");
+
+            return navigator.mediaDevices.getUserMedia({
+                video: { deviceId: videoDevice.deviceId },
+                audio: true
+            });
+        })
+        .then(stream => {
+            localVideo.srcObject = stream;
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+            // Создаем offer только после добавления треков
+            if (isInitiator) {
+                console.log("🎬 Создаём offer после добавления треков");
+                peerConnection.createOffer()
+                    .then(offer => {
+                        return peerConnection.setLocalDescription(offer).then(() => {
+                            ws.send(JSON.stringify({ type: 'offer', offer }));
+                        });
+                    });
+            }
+        });
+
+        let isInitiator = false;
+
+        ws.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            console.log("WS message received:", data);
+
+            if (data.type === 'role') {
+                console.log("Your role:", data.initiator ? "initiator" : "receiver");
+            }
+            if (data.type === 'offer') console.log("Received offer");
+            if (data.type === 'answer') console.log("Received answer");
+            if (data.type === 'ice') console.log("Received ICE candidate");
+
+            if (data.type === 'role') {
+                isInitiator = data.initiator;
+                if (isInitiator) {
+                    console.log("Создаю offer. Треки:", peerConnection.getSenders());
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    ws.send(JSON.stringify({ type: 'offer', offer }));
+                }
+            } else if (data.type === 'offer') {
+                if (isInitiator) {
+                    console.log("👀 Пропускаем свой же offer");
+                    return;
+                }
+                console.log("📩 Получен offer", data.offer);
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                console.log("✅ setRemoteDescription DONE");
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                console.log("✅ createAnswer & setLocalDescription DONE");
+
+                ws.send(JSON.stringify({ type: 'answer', answer }));
+                console.log("📤 Ответ отправлен:", answer);
+
+                pendingCandidates.forEach(c => peerConnection.addIceCandidate(c));
+                pendingCandidates = [];
+
+            } else if (data.type === 'answer') {
+                if (!isInitiator) {
+                    console.log("👀 Пропускаем свой же answer");
+                    return;
+                }
+                console.log("📩 Получен answer", data.answer);
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                console.log("✅ setRemoteDescription (answer) DONE");
+
+                pendingCandidates.forEach(c => peerConnection.addIceCandidate(c));
+                pendingCandidates = [];
+
+            } else if (data.type === 'ice') {
+                if (peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(data.candidate);
+                } else {
+                    pendingCandidates.push(data.candidate);
+                }
+            }
+        };
+    </script>
+</body>
+</html>
