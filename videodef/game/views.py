@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_GET
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, InternalError
 from django.conf import settings
 from django.templatetags.static import static
 from .models import UserGame, UserPuzzle, Genre
@@ -43,6 +43,10 @@ def save_puzzle_view(request):
     Ожидает данные в формате FormData (из request.POST и request.FILES).
     Создает записи в UserGame и UserPuzzle.
     """
+
+    name = ""
+    grid_size = 0
+
     # --- Получение жанра "Пазл" ---
     try:
         puzzle_genre = Genre.objects.get(code='PZL')
@@ -50,7 +54,7 @@ def save_puzzle_view(request):
         print("КРИТИЧЕСКАЯ ОШИБКА: Жанр 'Пазл' (код PZL) не найден в базе данных!")
         return JsonResponse({
             'status': 'error',
-            'message': 'Ошибка конфигурации сервера: Жанр пазлов не отсутствует в базе данных'
+            'message': 'Ошибка конфигурации сервера: Жанр пазлов отсутствует в базе данных'
         }, status=500)
     
     try:
@@ -122,6 +126,24 @@ def save_puzzle_view(request):
         error_message = '; '.join([f"{k}: {v[0]}" for k, v in e.message_dict.items()])
         print(f"Ошибка валидации при сохранении пазла: {e.message_dict}")
         return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
+    except InternalError as e:
+        db_error_message = str(e).lower()
+        # Проверяем, содержит ли сообщение текст из RAISE EXCEPTION триггера
+        trigger_error_text_part1 = 'пазл с названием'
+        trigger_error_text_part2 = 'уже существует'
+
+        if trigger_error_text_part1 in db_error_message and trigger_error_text_part2 in db_error_message:
+            # Формируем сообщение на основе данных, которые пытались сохранить
+            error_detail = f'Пазл с названием "{name}" и размером сетки {grid_size}x{grid_size} уже существует.'
+            print(f"Ошибка уникальности пазла: {error_detail} | Оригинальная ошибка: {e}")
+            return JsonResponse({'status': 'error', 'message': error_detail}, status=400)
+        else:
+            print(f"Непредвиденная ошибка целостности БД при сохранении пазла ({request.user.username}): {e.__class__.__name__}: {e}")
+            traceback.print_exc()
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Произошла ошибка базы данных при сохранении пазла. Попробуйте позже.'
+            }, status=500)
     except Exception as e:
         print(f"Непредвиденная ошибка при сохранении пазла ({request.user.username}): {e.__class__.__name__}: {e}")
         traceback.print_exc()

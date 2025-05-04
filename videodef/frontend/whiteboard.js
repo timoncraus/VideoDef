@@ -314,6 +314,8 @@ function addGamePasteGame() {
     gameWrapper.style.height = '300px';
     gameWrapper.style.aspectRatio = '4 / 3';
 
+    gameWrapper._blockImmediateDrag = true; // блокировка перемещения только что добавленной игры
+
     const closeBtn = document.createElement('button');
     closeBtn.className = 'paste-game-close';
     closeBtn.textContent = '×';
@@ -329,6 +331,13 @@ function addGamePasteGame() {
     document.querySelector('.canvas-wrapper').appendChild(gameWrapper);
     makeDraggable(gameWrapper);
     makeResizable(gameWrapper);
+
+    // сброс блокировки перемещения только что добавленной игры
+    setTimeout(() => {
+        if (gameWrapper) { // Проверяем, что элемент все еще существует
+           delete gameWrapper._blockImmediateDrag;
+        }
+    }, 1);
 
     gameWrapper.addEventListener('mousedown', (e) => {
         // Игнорируем клики на кнопку закрытия и кружок изменения размера
@@ -381,39 +390,74 @@ let someonesDragging = false;
  */
 function makeDraggable(gameWrapper) {
     gameWrapper.isDragging = false;
-    gameWrapper.offsetX = 0;
-    gameWrapper.offsetY = 0;
+    let startX, startY, initialLeft, initialTop;
 
-    gameWrapper.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.paste-game-close')) return;
+    // Обработка начала перетаскивания
+    const onMouseDown = (e) => {
+        if (gameWrapper._blockImmediateDrag === true) {
+            return;
+        }
+
+        // Игнорируем клики на кнопку закрытия и маркер изменения размера
+        if (e.target.closest('.paste-game-close') || e.target.classList.contains('resize-handle')) {
+            return;
+        }
+        // Игнорируем, если клик не левой кнопкой мыши
+        if (e.button !== 0) {
+            return;
+        }
 
         gameWrapper.isDragging = true;
         someonesDragging = true;
 
-        const rect = gameWrapper.getBoundingClientRect();
-        const { x: x, y: y } = e;
-        console.log(rect.left, rect.top)
-        gameWrapper.offsetX = x - rect.left;
-        gameWrapper.offsetY = y - rect.top;
+        // Координаты мыши относительно viewport
+        startX = e.clientX;
+        startY = e.clientY;
 
-        gameWrapper.style.zIndex = 999;
+        // Текущие координаты элемента
+        initialLeft = parseFloat(gameWrapper.style.left) || 0;
+        initialTop = parseFloat(gameWrapper.style.top) || 0;
+
+        gameWrapper.style.cursor = 'grabbing';
         document.body.style.userSelect = 'none';
-    });
 
-    document.addEventListener('mousemove', (e) => {
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+
+    // Обработка движения мыши во время перетаскивания
+    const onMouseMove = (e) => {
         if (!gameWrapper.isDragging) return;
 
-        gameWrapper.style.left = `${e.clientX - gameWrapper.offsetX - 100}px`;
-        gameWrapper.style.top = `${e.clientY - gameWrapper.offsetY - 180}px`;
-    });
+        // Рассчитываем смещение мыши от начальной точки
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
 
-    document.addEventListener('mouseup', () => {
-        if (gameWrapper.isDragging) {
-            gameWrapper.isDragging = false;
-            someonesDragging = false;
-            document.body.style.userSelect = '';
-        }
-    });
+        // Рассчитываем новые координаты top/left
+        const newLeft = initialLeft + dx;
+        const newTop = initialTop + dy;
+
+        gameWrapper.style.left = `${newLeft}px`;
+        gameWrapper.style.top = `${newTop}px`;
+    };
+
+    // Обработка отпускания кнопки мыши
+    const onMouseUp = () => {
+        if (!gameWrapper.isDragging) return;
+
+        gameWrapper.isDragging = false;
+        someonesDragging = false;
+
+        gameWrapper.style.cursor = 'grab';
+        document.body.style.userSelect = '';
+
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    gameWrapper.addEventListener('mousedown', onMouseDown);
+
+    gameWrapper.style.cursor = 'grab';
 }
 
 /**

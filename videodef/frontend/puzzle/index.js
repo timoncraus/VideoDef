@@ -82,6 +82,17 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
 
     // --- Обработчик нажатия кнопки "Сохранить" ---
     const saveHandler = async () => {
+        if (typeof isAuthenticated === 'undefined' || typeof loginUrl === 'undefined') {
+            console.error("Ошибка: Переменные isAuthenticated или loginUrl не определены. Проверьте HTML-шаблон.");
+            alert("Произошла ошибка конфигурации. Невозможно проверить статус пользователя.");
+            return;
+        }
+        if (!isAuthenticated) {
+            alert("Чтобы сохранить игру, пожалуйста, войдите в свой аккаунт.");
+            window.location.href = loginUrl; // Перенаправляем на страницу входа
+            return;
+        }
+
         const currentState = getPuzzleState();
         if (!currentState) return;
 
@@ -183,6 +194,17 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
     if (loadButton && loadModal && loadListContainer && loadConfirmBtn && loadCancelBtn) {
         // --- Обработчик нажатия кнопки "Загрузить" ---
         const loadHandler = async () => {
+            if (typeof isAuthenticated === 'undefined' || typeof loginUrl === 'undefined') {
+                console.error("Ошибка: Переменные isAuthenticated или loginUrl не определены. Проверьте HTML-шаблон.");
+                alert("Произошла ошибка конфигурации. Невозможно проверить статус пользователя.");
+                return;
+            }
+            if (!isAuthenticated) {
+                alert("Чтобы загрузить сохраненные игры, пожалуйста, войдите в свой аккаунт.");
+                window.location.href = loginUrl; // Перенаправляем на страницу входа
+                return;
+            }
+
              loadListContainer.innerHTML = '<p>Загрузка...</p>';
              loadConfirmBtn.disabled = true;
              selectedPuzzleToLoad = null;
@@ -348,7 +370,7 @@ function setupPuzzleControls({
         if (newSize !== puzzleParams.gridSize) {
             puzzleParams.gridSize = newSize;
             puzzleParams.piecePositions = [];
-            console.log(`Размер сетки изменен на ${NewSize}, позиции очищены.`);
+            console.log(`Размер сетки изменен на ${newSize}, позиции очищены.`);
             if (instantUpdate) {
                  createPuzzle(puzzleContainer, puzzleParams, message, false);
             }
