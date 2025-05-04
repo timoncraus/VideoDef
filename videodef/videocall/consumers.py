@@ -3,6 +3,8 @@ import json
 
 # Хранилище для инициаторов по комнатам (на уровне процесса)
 initiators = {}
+connected_clients = {}  # ключ — room_name, значение — список channel_name
+
 
 class VideoCallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -42,3 +44,17 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         if event['sender'] != self.channel_name:
             print(f"📤 BROADCASTING to {self.channel_name}: {event['message']}")
             await self.send(text_data=event['message'])
+
+
+class NotifyConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user_id = self.scope['user'].unique_id
+        self.room_group_name = f"notify_{self.user_id}"
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def incoming_call(self, event):
+        await self.send(text_data=json.dumps(event))

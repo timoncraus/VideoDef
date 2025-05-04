@@ -45,7 +45,8 @@ chat_patterns = [
 
 
 videocall_patterns = [
-    path('', videocall_views.videocall, name="videocall"),
+    path('call/<str:room_name>/', videocall_views.videocall, name="videocall"),
+    path('start-call/', videocall_views.start_call, name="start_call"),
 ]
 
 game_patterns = [

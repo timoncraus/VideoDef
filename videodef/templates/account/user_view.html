@@ -14,7 +14,8 @@
     <a href="{% url 'get_chat' user_info.unique_id request.user.unique_id %}">Написать в чат</a>
 
     <p><strong>ID:</strong> {{ user_info.unique_id }}</p>
-    <p><strong>Дата регистрации:</strong> {{ user_info.date_registr|date:"d.m.Y" }}</p>
+    <p><strong>Дата регистрации:</strong> {{ user_info.date_registr }} по мск</p>
+    <p><strong>Последний раз в сети:</strong> {{ user_info.last_seen }} по мск</p>
     <p><strong>Логин:</strong> {{ user_info.username }}</p>
     <p><strong>Email:</strong> {{ user_info.email }}</p>
     <p><strong>Телефон:</strong> {{ user_info.phone_number }}</p>

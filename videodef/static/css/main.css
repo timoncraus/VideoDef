@@ -5,6 +5,7 @@ body {
     background: linear-gradient(135deg, #F7F7F7 0%, #E3F2FD 100%);
     color: #333;
     line-height: 1.6;
+    font-size: 20px;
 }
 
 header {

@@ -93,5 +93,9 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ru.js"></script>
     <script src="{% static 'js/date.js' %}"></script>
+    <script>
+        const user_id = "{{ request.user.unique_id }}";
+    </script>
+    <script src="{% static 'js/videocall/notify.js' %}"></script>
 </body>
 </html>

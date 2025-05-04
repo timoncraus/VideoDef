@@ -46,6 +46,8 @@
             {% endfor %}
         </ul>
     </div>
+    <p><strong>Дата создания:</strong> {{ resume.created_at }} по мск</p>
+    <p><strong>Дата последнего обновления:</strong> {{ resume.updated_at }} по мск</p>
     <a href="{% url 'get_chat' resume.user.unique_id request.user.unique_id %}">Написать в чат</a>
 </div>
 {% endblock %}

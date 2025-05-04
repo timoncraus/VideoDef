@@ -6,7 +6,7 @@ const chatSocket = new WebSocket(
 chatSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
     dateTimestamp = new Date(data.timestamp);
-    document.querySelector('#chat-messages').innerHTML += 
+    document.querySelector('#chat-messages').innerHTML +=
         `<div class="message ${data.message_type}">
             ${data.message}
             <div class="message-time">${formatTimestamp(dateTimestamp)} по мск</div>
@@ -17,7 +17,7 @@ function formatTimestamp(date) {
     date = localizeTime(date);
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    
+
     return `${hours}:${minutes}`;
 }
 
@@ -42,7 +42,7 @@ document.querySelector('#send-message-btn').onclick = function(e) {
     const message = messageInputDom.value;
 
     // Отправляем сообщение без user_id (он берется на сервере)
-    chatSocket.send(JSON.stringify({'message': message}));
+    chatSocket.send(JSON.stringify({ 'message': message }));
 
     messageInputDom.value = ''; // очистить поле после отправки
 };
@@ -54,7 +54,7 @@ function scrollToBottom() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
     scrollToBottom(); // Прокрутка вниз при загрузке страницы
 
     // Прокрутка вниз при добавлении нового сообщения
@@ -68,9 +68,11 @@ function getDeclension(count, one, few, many) {
     if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return `${count} ${few} назад`;
     return `${count} ${many} назад`;
 }
+
 function getSeconds(count) {
     return getDeclension(count, 'секунду', 'секунды', 'секунд');
 }
+
 function getMinutes(count) {
     return getDeclension(count, 'минуту', 'минуты', 'минут');
 }
@@ -137,8 +139,8 @@ function displayLastActiveDate() {
     MINUTES_SHIFT = (new Date() - currDate) / 1000 / 60
 
     const gender = document.querySelector("#last-active-date").getAttribute("data-gender");
-    genderWord = gender === "W"? "была ": "был "
-    
+    genderWord = gender === "W" ? "была " : "был "
+
     const formattedDate = statusTimeAgo(lastActiveDate, currDate, genderWord);
     document.querySelector("#last-active-formatted").textContent = formattedDate;
 }

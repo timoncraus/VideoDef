@@ -23,6 +23,8 @@
             {% endfor %}
         </div>
     {% endif %}
+    <p><strong>Дата создания:</strong> {{ document.created_at }} по мск</p>
+    <p><strong>Дата последнего обновления:</strong> {{ document.updated_at }} по мск</p>
     <a href="{% url 'get_chat' document.user.unique_id request.user.unique_id %}">Написать в чат</a>
 </div>
 {% endblock %}

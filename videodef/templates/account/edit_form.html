@@ -24,7 +24,8 @@
         
 
         <p class="form-label">Ваш ID: {{ unique_id }}</p>
-        <p class="form-label">Дата вашей регистрации: {{ date_registr }}</p>
+        <p class="form-label">Дата вашей регистрации: {{ date_registr }} по мск</p>
+        <p class="form-label">Последний раз в сети: {{ last_seen }} по мск</p>
 
         {% include "field/default_field.html" with field=forms.user_form.username %}
         {% include "field/default_field.html" with field=forms.user_form.email %}

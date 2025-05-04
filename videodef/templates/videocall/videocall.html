@@ -8,13 +8,23 @@
     </style>
 </head>
 <body>
-    <div id="videos">
+    <div id="videos" data-room-name="{{ room_name }}">
         <video id="localVideo" autoplay muted></video>
         <video id="remoteVideo" autoplay></video>
     </div>
 
+    <div id="controls">
+        <button onclick="toggleMic()">🎙️ Микрофон</button>
+        <button onclick="toggleCam()">📷 Камера</button>
+        <button onclick="endCall()">❌ Завершить</button>
+    </div>
+
+    <div>
+        {% include 'game/whiteboard.html' %}
+    </div>
+
     <script>
-        const roomName = "testroom";
+        const roomName = document.getElementById('videos').dataset.roomName;
         const ws = new WebSocket(`ws://${window.location.host}/ws/videocall/${roomName}/`);
 
         const configuration = {
@@ -136,6 +146,24 @@
                 }
             }
         };
+    </script>
+
+    <script>
+        let localStream;
+
+        function toggleMic() {
+            localStream.getAudioTracks().forEach(track => track.enabled = !track.enabled);
+        }
+
+        function toggleCam() {
+            localStream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
+        }
+
+        function endCall() {
+            ws.close();
+            peerConnection.close();
+            window.location.href = "/chats/";
+        }
     </script>
 </body>
 </html>

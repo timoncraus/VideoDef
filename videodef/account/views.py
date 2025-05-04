@@ -38,7 +38,8 @@ def account(request):
         {
             'forms': {'user_form': user_form, 'profile_form': profile_form},
             "unique_id": user.unique_id,
-            "date_registr": user.date_registr
+            "date_registr": user.date_registr,
+            "last_seen": user.last_seen
         })
 
 def view_other_user(request, user_id):

@@ -9,19 +9,22 @@
     overflow: hidden;
     background: #f5f5f5;
 }
+
 .chat-header {
     display: flex;
-    align-items: center;
+    justify-content: space-between;
     padding: 10px;
     background: #0088cc;
     color: white;
 }
+
 .small-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     margin-right: 10px;
 }
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -29,6 +32,7 @@
     display: flex;
     flex-direction: column;
 }
+
 .message {
     max-width: 70%;
     padding: 10px;
@@ -36,21 +40,25 @@
     margin-bottom: 5px;
     position: relative;
 }
+
 .message.sent {
     align-self: flex-end;
     background: #0088cc;
     color: white;
 }
+
 .message.received {
     align-self: flex-start;
     background: white;
     color: black;
 }
+
 .message-time {
     font-size: 0.8em;
     opacity: 0.7;
     text-align: right;
 }
+
 .chat-input {
     display: flex;
     padding: 10px;
@@ -58,6 +66,7 @@
     align-items: center;
     gap: 10px;
 }
+
 .chat-input textarea {
     flex: 1;
     margin-top: 10px;
@@ -71,6 +80,7 @@
     flex-basis: 1000px;
     height: 100%;
 }
+
 .chat-input button {
     background: #0088cc;
     color: white;
@@ -81,4 +91,13 @@
     white-space: nowrap;
     height: 100%;
     max-width: 200px;
+}
+
+.video-call-button {
+    right: 10px;
+    width: 200px;
+}
+
+.chat-user-view-container {
+    display: flex;
 }

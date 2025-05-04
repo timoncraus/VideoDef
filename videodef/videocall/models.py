@@ -1,3 +1,13 @@
 from django.db import models
+from account.models import User
 
-# Create your models here.
+class VideoCall(models.Model):
+    caller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='outgoing_calls')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incoming_calls')
+    room_name = models.CharField(max_length=100, unique=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    accepted = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.caller} → {self.receiver} [{self.room_name}]"
