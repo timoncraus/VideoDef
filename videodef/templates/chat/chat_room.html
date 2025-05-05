@@ -29,26 +29,6 @@
         </div>
     </div>
     <script src="{% static 'js/chat/chat_room.js' %}"></script>
-    <script>
-        const otherUserId = document.getElementById('view-other-user-box').dataset.otherUserId;
-        console.log(otherUserId)
-        document.getElementById('start-call-btn').onclick = () => {
-            alert("Вы отправили заявку на звонок")
-            fetch('/videocall/start-call/', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ receiver_id: otherUserId })
-                })
-                .then(resp => resp.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = `/videocall/call/${data.room_name}/`;
-                    }
-                });
-        };
-    </script>
+    <script src="{% static 'js/videocall/start_videocall.js' %}"></script>
 {% endblock %}
 

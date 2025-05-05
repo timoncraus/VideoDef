@@ -5,10 +5,10 @@
 export function getPuzzleParts() {
     // Параметры пазла по умолчанию
     let puzzleParams = {
-        gridSize: 2,          // Размер сетки (2x2)
-        piecePositions: [],   // Позиции элементов
-        selectedImage: images + '/puzzle_test.png', // Изображение по умолчанию
-        selectedPiece: null   // Выбранный элемент
+        gridSize: 2, // Размер сетки (2x2)
+        piecePositions: [], // Позиции элементов
+        selectedImage: images + '/british-cat.jpg', // Изображение по умолчанию
+        selectedPiece: null // Выбранный элемент
     }
 
     const puzzleContainer = createPuzzleContainer();
@@ -34,15 +34,15 @@ export function createPuzzle(puzzleContainer, puzzleParams, message) {
         piece.classList.add('puzzle-piece');
         piece.id = `piece-${i + 1}`;
         piece.setAttribute('data-index', i);
-        
+
         // Расчет размеров элемента
         const percent = 100 / puzzleParams.gridSize;
         piece.style.width = `${percent}%`;
         piece.style.height = `${percent}%`;
         piece.style.backgroundSize = `${puzzleParams.gridSize * 100}% ${puzzleParams.gridSize * 100}%`;
-        
+
         // Обработчик клика на элемент
-        piece.addEventListener('click', () => 
+        piece.addEventListener('click', () =>
             handlePieceClick(puzzleContainer, puzzleParams, piece, message)
         );
 
@@ -80,7 +80,7 @@ export function placePieces(puzzleContainer, puzzleParams) {
     const pieces = puzzleContainer.querySelectorAll('.puzzle-piece');
     const gridPositions = [];
     const percent = 100 / puzzleParams.gridSize;
-    
+
     // Генерация сетки
     for (let row = 0; row < puzzleParams.gridSize; row++) {
         for (let col = 0; col < puzzleParams.gridSize; col++) {

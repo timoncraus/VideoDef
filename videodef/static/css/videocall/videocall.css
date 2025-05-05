@@ -1,0 +1,20 @@
+#videos {
+    display: flex;
+    justify-content: space-around;
+}
+
+video {
+    width: 35%;
+    height: auto;
+    background: black;
+}
+
+#controls {
+    display: flex;
+}
+
+.video-call-page header,
+.video-call-page nav,
+.video-call-page .page_name {
+    display: none;
+}

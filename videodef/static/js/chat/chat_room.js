@@ -41,10 +41,9 @@ document.querySelector('#send-message-btn').onclick = function(e) {
     const messageInputDom = document.querySelector('#chat-message-input');
     const message = messageInputDom.value;
 
-    // Отправляем сообщение без user_id (он берется на сервере)
     chatSocket.send(JSON.stringify({ 'message': message }));
 
-    messageInputDom.value = ''; // очистить поле после отправки
+    messageInputDom.value = '';
 };
 
 
@@ -55,9 +54,8 @@ function scrollToBottom() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    scrollToBottom(); // Прокрутка вниз при загрузке страницы
+    scrollToBottom();
 
-    // Прокрутка вниз при добавлении нового сообщения
     const chatMessages = document.getElementById("chat-messages");
     const observer = new MutationObserver(scrollToBottom);
     observer.observe(chatMessages, { childList: true });
@@ -139,7 +137,7 @@ function displayLastActiveDate() {
     MINUTES_SHIFT = (new Date() - currDate) / 1000 / 60
 
     const gender = document.querySelector("#last-active-date").getAttribute("data-gender");
-    genderWord = gender === "W" ? "была " : "был "
+    genderWord = gender === "Женский" ? "была " : "был "
 
     const formattedDate = statusTimeAgo(lastActiveDate, currDate, genderWord);
     document.querySelector("#last-active-formatted").textContent = formattedDate;

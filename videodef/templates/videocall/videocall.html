@@ -1,17 +1,14 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ВидеоЗвонок</title>
-    <style>
-        #videos { display: flex; justify-content: space-around; }
-        video { width: 35%; height: auto; background: black; }
-        #controls { display: flex; }
-        .video-call-page header,
-        .video-call-page nav,
-        .video-call-page .page_name {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{% static 'css/videocall/videocall.css' %}" />
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/videocall_icon.png' %}"/>
 </head>
 <body class="video-call-page">
     <div id="videos" data-room-name="{{ room_name }}">
@@ -29,182 +26,6 @@
         {% include 'game/whiteboard.html' %}
     </div>
 
-    <script>
-        const roomName = document.getElementById('videos').dataset.roomName;
-        let ws = new WebSocket(`ws://${window.location.host}/ws/videocall/${roomName}/`);
-
-        const configuration = {
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-        };
-        let peerConnection = new RTCPeerConnection(configuration);
-        console.log(peerConnection)
-
-        const localVideo = document.getElementById("localVideo");
-        const remoteVideo = document.getElementById("remoteVideo");
-
-        let pendingCandidates = [];
-
-
-        function setPeerConnectionOntrack() {
-            peerConnection.ontrack = event => {
-                console.log("Received track: ", event);
-                if (event.streams.length > 0) {
-                    const remoteStream = event.streams[0];
-                    if (remoteVideo.srcObject !== remoteStream) {
-                        remoteVideo.srcObject = remoteStream;
-                        console.log("Обновлен удалённый видеопоток.");
-                    }
-                }
-            };
-        }
-        
-        setPeerConnectionOntrack();
-
-        function setPeerConnectionOnicecandidate() {
-            console.log(222)
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    ws.send(JSON.stringify({ type: 'ice', candidate: event.candidate }));
-                }
-            };
-        }
-        setPeerConnectionOnicecandidate();
-
-        
-
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log("ICE состояние:", peerConnection.iceConnectionState);
-            if (peerConnection.iceConnectionState === 'failed') {
-                console.log("0000 Очищаем все состояние")
-                peerConnection.close();
-                peerConnection = new RTCPeerConnection(configuration);
-                setPeerConnectionOntrack();  // повторно устанавливаем обработчики
-                setPeerConnectionOnicecandidate();
-            }
-        };
-
-        peerConnection.onconnectionstatechange = () => {
-            console.log("Connection состояние:", peerConnection.connectionState);
-        };
-
-        console.log("Initiator Peer Connection State: ", peerConnection.connectionState);
-        console.log("Remote Description: ", peerConnection.remoteDescription);
-
-        // Выбираем камеру, отличную от DroidCam
-        navigator.mediaDevices.enumerateDevices()
-        .then(devices => {
-            const videoDevice = devices.find(d => d.kind === 'videoinput' && !d.label.toLowerCase().includes('droidcam'));
-            if (!videoDevice) throw new Error("Нет подходящей камеры");
-
-            return navigator.mediaDevices.getUserMedia({
-                video: { deviceId: videoDevice.deviceId },
-                audio: true
-            });
-        })
-        .then(stream => {
-            localVideo.srcObject = stream;
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-
-            // Создаем offer только после добавления треков
-            if (isInitiator) {
-                console.log("🎬 Создаём offer после добавления треков");
-                peerConnection.createOffer()
-                    .then(offer => {
-                        return peerConnection.setLocalDescription(offer).then(() => {
-                            ws.send(JSON.stringify({ type: 'offer', offer }));
-                        });
-                    });
-            }
-        });
-
-        let isInitiator = false;
-
-        ws.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            console.log("WS message received:", data);
-
-            if (data.type === 'ready' && isInitiator) {
-                console.log("🎬 Оба участника на месте, отправляем offer");
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                ws.send(JSON.stringify({ type: 'offer', offer }));
-            }
-
-            if (data.type === 'resend_offer' && isInitiator) {
-                console.log("♻️ Пересоздаём offer по запросу");
-                console.log("WebSocket закрыт, обновляем страницу...");
-                location.reload(); // Перезагружает текущую страницу
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                ws.send(JSON.stringify({ type: 'offer', offer }));
-            }
-
-            if (data.type === 'role') {
-                console.log("Your role:", data.initiator ? "initiator" : "receiver");
-            }
-            if (data.type === 'offer') console.log("Received offer");
-            if (data.type === 'answer') console.log("Received answer");
-            if (data.type === 'ice') console.log("Received ICE candidate");
-
-            if (data.type === 'role') {
-                isInitiator = data.initiator;
-            } else if (data.type === 'offer') {
-                if (isInitiator) {
-                    console.log("👀 Пропускаем свой же offer");
-                    return;
-                }
-                console.log("📩 Получен offer", data.offer);
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                console.log("✅ setRemoteDescription DONE");
-
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                console.log("✅ createAnswer & setLocalDescription DONE");
-
-                ws.send(JSON.stringify({ type: 'answer', answer }));
-                console.log("📤 Ответ отправлен:", answer);
-
-                pendingCandidates.forEach(c => peerConnection.addIceCandidate(c));
-                pendingCandidates = [];
-
-            } else if (data.type === 'answer') {
-                if (!isInitiator) {
-                    console.log("👀 Пропускаем свой же answer");
-                    return;
-                }
-                console.log("📩 Получен answer", data.answer);
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                console.log("✅ setRemoteDescription (answer) DONE");
-
-                pendingCandidates.forEach(c => peerConnection.addIceCandidate(c));
-                pendingCandidates = [];
-
-            } else if (data.type === 'ice') {
-                if (peerConnection.remoteDescription) {
-                    await peerConnection.addIceCandidate(data.candidate);
-                } else {
-                    pendingCandidates.push(data.candidate);
-                }
-            }
-        };
-    </script>
-
-    <script>
-        function toggleMic() {
-            let localStream = document.getElementById("localVideo").srcObject;
-            localStream.getAudioTracks().forEach(track => track.enabled = !track.enabled);
-        }
-
-        function toggleCam() {
-            let localStream = document.getElementById("localVideo").srcObject;
-            localStream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
-        }
-
-        function endCall() {
-            ws.close();
-            peerConnection.close();
-            window.location.href = "/chats/";
-        }
-    </script>
+    <script src="{% static 'js/videocall/videocall.js' %}"></script>
 </body>
 </html>

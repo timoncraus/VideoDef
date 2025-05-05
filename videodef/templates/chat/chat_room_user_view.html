@@ -1,5 +1,5 @@
 {% include "field/photo.html" with img_class="small-avatar" %}
-<div id="view-other-user-box" data-other-user-id="{{ user.unique_id }}">
+<div id="view-other-user-box" data-other-user-id="{{ user.unique_id }}" data-csrf-token="{{ csrf_token }}">
     <strong><a href="{% url 'view_other_user' user.unique_id %}" class="chat-room-user-view-link">{{ user.profile }}</a></strong>
     <br>
     <small id="last-active-date" data-gender="{{ user.profile.gender }}" data-date="{{ user.last_seen|date:'Y-m-d H:i:s' }}"
