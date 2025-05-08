@@ -46,11 +46,11 @@ class WhiteboardConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'broadcast_draw',  # Метод, который будет вызван
+                'type': 'broadcast_message',  # Метод, который будет вызван
                 'message': text_data,      # Передаём сообщение дальше
             }
         )
 
-    async def broadcast_draw(self, event):
+    async def broadcast_message(self, event):
         # Отправляем полученные данные обратно всем участникам
         await self.send(text_data=event['message'])
