@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_name %}Мои игры{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="{% static 'css\game\my_games.css' %}">
+<link rel="stylesheet" href="{% static 'css\game\game_delete_window.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="my-games-page-wrapper">
+
+    <main class="my-games-main-content">
+        {% if user_games %}
+            <div class="my-saved-games-grid">
+                {% for game in user_games %}
+                <div class="saved-game-item-wrapper" data-game-id-wrapper="{{ game.pk }}"> <!-- Обертка для удобного удаления -->
+                    <a href="#" class="saved-game-item">
+                        <article class="saved-game-card">
+                            <div class="saved-game-card__image-wrapper">
+                                {% if game.display_image_url %}
+                                    <img src="{{ game.display_image_url }}" class="saved-game-card__image" alt="{{ game.display_name }}">
+                                {% else %}
+                                    <div class="saved-game-card__image-placeholder">
+                                        <span>Нет обложки</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="saved-game-card__body">
+                                <h3 class="saved-game-card__title" title="{{ game.display_name }}">{{ game.display_name }}</h3>
+                                <p class="saved-game-card__info"><strong>Жанр:</strong> {{ game.genre.name }}</p>
+                                <p class="saved-game-card__info"><small>Создана: {{ game.created_at|date:"d.m.y" }}</small></p>
+                                <p class="saved-game-card__info"><small>Обновлена: {{ game.updated_at|date:"d.m.y" }}</small></p>
+                            </div>
+                            <div class="saved-game-card__actions">
+                                <button class="button button--danger delete-game-btn" data-game-id="{{ game.pk }}" title="Удалить игру">
+                                    Удалить
+                                </button>
+                                <!-- Можно добавить кнопку "Редактировать" или "Играть" сюда же -->
+                            </div>
+                        </article>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" id="no-games-message"> <!-- Добавлен ID -->
+                У вас пока нет сохраненных игр.
+            </div>
+        {% endif %}
+    </main>
+
+    <aside class="my-games-sidebar">
+        <h2 class="my-games-sidebar__title">Фильтры и сортировка</h2>
+        <form method="GET" action="{% url 'my_games' %}" class="my-games-filter-form">
+            <div class="control-group">
+                <label for="genreFilter" class="form-label">Жанр:</label>
+                <select name="genre" id="genreFilter" class="form-select">
+                    <option value="">Все жанры</option>
+                    {% for genre_obj in genres_for_filter %}
+                        <option value="{{ genre_obj.id }}" {% if current_filters.genre == genre_obj.id|stringformat:"s" %}selected{% endif %}>
+                            {{ genre_obj.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="sortByFilter" class="form-label">Сортировать по:</label>
+                <select name="sort_by" id="sortByFilter" class="form-select">
+                    <option value="created" {% if current_sort.by == 'created' %}selected{% endif %}>Дате создания</option>
+                    <option value="updated" {% if current_sort.by == 'updated' %}selected{% endif %}>Дате обновления</option>
+                    <option value="name" {% if current_sort.by == 'name' %}selected{% endif %}>Названию</option>
+                    <option value="genre" {% if current_sort.by == 'genre' %}selected{% endif %}>Жанру</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="sortOrderFilter" class="form-label">Порядок:</label>
+                <select name="order" id="sortOrderFilter" class="form-select">
+                    <option value="desc" {% if current_sort.order == 'desc' %}selected{% endif %}>По убыванию</option>
+                    <option value="asc" {% if current_sort.order == 'asc' %}selected{% endif %}>По возрастанию</option>
+                </select>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="button button--primary">Применить</button>
+                <a href="{% url 'my_games' %}" class="button button--secondary">Сбросить</a>
+            </div>
+        </form>
+    </aside>
+
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div id="deleteConfirmationModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close-btn">×</span>
+        <h2>Подтверждение удаления</h2>
+        <p>Вы уверены, что хотите удалить игру "<strong id="gameNameToDelete"></strong>"?</p>
+        <p><small>Это действие нельзя будет отменить.</small></p>
+        <div class="modal-actions">
+            <button id="confirmDeleteBtn" class="button button--danger">Удалить</button>
+            <button id="cancelDeleteBtn" class="button button--secondary">Отмена</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/game/my_games.bundle.js' %}"></script>
+{% endblock %}

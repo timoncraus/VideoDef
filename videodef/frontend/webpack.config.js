@@ -4,6 +4,7 @@ module.exports = {
     entry: {
         whiteboard: './whiteboard.js',
         puzzle: './puzzle/index.js',
+        my_games: './my-games.js'
     },
     output: {
         path: path.resolve(__dirname, '../static/js/game/'),

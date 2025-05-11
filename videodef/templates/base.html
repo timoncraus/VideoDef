@@ -41,7 +41,7 @@
                     {% if user.is_authenticated %}
                         <!-- Общие для преподавателя и родителя -->
                         <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="bi bi-person-circle"></i> Мои игры</a>
+                            <a class="nav-link" href="{% url 'my_games' %}"><i class="bi bi-person-circle"></i> Мои игры</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#"><i class="bi bi-calendar-event"></i> Расписание</a>
