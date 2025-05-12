@@ -56,7 +56,9 @@ game_patterns = [
     # Для сохранения и загрузки игр
     path('puzzles/save/', game_views.save_puzzle_view, name='save_puzzle'),
     path('puzzles/load/', game_views.load_puzzles_view, name='load_puzzles'),
+    path('puzzles/update/<str:game_id>/', game_views.update_puzzle_view, name='update_puzzle'),
 
+    # Удаление игры
     path('delete/<str:game_id>/', game_views.delete_game_view, name='delete_game'),
 ]
 

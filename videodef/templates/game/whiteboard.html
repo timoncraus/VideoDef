@@ -76,6 +76,7 @@
     const loginUrl = "{% url 'login' %}?next=" + window.location.pathname;
     const images = "{% static 'images' %}";
     const savePuzzleUrl = "{% url 'save_puzzle' %}";
+    const updatePuzzleBaseUrl = "{% url 'update_puzzle' game_id="0" %}".replace('/0/', '/'); 
     const loadPuzzlesUrl = "{% url 'load_puzzles' %}";
     const csrfToken = "{{ csrf_token }}";
 </script>

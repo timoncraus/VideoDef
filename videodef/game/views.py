@@ -4,10 +4,13 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from django.core.exceptions import ValidationError
 from django.db import transaction, InternalError
+from django.core.files.uploadhandler import MemoryFileUploadHandler, TemporaryFileUploadHandler
+from django.http.multipartparser import MultiPartParser
 from django.conf import settings
 from django.templatetags.static import static
 from django.db.models import Value, CharField, OuterRef, Subquery, F
 from django.db.models.functions import Concat, Coalesce
+from io import BytesIO
 from .models import UserGame, UserPuzzle, Genre
 import json
 import traceback
@@ -261,7 +264,6 @@ def save_puzzle_view(request):
             'message': 'Произошла внутренняя ошибка сервера при сохранении пазла. Попробуйте позже.'
         }, status=500)
 
-
 @login_required
 @require_GET
 def load_puzzles_view(request):
@@ -305,4 +307,102 @@ def load_puzzles_view(request):
         return JsonResponse({
             'status': 'error',
             'message': 'Произошла внутренняя ошибка сервера при загрузке списка пазлов.'
+        }, status=500)
+    
+
+@login_required
+@require_http_methods(["PUT"])
+@transaction.atomic
+def update_puzzle_view(request, game_id):
+    """
+    Обрабатывает PUT-запрос для обновления существующего пазла.
+    Данные ожидает в FormData.
+    """
+    try:
+        user_puzzle = get_object_or_404(UserPuzzle, game_id=game_id, game__user=request.user)
+       
+        # --- Парсинг FormData для PUT запросов ---
+        # Настраиваем стандартные обработчики загрузки файлов для request.
+        request.upload_handlers = [MemoryFileUploadHandler(request=request), TemporaryFileUploadHandler(request=request)]
+
+        # Парсим тело запроса
+        parser = MultiPartParser(request.META, BytesIO(request.body), request.upload_handlers)
+        post_data, files_data = parser.parse()
+        
+        # --- Извлечение данных из распарсенных данных ---
+        name = post_data.get('name', '').strip()
+        grid_size_str = post_data.get('gridSize')
+        piece_positions_str = post_data.get('piecePositions')
+        preset_path = post_data.get('preset_image_path')
+        uploaded_image_file = files_data.get('user_image_file')
+
+        # --- Валидация входных данных ---
+        if not name:
+            return JsonResponse({'status': 'error', 'message': 'Название не может быть пустым.'}, status=400)
+
+        try:
+            grid_size = int(grid_size_str)
+            if grid_size < 2:
+                raise ValueError("Размер сетки слишком мал.")
+        except (TypeError, ValueError, KeyError):
+            return JsonResponse({'status': 'error', 'message': 'Неверный или отсутствующий размер сетки.'}, status=400)
+
+        try:
+            if not piece_positions_str:
+                raise ValueError("Данные о позициях элементов отсутствуют.")
+            piece_positions = json.loads(piece_positions_str)
+            if not isinstance(piece_positions, list) or not all(isinstance(p, int) for p in piece_positions):
+                raise ValueError("Позиции должны быть списком целых чисел.")
+            expected_length = grid_size * grid_size
+            if len(piece_positions) != expected_length:
+                raise ValueError(f"Количество позиций ({len(piece_positions)}) не соответствует размеру сетки ({expected_length}).")
+        except (TypeError, ValueError, json.JSONDecodeError) as e:
+            print(f"Ошибка парсинга/валидации позиций при обновлении: {e}, получено: '{piece_positions_str}'")
+            return JsonResponse({'status': 'error', 'message': f'Неверный формат или содержимое позиций элементов: {e}'}, status=400)
+        except KeyError:
+            return JsonResponse({'status': 'error', 'message': 'Данные о позициях элементов не переданы.'}, status=400)
+
+        # Проверка источника изображения
+        current_has_preset = bool(user_puzzle.preset_image_path)
+        current_has_user_image = bool(user_puzzle.user_image)
+
+        # --- Обновление полей UserPuzzle ---
+        user_puzzle.name = name
+        user_puzzle.grid_size = grid_size
+        user_puzzle.piece_positions = piece_positions
+
+        # Логика обновления изображения
+        if preset_path: # Пользователь выбрал/оставил пресет
+            if user_puzzle.user_image:
+                user_puzzle.user_image.delete(save=False)
+                user_puzzle.user_image = None
+            user_puzzle.preset_image_path = preset_path
+        elif uploaded_image_file: # Пользователь загрузил новый файл
+            if user_puzzle.user_image:
+                user_puzzle.user_image.delete(save=False)
+            user_puzzle.user_image = uploaded_image_file
+            user_puzzle.preset_image_path = None
+        else:
+              if not current_has_preset and not current_has_user_image:
+                  return JsonResponse({'status': 'error', 'message': 'Ошибка: изображение не было предоставлено для обновления.'}, status=400)
+
+        # Валидация модели и сохранение
+        user_puzzle.full_clean()
+        user_puzzle.save()
+
+        return JsonResponse({'status': 'success', 'message': f'Пазл "{name}" успешно обновлен!'})
+
+    # Обработка возможных ошибок
+    except UserPuzzle.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Пазл для обновления не найден или у вас нет прав на его изменение.'}, status=404)
+    except ValidationError as e:
+        error_message = '; '.join([f"{k}: {v[0]}" for k, v in e.message_dict.items()])
+        print(f"Ошибка валидации при обновлении пазла: {e.message_dict}")
+        return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
+    except Exception as e:
+        print(f"Непредвиденная ошибка при обновлении пазла (ID: {game_id}, User: {request.user.username}): {e.__class__.__name__}: {e}")
+        traceback.print_exc()
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Произошла внутренняя ошибка сервера при обновлении пазла. Попробуйте позже.'
         }, status=500)
