@@ -1,4 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 import json
 
 # Хранилище для инициаторов по комнатам (на уровне процесса)
@@ -60,7 +62,6 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
 
     async def receive(self, text_data):
-        print("🔁 WS RECEIVE:", text_data)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -73,7 +74,6 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
     async def broadcast(self, event):
         # Не пересылаем сообщения отправителю
         if event['sender'] != self.channel_name:
-            print(f"📤 BROADCASTING to {self.channel_name}: {event['message']}")
             await self.send(text_data=event['message'])
 
 
@@ -89,3 +89,17 @@ class NotifyConsumer(AsyncWebsocketConsumer):
 
     async def incoming_call(self, event):
         await self.send(text_data=json.dumps(event))
+
+    async def receive(self, text_data):
+        dict_data = json.loads(text_data)
+        if dict_data["answer"] == "rejection":
+            channel_layer = get_channel_layer()
+            await channel_layer.group_send(
+                f"videocall_{dict_data['room_name']}",
+                {
+                    'type': 'broadcast',
+                    'message': json.dumps({"type": "end_call"}),
+                    'sender': '#'
+                }
+            )
+

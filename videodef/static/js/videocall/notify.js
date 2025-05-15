@@ -6,6 +6,8 @@ notifySocket.onmessage = (event) => {
     if (data.type === 'incoming_call') {
         if (confirm(`Вам звонит ${data.from}. Принять звонок?`)) {
             window.location.href = `/videocall/call/${data.room_name}/`;
+        } else {
+            notifySocket.send(JSON.stringify({ "answer": "rejection", "room_name": data.room_name }));
         }
     }
 };

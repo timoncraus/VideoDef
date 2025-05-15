@@ -74,6 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ws.onmessage = async(event) => {
         const data = JSON.parse(event.data);
+        console.log(data)
+
+        if (data.type === 'end_call') {
+            closeVideocall();
+        }
 
         if (data.type === 'ready' && isInitiator) {
             const offer = await peerConnection.createOffer();
@@ -135,6 +140,11 @@ function toggleCam() {
 }
 
 function endCall() {
+    ws.send(JSON.stringify({ type: 'end_call' }));
+    closeVideocall();
+}
+
+function closeVideocall() {
     ws.close();
     peerConnection.close();
     window.location.href = "/chats/";
