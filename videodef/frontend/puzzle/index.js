@@ -99,6 +99,10 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
         // Извлекаем необходимые данные из полученного состояния
         const { name, gridSize, piecePositions, selectedImage, presetElements, customImageInputEl } = currentState;
 
+        // Получаем puzzleId из dataset кнопки. Если его нет, это создание новой игры.
+        const puzzleId = saveButton.dataset.puzzleId;
+        const action = puzzleId ? 'update' : 'create';
+
         // --- Валидация данных перед сохранением ---
         if (!name) {
             alert("Пожалуйста, введите название для сохранения.");
@@ -122,6 +126,7 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
 
         // Определяем, используется ли изображение-пресет или пользовательское изображение
         let isPreset = false;
+
         if (presetElements && presetElements.length > 0) {
             presetElements.forEach(preset => {
                 const presetSrc = preset.dataset.src || preset.src;
@@ -137,6 +142,7 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
         }
 
         if (!isPreset && selectedImage.startsWith('data:image')) {
+            // Пользователь загрузил новый файл (или пере-загрузил тот же, но он теперь data:URL)
             const imageBlob = dataURLtoBlob(selectedImage);
             if (imageBlob) {
                 const filename = (customImageInputEl && customImageInputEl.files.length > 0)
@@ -144,46 +150,65 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
                     : `upload.${imageBlob.type.split('/')[1] || 'png'}`;
                 formData.append('user_image_file', imageBlob, filename);
             } else {
-                alert("Ошибка конвертации пользовательского изображения для сохранения."); return;
+                alert("Ошибка конвертации пользовательского изображения для сохранения/обновления."); return;
             }
-        } else if (!isPreset) {
-             if (selectedImage && (selectedImage.includes('/media/puzzle_images/') || selectedImage.includes('/static/'))) {
-                  alert("Невозможно сохранить: выбранное изображение было загружено ранее. Пожалуйста, выберите пресет или загрузите изображение заново, чтобы сохранить текущее состояние.");
-                  console.warn("Не удается сохранить существующее пользовательское изображение по URL-адресу:", selectedImage);
-                  return;
-             } else {
-                 alert("Не удалось определить источник изображения для сохранения.");
-                 console.warn("Невозможно сохранить источник изображения:", selectedImage);
-                 return;
-             }
+            // Если загружен новый файл, изображение точно указано/изменилось
+        } else if (!isPreset && action === 'create') {
+            if (selectedImage && (selectedImage.includes('/media/puzzle_images/') || selectedImage.includes('/static/'))) {
+                alert("Для создания нового пазла: выбранное изображение было загружено ранее. Пожалуйста, выберите пресет или загрузите изображение заново.");
+                console.warn("Попытка создать пазл с существующим URL пользовательского изображения:", selectedImage);
+                return;
+            } else if (selectedImage) {
+                alert("Не удалось определить источник изображения для создания пазла. Выберите пресет или загрузите свое изображение.");
+                console.warn("Невозможно создать пазл с источником изображения:", selectedImage);
+                return;
+            } else {
+                alert("Изображение не выбрано для создания пазла.");
+                return;
+            }
         }
 
-        // --- Отправка запроса на сервер для сохранения пазла ---
-        saveButton.textContent = 'Сохранение...'; saveButton.disabled = true;
+        // --- Отправка запроса на сервер для сохранения/обновления пазла ---
+        let url = (action === 'update' && puzzleId) ? updatePuzzleBaseUrl + puzzleId + '/' : savePuzzleUrl;
+        let method = (action === 'update' && puzzleId) ? 'PUT' : 'POST';
+
+        saveButton.textContent = (action === 'update') ? 'Обновление...' : 'Сохранение...';
+        saveButton.disabled = true;
+
         try {
-            const response = await fetch(savePuzzleUrl, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'X-CSRFToken': csrfToken, 'Accept': 'application/json' },
                 body: formData,
             });
             const result = await response.json();
             if (response.ok && result.status === 'success') {
-                alert(result.message || 'Пазл сохранен!');
+                alert(result.message || (action === 'update' ? 'Пазл обновлен!' : 'Пазл сохранен!'));
             } else {
-                alert(`Ошибка сохранения: ${result.message || response.statusText}`);
+                alert(`Ошибка ${action === 'update' ? 'обновления' : 'сохранения'}: ${result.message || response.statusText}`);
             }
         } catch (error) {
-            alert("Сетевая ошибка при сохранении.");
-            console.error("Ошибка сохранения:", error);
+            alert(`Сетевая ошибка при ${action === 'update' ? 'обновлении' : 'сохранении'}.`);
+            console.error(`Ошибка ${action === 'update' ? 'обновления' : 'сохранения'}:`, error);
         } finally {
-            saveButton.textContent = saveButton.dataset.originalText || 'Сохранить';
+            const finalPuzzleId = saveButton.dataset.puzzleId;
+            if (finalPuzzleId) { // Если puzzleId все еще есть, значит, мы в режиме обновления
+                 saveButton.textContent = saveButton.dataset.originalTextUpdate || 'Обновить пазл';
+            } else { // Иначе - в режиме создания
+                 saveButton.textContent = saveButton.dataset.originalTextCreate || 'Сохранить';
+            }
             saveButton.disabled = false;
         }
     };
 
     // --- Назначение обработчика на кнопку "Сохранить" ---
     if (saveButton) {
-        saveButton.dataset.originalText = saveButton.textContent;
+        if (!saveButton.dataset.originalTextCreate) {
+            saveButton.dataset.originalTextCreate = saveButton.textContent;
+        }
+
+        saveButton.dataset.action = 'create';
+
         saveButton.removeEventListener('click', saveButton.clickHandler);
         saveButton.addEventListener('click', saveHandler);
         saveButton.clickHandler = saveHandler;
@@ -294,7 +319,8 @@ function setupPuzzleControls({
     puzzleContainer,
     message,
     instantUpdate = false,
-    onStateChange
+    onStateChange,
+    saveBtnRef
 }) {
     // Проверка наличия обязательных элементов и параметров
     if (!customInput || !presets || !difficultySelect || !puzzleParams || !puzzleContainer || !message) {
@@ -302,12 +328,25 @@ function setupPuzzleControls({
         return;
     }
 
+    const resetToCreateModeIfNeeded = () => {
+        if (puzzleParams.id && saveBtnRef) {
+            console.log("Ключевые настройки изменены после загрузки. Переход в режим создания нового пазла.");
+            puzzleParams.id = null;
+            delete saveBtnRef.dataset.puzzleId;
+            saveBtnRef.dataset.action = 'create';
+            saveBtnRef.textContent = saveBtnRef.dataset.originalTextCreate || 'Сохранить';
+        }
+    };
+
     // Пользовательское изображение
     const customImageHandler = (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = () => {
+                if (puzzleParams.selectedImage !== reader.result) {
+                    resetToCreateModeIfNeeded();
+                }
                 puzzleParams.selectedImage = reader.result;
                 puzzleParams.isPreset = false;
                 puzzleParams.imageFile = file;
@@ -347,6 +386,9 @@ function setupPuzzleControls({
         const presetClickHandler = () => {
             presets.forEach(p => p.classList.remove('selected'));
             preset.classList.add('selected');
+            if (puzzleParams.selectedImage !== preset.dataset.src) {
+                 resetToCreateModeIfNeeded();
+            }
             puzzleParams.selectedImage = preset.dataset.src;
             puzzleParams.isPreset = true;
             puzzleParams.imageFile = null;
@@ -368,6 +410,7 @@ function setupPuzzleControls({
     const difficultyHandler = (e) => {
         const newSize = parseInt(e.target.value, 10);
         if (newSize !== puzzleParams.gridSize) {
+            resetToCreateModeIfNeeded();
             puzzleParams.gridSize = newSize;
             puzzleParams.piecePositions = [];
             console.log(`Размер сетки изменен на ${newSize}, позиции очищены.`);
@@ -409,6 +452,7 @@ function createPuzzleSeparately() {
     const [localPuzzleParams, puzzleContainer, message] = getPuzzleParts();
     localPuzzleParams.onWhiteboard = false;
     localPuzzleParams.name = "";
+    localPuzzleParams.id = null;
 
     const wrapper = document.getElementById('puzzle-wrapper');
     if (!wrapper) { console.error("#puzzle-wrapper not found!"); return; }
@@ -444,7 +488,8 @@ function createPuzzleSeparately() {
              if (params && typeof params.name !== 'undefined') {
                  puzzleNameInput.value = params.name;
              }
-        }
+        },
+        saveBtnRef: saveButton
     });
 
     // Собираем текущее состояние пазла данной страницы для сохранения
@@ -463,6 +508,7 @@ function createPuzzleSeparately() {
     // Применяем загруженное состояние пазла к странице
     const applyLoadedStateForSeparatePage = (puzzleData) => {
         console.log("Применение загруженного состояния к отдельной странице:", puzzleData);
+        localPuzzleParams.id = puzzleData.id;
         localPuzzleParams.gridSize = puzzleData.grid_size;
         localPuzzleParams.piecePositions = puzzleData.piece_positions || [];
         localPuzzleParams.name = puzzleData.name;
@@ -501,6 +547,17 @@ function createPuzzleSeparately() {
              }
         }
 
+        // Обновляем кнопку "Сохранить"
+        if (saveButton) {
+            saveButton.textContent = 'Обновить пазл';
+            saveButton.dataset.action = 'update';
+            saveButton.dataset.puzzleId = puzzleData.id;
+            if (!saveButton.dataset.originalTextCreate) {
+                saveButton.dataset.originalTextCreate = "Сохранить";
+            }
+            saveButton.dataset.originalTextUpdate = "Обновить пазл";
+        }
+
         alert(`Пазл "${puzzleData.name}" (${puzzleData.grid_size}x${puzzleData.grid_size}) загружен. Нажмите "Начать игру", чтобы собрать его.`);
         puzzleContainer.innerHTML = '<p>Пазл загружен. Нажмите "Начать игру".</p>';
         message.style.display = 'none';
@@ -526,7 +583,8 @@ function createPuzzleSeparately() {
  */
 export function createPuzzleOnBoard(gameWrapper) {
     const [localPuzzleParams, puzzleContainer, message] = getPuzzleParts();
-    
+    localPuzzleParams.id = null;
+
     // Устанавливаем параметры по умолчанию для нового пазла на доске
     localPuzzleParams.onWhiteboard = true;
     localPuzzleParams.name = "Новый пазл";
@@ -600,6 +658,15 @@ export function setupWhiteboardPuzzleSaveLoad() {
         startBtn.style.display = 'none';
     }
 
+    if (!activePuzzleParams.id && saveButton) {
+         if (!saveButton.dataset.originalTextCreate) {
+             saveButton.dataset.originalTextCreate = saveButton.textContent;
+         }
+         saveButton.dataset.action = 'create';
+         delete saveButton.dataset.puzzleId;
+         saveButton.textContent = saveButton.dataset.originalTextCreate || 'Сохранить';
+    }
+
     // Настраиваем обработчика
     setupPuzzleControls({
         customInput, presets, difficultySelect, startBtn: null,
@@ -612,7 +679,8 @@ export function setupWhiteboardPuzzleSaveLoad() {
                  puzzleNameInput.value = params.name;
              }
             console.log("Изменено состояние активного пазла на доске:", params);
-        }
+        },
+        saveBtnRef: saveButton
     });
 
     puzzleNameInput.value = activePuzzleParams.name || '';
@@ -688,12 +756,28 @@ export function setupWhiteboardPuzzleSaveLoad() {
 
         console.log("Применение загруженного состояния к пазлу на доске:", puzzleData);
 
+        targetParams.id = puzzleData.id;
         targetParams.gridSize = puzzleData.grid_size;
         targetParams.piecePositions = puzzleData.piece_positions || [];
         targetParams.name = puzzleData.name;
         targetParams.selectedImage = puzzleData.image_url;
         targetParams.isPreset = !!puzzleData.preset_path;
         targetParams.imageFile = null;
+
+        // Обновляем кнопку "Сохранить" на панели настроек
+        const currentSettingsPanel = document.querySelector('.settings-panel');
+        if (currentSettingsPanel) {
+            const currentSaveButton = currentSettingsPanel.querySelector('#save-puzzle-btn');
+            if (currentSaveButton) {
+                currentSaveButton.textContent = 'Обновить пазл';
+                currentSaveButton.dataset.action = 'update';
+                currentSaveButton.dataset.puzzleId = puzzleData.id;
+                if (!currentSaveButton.dataset.originalTextCreate) {
+                    currentSaveButton.dataset.originalTextCreate = "Сохранить";
+                }
+                currentSaveButton.dataset.originalTextUpdate = "Обновить пазл";
+            }
+        }
 
         puzzleNameInput.value = targetParams.name;
         difficultySelect.value = targetParams.gridSize;

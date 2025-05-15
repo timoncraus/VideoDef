@@ -12,7 +12,8 @@ const drawCtx = drawCanvas.getContext('2d');
 let drawing = false; // Флаг процесса рисования
 let prev = {}; // Предыдущие координаты курсора
 let imagesList = []; // Список загруженных изображений
-let activeImage = null; // Активное изображение для перемещения
+let activeImage = null; // Активное изображение для перемещения/удаления
+let nextImageId = 0;    // Счетчик для уникальных ID изображений
 let dragOffset = { x: 0, y: 0 }; // Смещение при перетаскивании
 let isResizing = false; // Флаг изменения размера
 let isDragging = false; // Флаг перетаскивания
@@ -23,38 +24,89 @@ let currentColor = '#000000'; // Цвет по умолчанию
 // Инициализация WebSocket соединения
 const ws = new WebSocket(`ws://${window.location.host}/ws/whiteboard/`);
 
+// Функция для получения координат мыши на канвасе
+function getMousePos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
+}
+
 // Обработчик входящих сообщений
 ws.onmessage = (e) => {
     const data = JSON.parse(e.data);
 
-    // Обработка рисования
     if (data.type === "draw") {
-        const { x0, y0, x1, y1, color, lineWidth } = data;
-        drawLine(drawCtx, x0, y0, x1, y1, color, lineWidth);
-    }
-
-    // Обработка загрузки изображений
-    if (data.type === 'image') {
+        const { x0, y0, x1, y1, color, lineWidth, tool} = data;
+        drawLine(drawCtx, x0, y0, x1, y1, color, lineWidth, tool);
+    } else if (data.type === 'image') {
         const img = new Image();
         img.onload = () => {
+            // Если в data есть id, используем его (пришло от другого клиента),
+            // иначе генерируем новый (это локальная загрузка)
+            const imageId = data.id !== undefined ? data.id : nextImageId++;
             const imageObj = {
+                id: imageId,
                 img,
-                x: 50,
-                y: 50,
-                width: 200,
-                height: 200
+                x: data.x !== undefined ? data.x : 50,
+                y: data.y !== undefined ? data.y : 50,
+                width: data.width !== undefined ? data.width : 200,
+                height: data.height !== undefined ? data.height : 200,
+                dataURL: data.dataURL
             };
-            imagesList.push(imageObj);
+            // Предотвращаем дублирование, если сообщение пришло о уже существующем изображении
+            if (!imagesList.find(item => item.id === imageObj.id)) {
+                imagesList.push(imageObj);
+            } else {
+                // Если изображение уже есть, обновляем его (на случай, если это было изменение)
+                const existingImgIndex = imagesList.findIndex(item => item.id === imageObj.id);
+                if (existingImgIndex !== -1) {
+                    imagesList[existingImgIndex] = {...imagesList[existingImgIndex], ...imageObj};
+                }
+            }
             redrawImages();
         };
         img.src = data.dataURL;
-    }
-
-    // Обработка очистки доски
-    if (data.type === 'clear') {
+    } else if (data.type === 'clear') {
         drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
         imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
         imagesList = [];
+        activeImage = null;
+        nextImageId = 0;
+    } else if (data.type === 'delete_image') {
+        imagesList = imagesList.filter(imgObj => imgObj.id !== data.id);
+        if (activeImage && activeImage.id === data.id) {
+            activeImage = null;
+        }
+        redrawImages();
+    } else if (data.type === 'move_image' || data.type === 'resize_image') {
+        const imgIndex = imagesList.findIndex(img => img.id === data.id);
+        if (imgIndex !== -1) {
+            imagesList[imgIndex].x = data.x;
+            imagesList[imgIndex].y = data.y;
+            if (data.type === 'resize_image') {
+                imagesList[imgIndex].width = data.width;
+                imagesList[imgIndex].height = data.height;
+            }
+            redrawImages();
+        } else if (data.dataURL) { // Если изображение еще не загружено у этого клиента
+            const img = new Image();
+            img.onload = () => {
+                 const imageObj = {
+                    id: data.id,
+                    img,
+                    x: data.x,
+                    y: data.y,
+                    width: data.width,
+                    height: data.height,
+                    dataURL: data.dataURL
+                };
+                imagesList.push(imageObj);
+                redrawImages();
+            };
+            img.src = data.dataURL;
+        }
     }
 };
 
@@ -62,10 +114,14 @@ ws.onmessage = (e) => {
 document.getElementById('pen_btn').addEventListener('click', () => {
     currentTool = 'pen';
     toggleToolButtons('pen_btn');
+    drawCanvas.style.cursor = 'crosshair';
+    clearSelection();
 });
 document.getElementById('eraser_btn').addEventListener('click', () => {
     currentTool = 'eraser';
     toggleToolButtons('eraser_btn');
+    drawCanvas.style.cursor = 'crosshair';
+    clearSelection();
 });
 
 // Обработчики параметров рисования
@@ -88,59 +144,175 @@ function toggleToolButtons(activeId) {
 
 // Обработчики событий мыши
 drawCanvas.addEventListener('mousedown', (e) => {
-    const { offsetX: x, offsetY: y } = e;
-    activeImage = getImageAt(x, y);
-    if (activeImage) {
+    const { x, y } = getMousePos(drawCanvas, e);
+
+    const clickedImage = getImageAt(x, y);
+
+    if (clickedImage) {
+        activeImage = clickedImage; // Делаем изображение активным
+        redrawImages();
+
         if (overResizeHandle(x, y, activeImage)) {
             isResizing = true;
+            dragOffset.startX = activeImage.x;
+            dragOffset.startY = activeImage.y;
+            dragOffset.startWidth = activeImage.width;
+            dragOffset.startHeight = activeImage.height;
         } else {
             isDragging = true;
             dragOffset.x = x - activeImage.x;
             dragOffset.y = y - activeImage.y;
         }
+        drawCanvas.style.cursor = 'move';
     } else {
-        drawing = true;
-        prev = { x, y };
+        if (currentTool === 'pen' || currentTool === 'eraser') {
+            drawing = true;
+            prev = { x, y };
+            clearSelection();
+            drawCanvas.style.cursor = 'crosshair';
+        } else {
+            clearSelection();
+        }
     }
 });
 
 drawCanvas.addEventListener('mouseup', () => {
-    drawing = false;
-    isDragging = false;
-    isResizing = false;
-    activeImage = null;
+    if (drawing) {
+        drawing = false;
+        if (currentTool === 'eraser') {
+            drawCtx.globalCompositeOperation = 'source-over';
+        }
+    }
+    if (isDragging && activeImage) {
+        // Отправляем финальное состояние перемещенного изображения
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'move_image',
+                id: activeImage.id,
+                x: activeImage.x,
+                y: activeImage.y,
+                // Передаем dataURL на случай, если у других клиентов этого изображения еще нет
+                dataURL: activeImage.dataURL
+            }));
+        }
+        isDragging = false;
+    }
+    if (isResizing && activeImage) {
+        // Отправляем финальное состояние измененного изображения
+         if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'resize_image',
+                id: activeImage.id,
+                x: activeImage.x,
+                y: activeImage.y,
+                width: activeImage.width,
+                height: activeImage.height,
+                dataURL: activeImage.dataURL
+            }));
+        }
+        isResizing = false;
+    }
 });
 
 drawCanvas.addEventListener('mousemove', (e) => {
-    const { offsetX: x, offsetY: y } = e;
+    const { x, y } = getMousePos(drawCanvas, e);
 
     if (drawing && !someonesDragging) {
         const current = { x, y };
-        const color = currentTool === 'pen' ? currentColor : '#ffffff';
+        const colorForDraw = currentTool === 'pen' ? currentColor : '#000000';
+
         const message = {
             type: 'draw',
             x0: prev.x,
             y0: prev.y,
             x1: current.x,
             y1: current.y,
-            color,
-            lineWidth: currentLineWidth
+            color: colorForDraw,
+            lineWidth: currentLineWidth,
+            tool: currentTool
         };
-        ws.send(JSON.stringify(message));
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(message));
+        }
 
-        drawLine(drawCtx, prev.x, prev.y, current.x, current.y, color, currentLineWidth);
+        drawLine(drawCtx, prev.x, prev.y, current.x, current.y, colorForDraw, currentLineWidth, currentTool);
         prev = current;
-    } else if (isDragging && activeImage) {
+        drawCanvas.style.cursor = 'crosshair';
+    } else if (isDragging && activeImage && !someonesDragging) {
         activeImage.x = x - dragOffset.x;
         activeImage.y = y - dragOffset.y;
         redrawImages();
-    } else if (isResizing && activeImage) {
-        activeImage.width = x - activeImage.x;
-        activeImage.height = y - activeImage.y;
+        drawCanvas.style.cursor = 'grabbing';
+    } else if (isResizing && activeImage && !someonesDragging) {
+        const newWidth = Math.abs(x - dragOffset.startX);
+        const newHeight = Math.abs(y - dragOffset.startY);
+
+        activeImage.width = Math.max(20, newWidth); // Мин. ширина
+        activeImage.height = Math.max(20, newHeight); // Мин. высота
+
+        if (x < dragOffset.startX) {
+            activeImage.x = x;
+        } else {
+            activeImage.x = dragOffset.startX;
+        }
+        if (y < dragOffset.startY) {
+            activeImage.y = y;
+        } else {
+            activeImage.y = dragOffset.startY;
+        }
+
         redrawImages();
+        drawCanvas.style.cursor = 'nwse-resize';
+    } else if (!drawing && !isDragging && !isResizing) {
+        // Управление курсором при наведении на изображения или маркеры
+        const hoveredImage = getImageAt(x, y);
+        if (hoveredImage) {
+            if (overResizeHandle(x, y, hoveredImage)) {
+                drawCanvas.style.cursor = 'nwse-resize';
+            } else {
+                drawCanvas.style.cursor = 'move';
+            }
+        } else {
+            drawCanvas.style.cursor = (currentTool === 'pen' || currentTool === 'eraser') ? 'crosshair' : 'default';
+        }
     }
 });
 
+// Обработчик нажатия клавиш для удаления
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (activeImage && !isInputActive()) {
+            e.preventDefault();
+            deleteImage(activeImage.id);
+        }
+    }
+});
+
+// Проверка: активно ли поле ввода
+function isInputActive() {
+    const activeEl = document.activeElement;
+    return activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+}
+
+// Удаления изображения
+function deleteImage(imageId) {
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'delete_image', id: imageId }));
+    }
+    imagesList = imagesList.filter(imgObj => imgObj.id !== imageId);
+    if (activeImage && activeImage.id === imageId) {
+        activeImage = null;
+    }
+    redrawImages();
+}
+
+// Снятие выделения с изображения
+function clearSelection() {
+    if (activeImage) {
+        activeImage = null;
+        redrawImages();
+    }
+}
 
 /**
  * Рисует линию на заданном контексте.
@@ -151,12 +323,20 @@ drawCanvas.addEventListener('mousemove', (e) => {
  * @param {number} y1 - Конечная координата Y
  * @param {string} color - Цвет линии
  * @param {number} lineWidth - Толщина линии
+ * @param {string} tool - Текущий инструмент ('pen' или 'eraser')
  */
-function drawLine(ctx, x0, y0, x1, y1, color, lineWidth) {
-    ctx.strokeStyle = color;
+function drawLine(ctx, x0, y0, x1, y1, color, lineWidth, tool = 'pen') {
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    if (tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+    } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = color;
+    }
+    
     ctx.beginPath();
     ctx.moveTo(x0, y0);
     ctx.lineTo(x1, y1);
@@ -171,16 +351,51 @@ document.getElementById('img-upload').addEventListener('change', function() {
     const reader = new FileReader();
     reader.onload = () => {
         const dataURL = reader.result;
-        ws.send(JSON.stringify({ type: 'image', dataURL }));
+        const imageId = nextImageId++; // Генерируем ID для нового изображения
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'image',
+                id: imageId,
+                dataURL,
+                x: 50,
+                y: 50,
+                width: 200,
+                height: 200
+            }));
+        }
+
+        const img = new Image();
+        img.onload = () => {
+            const imageObj = {
+                id: imageId,
+                img,
+                x: 50,
+                y: 50,
+                width: 200,
+                height: 200,
+                dataURL
+            };
+            imagesList.push(imageObj);
+            redrawImages();
+        };
+        img.src = dataURL;
     };
     reader.readAsDataURL(file);
+    this.value = ''; // Сбрасываем input, чтобы можно было загрузить тот же файл снова
 });
 
 /**
  * Очищает доску и сбрасывает загруженные изображения.
  */
 function clearBoard() {
-    ws.send(JSON.stringify({ type: 'clear' }));
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'clear' }));
+    }
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    imagesList = [];
+    activeImage = null;
+    nextImageId = 0;
     document.getElementById('img-upload').value = '';
 }
 
@@ -193,14 +408,26 @@ document.querySelector("#clear_btn").addEventListener("click", () => {
  */
 function redrawImages() {
     imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    const prevOp = imageCtx.globalCompositeOperation;
+    imageCtx.globalCompositeOperation = 'source-over';
+
     imagesList.forEach(imgObj => {
         imageCtx.drawImage(imgObj.img, imgObj.x, imgObj.y, imgObj.width, imgObj.height);
-        drawResizeHandle(imageCtx, imgObj);
+        
+        // Если изображение активно, рисуем рамку выделения и маркеры
+        if (activeImage && activeImage.id === imgObj.id) {
+            imageCtx.strokeStyle = 'blue';
+            imageCtx.lineWidth = 2;
+            imageCtx.strokeRect(imgObj.x -1, imgObj.y -1, imgObj.width +2, imgObj.height +2);
+            drawResizeHandle(imageCtx, imgObj);
+        }
     });
+    imageCtx.globalCompositeOperation = prevOp;
 }
 
 // Вспомогательные функции
 function getImageAt(x, y) {
+    // Перебираем в обратном порядке, чтобы выбрать верхнее изображение, если они накладываются
     for (let i = imagesList.length - 1; i >= 0; i--) {
         const img = imagesList[i];
         if (x >= img.x && x <= img.x + img.width &&
@@ -213,16 +440,19 @@ function getImageAt(x, y) {
 
 function drawResizeHandle(ctx, imgObj) {
     const size = 10;
-    ctx.fillStyle = '#00f';
-    ctx.fillRect(imgObj.x + imgObj.width - size, imgObj.y + imgObj.height - size, size, size);
+    ctx.fillStyle = '#007bff';
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.fillRect(imgObj.x + imgObj.width - size / 2, imgObj.y + imgObj.height - size / 2, size, size);
+    ctx.strokeRect(imgObj.x + imgObj.width - size / 2, imgObj.y + imgObj.height - size / 2, size, size);
 }
 
 function overResizeHandle(x, y, imgObj) {
     const size = 10;
-    return x >= imgObj.x + imgObj.width - size &&
-        x <= imgObj.x + imgObj.width &&
-        y >= imgObj.y + imgObj.height - size &&
-        y <= imgObj.y + imgObj.height;
+    const handleX = imgObj.x + imgObj.width - size / 2;
+    const handleY = imgObj.y + imgObj.height - size / 2;
+    return x >= handleX && x <= handleX + size &&
+           y >= handleY && y <= handleY + size;
 }
 
 /**
@@ -230,18 +460,49 @@ function overResizeHandle(x, y, imgObj) {
  */
 function resizeCanvasToDisplaySize() {
     const wrapper = imageCanvas.parentElement;
+    if (!wrapper) {
+        console.warn("Холст не найден");
+        return;
+    }
     const width = wrapper.clientWidth;
     const height = wrapper.clientHeight;
+
+    // Сохраняем текущее содержимое drawCanvas
+    const tempDrawCanvas = document.createElement('canvas');
+    tempDrawCanvas.width = drawCanvas.width;
+    tempDrawCanvas.height = drawCanvas.height;
+    const tempDrawCtx = tempDrawCanvas.getContext('2d');
+    if (drawCanvas.width > 0 && drawCanvas.height > 0) {
+        tempDrawCtx.drawImage(drawCanvas, 0, 0);
+    }
 
     imageCanvas.width = width;
     imageCanvas.height = height;
     drawCanvas.width = width;
     drawCanvas.height = height;
 
+    // Восстанавливаем содержимое drawCanvas
+    if (tempDrawCanvas.width > 0 && tempDrawCanvas.height > 0) {
+         // Убедимся, что настройки рисования (цвет, толщина, compositeOperation) не сбились
+        drawCtx.strokeStyle = currentColor;
+        drawCtx.lineWidth = currentLineWidth;
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+        if (currentTool === 'eraser') {
+            drawCtx.globalCompositeOperation = 'destination-out';
+        } else {
+            drawCtx.globalCompositeOperation = 'source-over';
+        }
+        drawCtx.drawImage(tempDrawCanvas, 0, 0);
+    }
+
     redrawImages();
 }
 
-window.addEventListener('load', resizeCanvasToDisplaySize);
+window.addEventListener('load', () => {
+    resizeCanvasToDisplaySize();
+    toggleToolButtons('pen_btn');
+});
 window.addEventListener('resize', resizeCanvasToDisplaySize);
 
 
@@ -256,7 +517,9 @@ gamesBtn.addEventListener("click", () => {
 });
 
 window.addEventListener("resize", () => {
-    updategameMenuPos();
+    if (dropdown.classList.contains("show")) {
+        updategameMenuPos();
+    }
 })
 
 /**

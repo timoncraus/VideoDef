@@ -1,0 +1,117 @@
+/* Стили для кнопки удаления на карточке */
+.saved-game-card__actions {
+    padding: 0.5rem 0.75rem;
+    border-top: 2px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.saved-game-card__actions .button {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    min-width: auto;
+}
+
+.saved-game-card__actions .button--danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+.saved-game-card__actions .button--danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+
+/* Стили для модального окна */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: auto;
+    padding: 20px 30px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 450px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+    text-align: center;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.modal-content p {
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: #555;
+}
+.modal-content p small {
+    font-size: 0.85rem;
+    color: #777;
+}
+
+.modal-close-btn {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-close-btn:hover,
+.modal-close-btn:focus {
+    color: #333;
+    text-decoration: none;
+}
+
+.modal-actions {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.modal-actions .button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+    font-weight: 500;
+}
+
+.modal-actions .button--danger {
+    background-color: #dc3545;
+    color: white;
+}
+.modal-actions .button--danger:hover {
+    background-color: #c82333;
+}
+
+.modal-actions .button--secondary {
+    background-color: #6c757d;
+    color: white;
+}
+.modal-actions .button--secondary:hover {
+    background-color: #5a6268;
+}

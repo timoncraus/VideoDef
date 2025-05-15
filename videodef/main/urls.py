@@ -51,12 +51,17 @@ videocall_patterns = [
 
 game_patterns = [
     path('', game_views.games, name="games"),
+    path('my/', game_views.my_games_view, name='my_games'),
     path('puzzles/', game_views.puzzle_game, name="puzzle_game"),
     path('whiteboard/', game_views.whiteboard, name="whiteboard"),
 
     # Для сохранения и загрузки игр
     path('puzzles/save/', game_views.save_puzzle_view, name='save_puzzle'),
     path('puzzles/load/', game_views.load_puzzles_view, name='load_puzzles'),
+    path('puzzles/update/<str:game_id>/', game_views.update_puzzle_view, name='update_puzzle'),
+
+    # Удаление игры
+    path('delete/<str:game_id>/', game_views.delete_game_view, name='delete_game'),
 ]
 
 resume_urlpatterns = [
