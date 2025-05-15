@@ -60,7 +60,7 @@
     
                         {% if request.user.profile.role.name == 'Родитель' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="#"><i class="bi bi-person-lines-fill"></i> Мои дети</a>
+                                <a class="nav-link" href="{% url 'my_children' %}"><i class="bi bi-person-lines-fill"></i> Мои дети</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'public_resume_list' %}"><i class="bi bi-search"></i> Найти преподавателя</a>

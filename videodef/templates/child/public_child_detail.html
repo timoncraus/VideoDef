@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block page_name %}
+    {% if child %}Информация о ребенке № {{ child.id }}{% else %}Информация о ребенке не найдена{% endif %}
+{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">{{ child.name }}</h1>
+    <div class="mb-4">
+        <p class="text-lg"><strong>Информация:</strong>{{ child.info }}</p>
+        <p class="text-lg"><strong>Пол:</strong> {{ child.gender }}</p>
+        <p class="text-lg"><strong>Дата рождения:</strong> {{ child.date_birth|date:"d.m.Y" }}</p>
+    </div>
+    <p><strong>Нарушения:</strong></p>
+    <ul class="list-disc list-inside">
+        {% for violation in child.violation_types.all %}
+            <li>{{ violation.name }}</li>
+        {% endfor %}
+    </ul>
+    {% if child.images.all %}
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            {% for image in child.images.all %}
+                <img src="{{ image.image.url }}" class="rounded shadow" style="max-width:60%;">
+            {% endfor %}
+        </div>
+    {% endif %}
+    <p><strong>Дата создания:</strong> {{ child.created_at }} по мск</p>
+    <p><strong>Дата последнего обновления:</strong> {{ child.updated_at }} по мск</p>
+</div>
+{% endblock %}

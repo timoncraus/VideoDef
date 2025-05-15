@@ -19,7 +19,7 @@
     {% if document.images.all %}
         <div class="grid grid-cols-2 gap-4 mb-6">
             {% for image in document.images.all %}
-                <img src="{{ image.image.url }}" class="rounded shadow">
+                <img src="{{ image.image.url }}" class="rounded shadow" style="max-width:60%;">
             {% endfor %}
         </div>
     {% endif %}

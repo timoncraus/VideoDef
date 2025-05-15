@@ -26,6 +26,7 @@ from videocall import views as videocall_views
 from game import views as game_views
 from resume import views as resume_views
 from document import views as document_views
+from child import views as child_views
 
 account_patterns = [
     path('', account_views.home, name="home"),
@@ -88,6 +89,17 @@ document_urlpatterns = [
     path('view/<int:pk>/', document_views.DocumentDetailView.as_view(), name='public_document_detail'),
 ]
 
+child_urlpatterns = [
+    # для родителей:
+    path('my/', child_views.ChildListView.as_view(), name='my_children'),
+    path('create/', child_views.ChildCreateView.as_view(), name='create_my_child'),
+    path('edit/<int:pk>/', child_views.ChildUpdateView.as_view(), name='edit_my_child'),
+    path('delete/<int:pk>/', child_views.ChildDeleteView.as_view(), name='child_confirm_delete'),
+
+    # для преподавателей:
+    path('view/<int:pk>/', child_views.ChildDetailView.as_view(), name='public_child_detail'),
+]
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(account_patterns)),
@@ -96,6 +108,7 @@ urlpatterns = [
     path('games/', include(game_patterns)),
     path('resumes/', include(resume_urlpatterns)),
     path('documents/', include(document_urlpatterns)),
+    path('children/', include(child_urlpatterns)),
 ]
 
 if settings.DEBUG:

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block page_name %}
-    {% if object %}Редактировать резюме № {{ object.id }}{% else %}Создать резюме{% endif %}
+    {% if object %}Редактировать информацию о ребенке № {{ object.id }}{% else %}Создать информацию о ребенке{% endif %}
 {% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto py-8 resume-create-box">
@@ -9,15 +9,20 @@
         {% csrf_token %}
 
         {% if object %}
-            <p><a href="{% url 'public_resume_detail' object.id %}">Посмотреть на мое резюме со стороны</a></p>
+            <p><a href="{% url 'view_other_user' object.user.unique_id %}">Посмотреть на мою страничку с информацией о ребенке со стороны</a></p>
         {% endif %}
 
-        {% include "field/default_field.html" with field=form.short_info %}
-        {% include "field/default_field.html" with field=form.detailed_info %}
-        {% include "field/default_field.html" with field=form.status %}
-        <p>Прикрепить документы:</p>
-        {{ form.documents }}
-        <p>Указать виды нарушений:</p>
+        {% include "field/default_field.html" with field=form.name %}
+        {% include "field/default_field.html" with field=form.info %}
+
+        <p>Пол:</p>
+        <div style="display: block">
+            {{ form.gender }}
+        </div>
+        
+        {% include "field/date_field.html" with field=form.date_birth %}
+
+        <p>Указать виды нарушений ребенка:</p>
         {{ form.violation_types }}
 
         {{ images_formset.management_form }}

@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'game',
     'videocall',
     'resume',
-    'document'
+    'document',
+    'child'
 ]
 
 MIDDLEWARE = [

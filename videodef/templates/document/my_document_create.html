@@ -25,8 +25,11 @@
             {% endif %}
             {{ form.as_p }}
         {% endfor %}
-        <p><strong>Дата создания:</strong> {{ object.created_at }} по мск</p>
-        <p><strong>Дата последнего обновления:</strong> {{ object.updated_at }} по мск</p>
+        
+        {% if object %}
+            <p><strong>Дата создания:</strong> {{ object.created_at }} по мск</p>
+            <p><strong>Дата последнего обновления:</strong> {{ object.updated_at }} по мск</p>
+        {% endif %}
         <button type="submit" class="bg-blue-500   py-2 px-4 rounded">Сохранить</button>
     </form>
 </div>

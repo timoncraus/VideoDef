@@ -40,4 +40,31 @@
             <p>Активных резюме пока нет.</p>
         {% endfor %}
     </div>
+
+    <p><strong>Информация о детях:</strong></p>
+    <div class="mt-6 space-y-4">
+        {% for child in children %}
+            <h1 class="text-3xl font-bold mb-6">{{ child.name }}</h1>
+            <div class="mb-4">
+                <p class="text-lg"><strong>Информация:</strong> {{ child.info }}</p>
+                <p class="text-lg"><strong>Пол:</strong> {{ child.gender }}</p>
+                <p class="text-lg"><strong>Дата рождения:</strong> {{ child.date_birth|date:"d.m.Y" }}</p>
+            </div>
+            <p><strong>Нарушения:</strong></p>
+            <ul class="list-disc list-inside">
+                {% for violation in child.violation_types.all %}
+                    <li>{{ violation.name }}</li>
+                {% endfor %}
+            </ul>
+            {% if child.images.all %}
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    {% for image in child.images.all %}
+                        <img src="{{ image.image.url }}" class="rounded shadow" style="max-width:60%;">
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% empty %}
+            <p>Информации о детях не добавлено</p>
+        {% endfor %}
+    </div>
 {% endblock %}

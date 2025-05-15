@@ -3,9 +3,6 @@ from django.urls import reverse, reverse_lazy
 from .models import Document
 from .forms import DocumentForm, DocumentImageFormSet, DocumentInitialImageFormSet
 from django.contrib.auth.mixins import LoginRequiredMixin
-import django_filters
-from django import forms
-from django_filters.views import FilterView
 
 # Для преподавателя: список документов
 class DocumentListView(LoginRequiredMixin, ListView):
