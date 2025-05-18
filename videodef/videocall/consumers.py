@@ -1,4 +1,5 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth.models import AnonymousUser
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
 from django.utils import timezone
@@ -14,6 +15,21 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"videocall_{self.room_name}"
+        self.user = self.scope["user"]
+
+        if isinstance(self.user, AnonymousUser):
+            await self.close()
+            return
+
+        try:
+            self.videocall = await sync_to_async(VideoCall.objects.get)(room_name=self.room_name)
+        except VideoCall.DoesNotExist:
+            await self.close()
+            return
+
+        if not await self.is_participant():
+            await self.close()
+            return
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -22,7 +38,7 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
             connected_clients[self.room_name] = []
         connected_clients[self.room_name].append(self.channel_name)
 
-        is_initiator = self.room_name not in initiators
+        is_initiator = (self.room_name not in initiators) and (self.user.unique_id == self.videocall.caller_id)
         if is_initiator:
             initiators[self.room_name] = self.channel_name
 
@@ -57,6 +73,9 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
 
     async def receive(self, text_data):
+        if not await self.is_participant():
+            await self.close()
+            return
         dict_data = json.loads(text_data)
         if dict_data["type"] == "end_call":
             try:
@@ -78,6 +97,10 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
     async def broadcast(self, event):
         if event['sender'] != self.channel_name:
             await self.send(text_data=event['message'])
+
+    async def is_participant(self):
+        videocall = self.videocall
+        return self.user.unique_id in [videocall.caller_id, videocall.receiver_id]
 
 
 class NotifyConsumer(AsyncWebsocketConsumer):
