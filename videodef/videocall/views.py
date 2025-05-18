@@ -26,9 +26,6 @@ def start_call(request):
             room_name=room_name
         )
 
-        # отправка сигнала получателю (в проде — через Channels, Redis pubsub, push)
-        # для простоты сейчас просто отдаем room_name
-        # Отправка WebSocket уведомления получателю
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             f"notify_{receiver.unique_id}",

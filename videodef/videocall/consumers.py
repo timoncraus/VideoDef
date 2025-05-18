@@ -27,7 +27,7 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        if not await self.is_participant():
+        if not await is_participant(self.user, self.videocall):
             await self.close()
             return
 
@@ -73,7 +73,7 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
 
     async def receive(self, text_data):
-        if not await self.is_participant():
+        if not await is_participant(self.user, self.videocall):
             await self.close()
             return
         dict_data = json.loads(text_data)
@@ -98,15 +98,18 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         if event['sender'] != self.channel_name:
             await self.send(text_data=event['message'])
 
-    async def is_participant(self):
-        videocall = self.videocall
-        return self.user.unique_id in [videocall.caller_id, videocall.receiver_id]
+    
 
 
 class NotifyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.user_id = self.scope['user'].unique_id
-        self.room_group_name = f"notify_{self.user_id}"
+        user = self.scope["user"]
+        if user.is_anonymous:
+            await self.close()
+            return
+
+        self.user = user
+        self.room_group_name = f"notify_{self.user.unique_id}"
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
@@ -117,29 +120,42 @@ class NotifyConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event))
 
     async def receive(self, text_data):
-        dict_data = json.loads(text_data)
-        if dict_data["answer"] == "rejection":
-            try:
-                videocall = await sync_to_async(VideoCall.objects.get)(room_name=dict_data['room_name'])
-                videocall.ended_at = timezone.now()
-                videocall.accepted = False
-                await sync_to_async(videocall.save)()
-            except VideoCall.DoesNotExist:
-                pass
+        data = json.loads(text_data)
+        room_name = data.get("room_name")
+        answer = data.get("answer")
 
-            channel_layer = get_channel_layer()
-            await channel_layer.group_send(
-                f"videocall_{dict_data['room_name']}",
+        if (not room_name) or (answer not in ["rejection", "acceptance"]):
+            await self.close()
+            return
+
+        try:
+            videocall = await sync_to_async(VideoCall.objects.get)(room_name=room_name)
+        except VideoCall.DoesNotExist:
+            await self.close()
+            return
+
+        if not await is_participant(self.user, videocall):
+            await self.close()
+            return
+
+        if answer == "rejection":
+            videocall.ended_at = timezone.now()
+            videocall.accepted = False
+        elif answer == "acceptance":
+            videocall.accepted = True
+
+        await sync_to_async(videocall.save)()
+
+        if answer == "rejection":
+            await self.channel_layer.group_send(
+                f"videocall_{room_name}",
                 {
                     'type': 'broadcast',
                     'message': json.dumps({"type": "end_call"}),
                     'sender': '#'
                 }
             )
-        elif dict_data["answer"] == "acceptance":
-            try:
-                videocall = await sync_to_async(VideoCall.objects.get)(room_name=dict_data['room_name'])
-                videocall.accepted = True
-                await sync_to_async(videocall.save)()
-            except VideoCall.DoesNotExist:
-                pass
+
+
+async def is_participant(user, videocall):
+    return user.unique_id in [videocall.caller_id, videocall.receiver_id]
