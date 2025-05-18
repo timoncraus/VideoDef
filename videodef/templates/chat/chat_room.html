@@ -16,11 +16,33 @@
             <button id="start-call-btn" class="video-call-button">📹 Видеозвонок</button>
         </div>
         <div class="chat-messages" id="chat-messages" data-chat-id="{{ chat.id }}">
-            {% for message in chat.messages.all %}
-                <div class="message {% if message.sender == user %}sent{% else %}received{% endif %}">
-                    {{ message.content }}
-                    <div class="message-time">{{ message.timestamp|date:"H:i" }} по мск</div>
-                </div>
+            {% for event in events %}
+                {% if event.event_type == 'message' %}
+                    <div class="message {% if event.sender == user %}sent{% else %}received{% endif %}">
+                        {{ event.content }}
+                        <div class="message-time">{{ event.timestamp|date:"H:i" }} по мск</div>
+                    </div>
+                {% elif event.event_type == 'call' %}
+                    <div class="message {% if event.caller == user %}sent{% else %}received{% endif %}">
+                        <strong>📹 Видеозвонок</strong><br/>
+                        <span>
+                            {{ event.started_at|date:"H:i" }}
+                            {% if event.ended_at %}
+                                — {{ event.ended_at|date:"H:i" }}
+                            {% endif %}
+                            по мск
+                            {% if event.ended_at %}
+                                <br/>Длительность: {{ event.duration }}
+                            {% endif %}
+                            
+                        </span>
+                        {% if event.accepted %}
+                            <div class="status accepted">Принят</div>
+                        {% else %}
+                            <div class="status declined">Не принят</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% endfor %}
         </div>
         <div class="chat-input">

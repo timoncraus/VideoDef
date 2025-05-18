@@ -1,7 +1,9 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
+from django.utils import timezone
 import json
+from videocall.models import VideoCall
 
 # Хранилище для инициаторов по комнатам (на уровне процесса)
 initiators = {}
@@ -16,12 +18,10 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # Регистрируем клиента
         if self.room_name not in connected_clients:
             connected_clients[self.room_name] = []
         connected_clients[self.room_name].append(self.channel_name)
 
-        # Инициализируем роли
         is_initiator = self.room_name not in initiators
         if is_initiator:
             initiators[self.room_name] = self.channel_name
@@ -29,11 +29,9 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         self.is_initiator = is_initiator
         await self.send(text_data=json.dumps({'type': 'role', 'initiator': self.is_initiator}))
 
-        # Когда два клиента в комнате — инициатор может отправлять offer
         if len(connected_clients[self.room_name]) == 2 and is_initiator:
             await self.send(text_data=json.dumps({'type': 'ready'}))
 
-        # Уведомляем группу, что кто-то присоединился
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -44,10 +42,7 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
     async def user_joined(self, event):
         if self.is_initiator and event['channel'] != self.channel_name:
-            # говорим инициатору пересоздать offer
             await self.send(text_data=json.dumps({'type': 'resend_offer'}))
-
-
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -62,6 +57,15 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
 
     async def receive(self, text_data):
+        dict_data = json.loads(text_data)
+        if dict_data["type"] == "end_call":
+            try:
+                call = await sync_to_async(VideoCall.objects.get)(room_name=self.room_name)
+                call.ended_at = timezone.now()
+                await sync_to_async(call.save)()
+            except VideoCall.DoesNotExist:
+                pass
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -72,7 +76,6 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         )
 
     async def broadcast(self, event):
-        # Не пересылаем сообщения отправителю
         if event['sender'] != self.channel_name:
             await self.send(text_data=event['message'])
 
@@ -93,6 +96,14 @@ class NotifyConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         dict_data = json.loads(text_data)
         if dict_data["answer"] == "rejection":
+            try:
+                videocall = await sync_to_async(VideoCall.objects.get)(room_name=dict_data['room_name'])
+                videocall.ended_at = timezone.now()
+                videocall.accepted = False
+                await sync_to_async(videocall.save)()
+            except VideoCall.DoesNotExist:
+                pass
+
             channel_layer = get_channel_layer()
             await channel_layer.group_send(
                 f"videocall_{dict_data['room_name']}",
@@ -102,4 +113,10 @@ class NotifyConsumer(AsyncWebsocketConsumer):
                     'sender': '#'
                 }
             )
-
+        elif dict_data["answer"] == "acceptance":
+            try:
+                videocall = await sync_to_async(VideoCall.objects.get)(room_name=dict_data['room_name'])
+                videocall.accepted = True
+                await sync_to_async(videocall.save)()
+            except VideoCall.DoesNotExist:
+                pass

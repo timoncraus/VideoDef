@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.utils.timezone import now
+from itertools import chain
 from .models import SmallChat, Message
 from account.models import User
+from videocall.models import VideoCall
 
 def chats(request):
     user_chats = SmallChat.objects.filter(user1=request.user) | SmallChat.objects.filter(user2=request.user)
@@ -21,13 +23,37 @@ def chats(request):
         chats_info.append((chat, last_message_content))
     return render(request, 'chat/chats.html', {'chats_info': chats_info})
 
+
 def chat_room(request, chat_id):
     chat = get_object_or_404(SmallChat, id=chat_id)
-    
+
     if request.user != chat.user1 and request.user != chat.user2:
         return HttpResponseForbidden("Вы не участник этого чата.")
 
-    return render(request, 'chat/chat_room.html', {'chat': chat, 'curr_date': now()})
+    messages = chat.messages.all()
+    calls = VideoCall.objects.filter(
+        (Q(caller=chat.user1, receiver=chat.user2) | Q(caller=chat.user2, receiver=chat.user1))
+    )
+
+    for msg in messages:
+        msg.event_type = 'message'
+
+    for call in calls:
+        call.event_type = 'call'
+
+    events = sorted(
+        chain(messages, calls),
+        key=lambda x: x.timestamp if hasattr(x, 'timestamp') else x.started_at
+    )
+
+    return render(request, 'chat/chat_room.html', {
+        'chat': chat,
+        'curr_date': now(),
+        'events': events,
+        'user': request.user,
+    })
+
+
 
 
 def get_chat(request, user1_id, user2_id):

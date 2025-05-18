@@ -39,12 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (peerConnection.iceConnectionState === 'failed') {
             peerConnection.close();
             peerConnection = new RTCPeerConnection(configuration);
-            setPeerConnectionOntrack(); // повторно устанавливаем обработчики
+            setPeerConnectionOntrack();
             setPeerConnectionOnicecandidate();
         }
     };
 
-    // Выбираем камеру, отличную от DroidCam
     navigator.mediaDevices.enumerateDevices()
         .then(devices => {
             const videoDevice = devices.find(d => d.kind === 'videoinput' && !d.label.toLowerCase().includes('droidcam'));
@@ -59,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localVideo.srcObject = stream;
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-            // Создаем offer только после добавления треков
             if (isInitiator) {
                 peerConnection.createOffer()
                     .then(offer => {
@@ -87,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (data.type === 'resend_offer' && isInitiator) {
-            location.reload(); // Перезагружает текущую страницу
+            location.reload();
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
             ws.send(JSON.stringify({ type: 'offer', offer }));

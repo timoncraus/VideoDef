@@ -9,5 +9,19 @@ class VideoCall(models.Model):
     ended_at = models.DateTimeField(null=True, blank=True)
     accepted = models.BooleanField(default=False)
 
+    def duration(self):
+        if self.ended_at:
+            delta = self.ended_at - self.started_at
+            minutes, seconds = divmod(delta.total_seconds(), 60)
+            hours, minutes = divmod(minutes, 60)
+            if hours:
+                return f"{int(hours)}ч {int(minutes)}м"
+            return f"{int(minutes)}м {int(seconds)}с"
+        return None
+
     def __str__(self):
         return f"{self.caller} → {self.receiver} [{self.room_name}]"
+
+    class Meta:
+        verbose_name = "Видеозвонок"
+        verbose_name_plural = "Видеозвонки"
