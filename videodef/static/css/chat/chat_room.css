@@ -114,3 +114,29 @@
 .status.declined {
     color: red;
 }
+
+.date-divider {
+    text-align: center;
+    margin: 20px 0;
+    font-weight: bold;
+    color: #555;
+    position: relative;
+}
+
+.date-divider::before,
+.date-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background-color: #ccc;
+}
+
+.date-divider::before {
+    left: 0;
+}
+
+.date-divider::after {
+    right: 0;
+}

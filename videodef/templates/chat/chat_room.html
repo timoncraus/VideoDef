@@ -17,6 +17,12 @@
         </div>
         <div class="chat-messages" id="chat-messages" data-chat-id="{{ chat.id }}">
             {% for event in events %}
+                {% ifchanged event.date %}
+                    <div class="date-divider">
+                        {{ event.date|date:"d E Y" }}
+                    </div>
+                {% endifchanged %}
+        
                 {% if event.event_type == 'message' %}
                     <div class="message {% if event.sender == user %}sent{% else %}received{% endif %}">
                         {{ event.content }}
@@ -34,7 +40,6 @@
                             {% if event.ended_at %}
                                 <br/>Длительность: {{ event.duration }}
                             {% endif %}
-                            
                         </span>
                         {% if event.accepted %}
                             <div class="status accepted">Принят</div>

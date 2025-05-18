@@ -37,9 +37,11 @@ def chat_room(request, chat_id):
 
     for msg in messages:
         msg.event_type = 'message'
+        msg.date = msg.timestamp.date()
 
     for call in calls:
         call.event_type = 'call'
+        call.date = call.started_at.date()
 
     events = sorted(
         chain(messages, calls),
