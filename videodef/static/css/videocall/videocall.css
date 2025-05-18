@@ -18,3 +18,17 @@ video {
 .video-call-page .page_name {
     display: none;
 }
+
+#controls button {
+    background-color: darkblue;
+    color: white;
+    margin: 5px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#controls button.enabled {
+    background-color: deepskyblue;
+}

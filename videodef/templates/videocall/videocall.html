@@ -17,10 +17,11 @@
     </div>
 
     <div id="controls">
-        <button onclick="toggleMic()">🎙️ Микрофон</button>
-        <button onclick="toggleCam()">📷 Камера</button>
-        <button onclick="endCall()">❌ Завершить</button>
+        <button id="micButton" onclick="toggleMic()">🎙️ Микрофон</button>
+        <button id="camButton" onclick="toggleCam()">📷 Камера</button>
+        <button onclick="endCall()" class="enabled">❌ Завершить</button>
     </div>
+    
 
     <div>
         {% include 'game/whiteboard.html' %}

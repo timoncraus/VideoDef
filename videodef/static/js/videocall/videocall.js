@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(stream => {
             localVideo.srcObject = stream;
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+            updateButtonColors();
 
             if (isInitiator) {
                 peerConnection.createOffer()
@@ -130,11 +131,33 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleMic() {
     let localStream = document.getElementById("localVideo").srcObject;
     localStream.getAudioTracks().forEach(track => track.enabled = !track.enabled);
+    updateButtonColors();
 }
 
 function toggleCam() {
     let localStream = document.getElementById("localVideo").srcObject;
     localStream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
+    updateButtonColors();
+}
+
+function updateButtonColors() {
+    const localStream = localVideo.srcObject;
+    if (!localStream) return;
+
+    const micEnabled = localStream.getAudioTracks().some(track => track.enabled);
+    const camEnabled = localStream.getVideoTracks().some(track => track.enabled);
+
+    if (micEnabled) {
+        micButton.classList.add('enabled');
+    } else {
+        micButton.classList.remove('enabled');
+    }
+
+    if (camEnabled) {
+        camButton.classList.add('enabled');
+    } else {
+        camButton.classList.remove('enabled');
+    }
 }
 
 function endCall() {

@@ -23,6 +23,8 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
 
         try:
             self.videocall = await sync_to_async(VideoCall.objects.get)(room_name=self.room_name)
+            if self.videocall.ended_at is not None:
+                return
         except VideoCall.DoesNotExist:
             await self.close()
             return
@@ -66,6 +68,12 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         if self.room_name in connected_clients:
             connected_clients[self.room_name].remove(self.channel_name)
             if not connected_clients[self.room_name]:
+                try:
+                    videocall = await sync_to_async(VideoCall.objects.get)(room_name=self.room_name)
+                    videocall.ended_at = timezone.now()
+                    await sync_to_async(videocall.save)()
+                except VideoCall.DoesNotExist:
+                    pass
                 del connected_clients[self.room_name]
 
         if initiators.get(self.room_name) == self.channel_name:
@@ -79,9 +87,9 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         dict_data = json.loads(text_data)
         if dict_data["type"] == "end_call":
             try:
-                call = await sync_to_async(VideoCall.objects.get)(room_name=self.room_name)
-                call.ended_at = timezone.now()
-                await sync_to_async(call.save)()
+                videocall = await sync_to_async(VideoCall.objects.get)(room_name=self.room_name)
+                videocall.ended_at = timezone.now()
+                await sync_to_async(videocall.save)()
             except VideoCall.DoesNotExist:
                 pass
 
