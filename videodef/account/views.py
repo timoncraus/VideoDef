@@ -1,11 +1,12 @@
 from django.db import DatabaseError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
+from django.contrib import messages
+
 from .forms import RegisterForm, LoginForm, UserEditForm, ProfileEditForm
 from .models import User
 from resume.models import Resume
 from child.models import Child
-from django.contrib import messages
 
 def home(request):
     return render(request, "account/home.html")
@@ -27,9 +28,9 @@ def account(request):
                 profile = profile_form.save()
                 login(request, user)
                 messages.success(request, 'Данные были изменены!')
-                return redirect('account')
+                return redirect('account:account')
             except DatabaseError as e:
-                messages.error(request, f"Ошибка при изменении профиля: {str(e)}")
+                messages.error(request, f"Ошибка при изменении профиля: {e}")
         else:
             messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
@@ -60,9 +61,9 @@ def register_view(request):
                 user = form.save()
                 login(request, user)
                 messages.success(request, 'Вы успешно зарегистрировались!')
-                return redirect('home')
+                return redirect('account:home')
             except DatabaseError as e:
-                messages.error(request, f"Ошибка при сохранении профиля: {str(e)}")
+                messages.error(request, f"Ошибка при сохранении профиля: {e}")
         else:
             messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
@@ -76,7 +77,7 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, 'Вы вошли в систему!')
-            return redirect('home')
+            return redirect('account:home')
         else:
             messages.error(request, 'Неверный логин или пароль')
     else:
@@ -86,4 +87,4 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     messages.info(request, 'Вы вышли из системы!')
-    return redirect('login')
+    return redirect('account:login')

@@ -1,114 +1,17 @@
-"""
-URL configuration for videodef project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 
-
-from account import views as account_views
-from chat import views as chat_views
-from videocall import views as videocall_views
-from game import views as game_views
-from resume import views as resume_views
-from document import views as document_views
-from child import views as child_views
-
-account_patterns = [
-    path('', account_views.home, name="home"),
-    path('account/', account_views.account, name="account"),
-    path('about/', account_views.about, name="about"),
-    path("register/", account_views.register_view, name="register"),
-    path("login/", account_views.login_view, name="login"),
-    path("logout/", account_views.logout_view, name="logout"),
-    path('view/<str:user_id>/', account_views.view_other_user, name='view_other_user'),
-]
-
-chat_patterns = [
-    path('', chat_views.chats, name='chats'),
-    path('<int:chat_id>/', chat_views.chat_room, name='chat_room'),
-    path('get/<str:user1_id>/<str:user2_id>/', chat_views.get_chat, name='get_chat'),
-]
-
-
-videocall_patterns = [
-    path('call/<str:room_name>/', videocall_views.videocall, name="videocall"),
-    path('start-call/', videocall_views.start_call, name="start_call"),
-]
-
-game_patterns = [
-    path('', game_views.games, name="games"),
-    path('my/', game_views.my_games_view, name='my_games'),
-    path('puzzles/', game_views.puzzle_game, name="puzzle_game"),
-    path('whiteboard/', game_views.whiteboard, name="whiteboard"),
-
-    # Для сохранения и загрузки игр
-    path('puzzles/save/', game_views.save_puzzle_view, name='save_puzzle'),
-    path('puzzles/load/', game_views.load_puzzles_view, name='load_puzzles'),
-    path('puzzles/update/<str:game_id>/', game_views.update_puzzle_view, name='update_puzzle'),
-
-    # Удаление игры
-    path('delete/<str:game_id>/', game_views.delete_game_view, name='delete_game'),
-]
-
-resume_urlpatterns = [
-    # для преподавателей:
-    path('my/', resume_views.ResumeListView.as_view(), name='my_resumes'),
-    path('create/', resume_views.ResumeCreateView.as_view(), name='create_my_resume'),
-    path('edit/<int:pk>/', resume_views.ResumeUpdateView.as_view(), name='edit_my_resume'),
-    path('delete/<int:pk>/', resume_views.ResumeDeleteView.as_view(), name='resume_confirm_delete'),
-   
-
-    # для родителей:
-    path('search/', resume_views.PublicResumeListView.as_view(), name='public_resume_list'),
-    path('view/<int:pk>/', resume_views.ResumeDetailView.as_view(), name='public_resume_detail'),
-]
-
-document_urlpatterns = [
-    # для преподавателей:
-    path('my/', document_views.DocumentListView.as_view(), name='my_documents'),
-    path('create/', document_views.DocumentCreateView.as_view(), name='create_my_document'),
-    path('edit/<int:pk>/', document_views.DocumentUpdateView.as_view(), name='edit_my_document'),
-    path('delete/<int:pk>/', document_views.DocumentDeleteView.as_view(), name='document_confirm_delete'),
-
-    # для родителей:
-    path('view/<int:pk>/', document_views.DocumentDetailView.as_view(), name='public_document_detail'),
-]
-
-child_urlpatterns = [
-    # для родителей:
-    path('my/', child_views.ChildListView.as_view(), name='my_children'),
-    path('create/', child_views.ChildCreateView.as_view(), name='create_my_child'),
-    path('edit/<int:pk>/', child_views.ChildUpdateView.as_view(), name='edit_my_child'),
-    path('delete/<int:pk>/', child_views.ChildDeleteView.as_view(), name='child_confirm_delete'),
-
-    # для преподавателей:
-    path('view/<int:pk>/', child_views.ChildDetailView.as_view(), name='public_child_detail'),
-]
-
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include(account_patterns)),
-    path('chats/', include(chat_patterns)),
-    path('videocall/', include(videocall_patterns)),
-    path('games/', include(game_patterns)),
-    path('resumes/', include(resume_urlpatterns)),
-    path('documents/', include(document_urlpatterns)),
-    path('children/', include(child_urlpatterns)),
+    path('', include('account.urls', namespace='account')),
+    path('chats/', include('chat.urls', namespace='chat')),
+    path('videocall/', include('videocall.urls', namespace='videocall')),
+    path('games/', include('game.urls', namespace='game')),
+    path('resumes/', include('resume.urls', namespace='resume')),
+    path('documents/', include('document.urls', namespace='document')),
+    path('children/', include('child.urls', namespace='child')),
 ]
 
 if settings.DEBUG:

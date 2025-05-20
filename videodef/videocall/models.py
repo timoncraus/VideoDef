@@ -1,6 +1,7 @@
 from django.db import models
 from account.models import User
 
+
 class VideoCall(models.Model):
     caller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='outgoing_calls')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incoming_calls')

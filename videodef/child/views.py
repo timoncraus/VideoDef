@@ -1,8 +1,10 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse, reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from .models import Child
 from .forms import ChildForm, ChildImageFormSet, ChildInitialImageFormSet
-from django.contrib.auth.mixins import LoginRequiredMixin
+
 
 # Для родителя: список детей
 class ChildListView(LoginRequiredMixin, ListView):
@@ -19,7 +21,7 @@ class ChildCreateView(LoginRequiredMixin, CreateView):
     model = Child
     form_class = ChildForm
     template_name = 'child/my_child_create.html'
-    success_url = reverse_lazy('my_children')
+    success_url = reverse_lazy('child:my_children')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -54,14 +56,15 @@ class ChildUpdateView(LoginRequiredMixin, UpdateView):
         return response
     
     def get_success_url(self):
-        return reverse('edit_my_child', kwargs={'pk': self.object.pk})
+        return reverse('child:edit_my_child', kwargs={'pk': self.object.pk})
 
 
 # Для родителя: удаление ребенка
 class ChildDeleteView(LoginRequiredMixin, DeleteView):
     model = Child
     template_name = 'child/my_child_confirm_delete.html'
-    success_url = reverse_lazy('my_children')
+    success_url = reverse_lazy('child:my_children')
+
 
 # Для преподавателя: подробная страничка ребенка
 class ChildDetailView(DetailView):

@@ -1,7 +1,8 @@
 from django import forms
+from django.forms.models import inlineformset_factory
 from .models import Resume, ResumeImage
 from document.models import Document
-from django.forms.models import inlineformset_factory
+
 
 class ResumeForm(forms.ModelForm):
     class Meta:
@@ -27,6 +28,7 @@ ResumeImageFormSet = inlineformset_factory(
     max_num=3,
     can_delete=True
 )
+
 
 ResumeInitialImageFormSet = inlineformset_factory(
     Resume,

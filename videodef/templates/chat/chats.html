@@ -5,7 +5,7 @@
 {% block content %}
 <div class="chat-list">
     {% for chat, last_message in chats_info %}
-        <a href="{% url 'chat_room' chat.id %}" class="chat-item">
+        <a href="{% url 'chat:chat_room' chat.id %}" class="chat-item">
             {% if chat.user1 != user %}
                 {% include "chat/chat_user_view.html" with user=chat.user1 %}
             {% else %}

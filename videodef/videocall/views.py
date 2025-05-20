@@ -3,10 +3,12 @@ from django.shortcuts import render, get_object_or_404
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.http import JsonResponse
-from .models import VideoCall
-from account.models import User
 import uuid
 import json
+
+from .models import VideoCall
+from account.models import User
+
 
 def videocall(request, room_name):
     return render(request, 'videocall/videocall.html', {'room_name': room_name})

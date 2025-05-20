@@ -1,8 +1,10 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse, reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from .models import Document
 from .forms import DocumentForm, DocumentImageFormSet, DocumentInitialImageFormSet
-from django.contrib.auth.mixins import LoginRequiredMixin
+
 
 # Для преподавателя: список документов
 class DocumentListView(LoginRequiredMixin, ListView):
@@ -19,7 +21,7 @@ class DocumentCreateView(LoginRequiredMixin, CreateView):
     model = Document
     form_class = DocumentForm
     template_name = 'document/my_document_create.html'
-    success_url = reverse_lazy('my_documents')
+    success_url = reverse_lazy('document:my_documents')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -54,14 +56,15 @@ class DocumentUpdateView(LoginRequiredMixin, UpdateView):
         return response
     
     def get_success_url(self):
-        return reverse('edit_my_document', kwargs={'pk': self.object.pk})
+        return reverse('document:edit_my_document', kwargs={'pk': self.object.pk})
 
 
 # Для преподавателя: удаление документа
 class DocumentDeleteView(LoginRequiredMixin, DeleteView):
     model = Document
     template_name = 'document/my_document_confirm_delete.html'
-    success_url = reverse_lazy('my_documents')
+    success_url = reverse_lazy('document:my_documents')
+
 
 # Для родителя: подробная страничка документа
 class DocumentDetailView(DetailView):

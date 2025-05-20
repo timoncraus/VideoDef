@@ -56,6 +56,10 @@ header {
     border-color: #679f6d;
 }
 
+.page-name {
+    font-weight: bold;
+}
+
 h1 {
     font-size: 3rem;
     font-weight: bold;

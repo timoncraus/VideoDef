@@ -3,6 +3,7 @@ from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.utils.timezone import now
 from itertools import chain
+
 from .models import SmallChat, Message
 from account.models import User
 from videocall.models import VideoCall
@@ -60,7 +61,7 @@ def chat_room(request, chat_id):
 
 def get_chat(request, user1_id, user2_id):
     if user1_id == user2_id:
-        return redirect('chats')  # запретить создавать чат с самим собой, если нужно
+        return redirect('chat:chats')  # запретить создавать чат с самим собой, если нужно
 
     user1 = get_object_or_404(User, unique_id=user1_id)
     user2 = get_object_or_404(User, unique_id=user2_id)
@@ -72,4 +73,4 @@ def get_chat(request, user1_id, user2_id):
     if not chat:
         chat = SmallChat.objects.create(user1=user1, user2=user2)
 
-    return redirect('chat_room', chat_id=chat.id)
+    return redirect('chat:chat_room', chat_id=chat.id)

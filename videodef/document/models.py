@@ -1,6 +1,7 @@
 from django.db import models
 from account.models import User
 
+
 class DocumentVerificationStatus(models.Model):
     name = models.TextField(verbose_name="Название статуса")
 
@@ -16,6 +17,7 @@ def get_default_ver_status():
         return DocumentVerificationStatus.objects.get(pk=1).pk
     except DocumentVerificationStatus.DoesNotExist:
         return None
+
 
 class Document(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='documents')

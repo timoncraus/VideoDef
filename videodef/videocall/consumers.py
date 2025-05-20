@@ -4,6 +4,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
 from django.utils import timezone
 import json
+
 from videocall.models import VideoCall
 
 # Хранилище для инициаторов по комнатам (на уровне процесса)

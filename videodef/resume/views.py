@@ -1,11 +1,13 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse, reverse_lazy
-from .models import Resume, ViolationType
-from .forms import ResumeForm, ResumeImageFormSet, ResumeInitialImageFormSet
 from django.contrib.auth.mixins import LoginRequiredMixin
 import django_filters
 from django import forms
 from django_filters.views import FilterView
+
+from .models import Resume, ViolationType
+from .forms import ResumeForm, ResumeImageFormSet, ResumeInitialImageFormSet
+
 
 # Для преподавателя: список резюме
 class ResumeListView(LoginRequiredMixin, ListView):
@@ -22,7 +24,7 @@ class ResumeCreateView(LoginRequiredMixin, CreateView):
     model = Resume
     form_class = ResumeForm
     template_name = 'resume/my_resume_create.html'
-    success_url = reverse_lazy('my_resumes')
+    success_url = reverse_lazy('resume:my_resumes')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -62,7 +64,7 @@ class ResumeUpdateView(LoginRequiredMixin, UpdateView):
         return response
     
     def get_success_url(self):
-        return reverse('edit_my_resume', kwargs={'pk': self.object.pk})
+        return reverse('resume:edit_my_resume', kwargs={'pk': self.object.pk})
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -74,7 +76,7 @@ class ResumeUpdateView(LoginRequiredMixin, UpdateView):
 class ResumeDeleteView(LoginRequiredMixin, DeleteView):
     model = Resume
     template_name = 'resume/my_resume_confirm_delete.html'
-    success_url = reverse_lazy('my_resumes')
+    success_url = reverse_lazy('resume:my_resumes')
 
 
 # Для родителя: фильтрация резюме по видам нарушений

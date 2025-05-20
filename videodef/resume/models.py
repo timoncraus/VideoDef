@@ -1,6 +1,8 @@
 from django.db import models
+
 from account.models import User
 from document.models import Document
+
 
 class ViolationType(models.Model):
     name = models.CharField(max_length=300)
