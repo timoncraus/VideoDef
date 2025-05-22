@@ -1,5 +1,9 @@
 import { createPuzzleOnBoard, setupWhiteboardPuzzleSaveLoad } from './puzzle/index.js';
 
+// Получение элементов в случае если мы на странице видеозвонка
+const videosElement = document.getElementById('videos');
+const roomName = videosElement ? videosElement.dataset.roomName : null;
+
 // Получение ссылок на элементы canvas
 const imageCanvas = document.getElementById('image-layer');
 const drawCanvas = document.getElementById('draw-layer');
@@ -11,18 +15,23 @@ const drawCtx = drawCanvas.getContext('2d');
 // Состояние приложения
 let drawing = false; // Флаг процесса рисования
 let prev = {}; // Предыдущие координаты курсора
+
 let imagesList = []; // Список загруженных изображений
 let activeImage = null; // Активное изображение для перемещения/удаления
 let nextImageId = 0;    // Счетчик для уникальных ID изображений
+let imageUpdateScheduled = false;
+
+let nextGameElementId = 0; // Счетчик для ID игровых элементов
+let gameElements = {}; // Карта для хранения ссылок на DOM элементы игр: { id: element }
+let gameElementUpdateScheduled = false;
+
 let dragOffset = { x: 0, y: 0 }; // Смещение при перетаскивании
-let isResizing = false; // Флаг изменения размера
-let isDragging = false; // Флаг перетаскивания
+let isResizing = false; // Флаг изменения размера (для изображений на canvas)
+let isDragging = false; // Флаг перетаскивания (для изображений на canvas)
+
 let currentTool = 'pen'; // Текущий инструмент
 let currentLineWidth = 2; // Толщина линии
 let currentColor = '#000000'; // Цвет по умолчанию
-
-// Инициализация WebSocket соединения
-const ws = new WebSocket(`ws://${window.location.host}/ws/whiteboard/`);
 
 // Функция для получения координат мыши на канвасе
 function getMousePos(canvas, evt) {
@@ -33,82 +42,282 @@ function getMousePos(canvas, evt) {
     };
 }
 
-// Обработчик входящих сообщений
-ws.onmessage = (e) => {
-    const data = JSON.parse(e.data);
+// Инициализация WebSocket соединения
+let ws;
+const isWebSocketActive = !!roomName;
 
-    if (data.type === "draw") {
-        const { x0, y0, x1, y1, color, lineWidth, tool} = data;
-        drawLine(drawCtx, x0, y0, x1, y1, color, lineWidth, tool);
-    } else if (data.type === 'image') {
-        const img = new Image();
-        img.onload = () => {
-            // Если в data есть id, используем его (пришло от другого клиента),
-            // иначе генерируем новый (это локальная загрузка)
-            const imageId = data.id !== undefined ? data.id : nextImageId++;
-            const imageObj = {
-                id: imageId,
-                img,
-                x: data.x !== undefined ? data.x : 50,
-                y: data.y !== undefined ? data.y : 50,
-                width: data.width !== undefined ? data.width : 200,
-                height: data.height !== undefined ? data.height : 200,
-                dataURL: data.dataURL
-            };
-            // Предотвращаем дублирование, если сообщение пришло о уже существующем изображении
-            if (!imagesList.find(item => item.id === imageObj.id)) {
-                imagesList.push(imageObj);
-            } else {
-                // Если изображение уже есть, обновляем его (на случай, если это было изменение)
-                const existingImgIndex = imagesList.findIndex(item => item.id === imageObj.id);
-                if (existingImgIndex !== -1) {
-                    imagesList[existingImgIndex] = {...imagesList[existingImgIndex], ...imageObj};
-                }
-            }
-            redrawImages();
-        };
-        img.src = data.dataURL;
-    } else if (data.type === 'clear') {
-        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-        imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-        imagesList = [];
-        activeImage = null;
-        nextImageId = 0;
-    } else if (data.type === 'delete_image') {
-        imagesList = imagesList.filter(imgObj => imgObj.id !== data.id);
-        if (activeImage && activeImage.id === data.id) {
-            activeImage = null;
-        }
-        redrawImages();
-    } else if (data.type === 'move_image' || data.type === 'resize_image') {
-        const imgIndex = imagesList.findIndex(img => img.id === data.id);
-        if (imgIndex !== -1) {
-            imagesList[imgIndex].x = data.x;
-            imagesList[imgIndex].y = data.y;
-            if (data.type === 'resize_image') {
-                imagesList[imgIndex].width = data.width;
-                imagesList[imgIndex].height = data.height;
-            }
-            redrawImages();
-        } else if (data.dataURL) { // Если изображение еще не загружено у этого клиента
+if (isWebSocketActive) {
+    console.log(`Доска подключается к комнате: ${roomName}`);
+    ws = new WebSocket(`ws://${window.location.host}/ws/whiteboard/${roomName}/`);
+
+    // Обработчик входящих сообщений
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+
+        // Рисование
+        if (data.type === "draw") {
+            const { x0, y0, x1, y1, color, lineWidth, tool} = data;
+            drawLine(drawCtx, x0, y0, x1, y1, color, lineWidth, tool);
+        } else if (data.type === 'image') { // Работа с изображениями
             const img = new Image();
             img.onload = () => {
-                 const imageObj = {
-                    id: data.id,
+                const imageId = data.id !== undefined ? data.id : nextImageId++;
+                const imageObj = {
+                    id: imageId,
                     img,
-                    x: data.x,
-                    y: data.y,
-                    width: data.width,
-                    height: data.height,
+                    x: data.x !== undefined ? data.x : 50,
+                    y: data.y !== undefined ? data.y : 50,
+                    width: data.width !== undefined ? data.width : 200,
+                    height: data.height !== undefined ? data.height : 200,
                     dataURL: data.dataURL
                 };
-                imagesList.push(imageObj);
+                if (!imagesList.find(item => item.id === imageObj.id)) {
+                    imagesList.push(imageObj);
+                     // Убедимся, что nextImageId всегда больше существующих ID, если ID пришел от сервера
+                    if (data.id !== undefined && data.id >= nextImageId) {
+                        nextImageId = data.id + 1;
+                    }
+                } else {
+                    const existingImgIndex = imagesList.findIndex(item => item.id === imageObj.id);
+                    if (existingImgIndex !== -1) {
+                        imagesList[existingImgIndex] = {...imagesList[existingImgIndex], ...imageObj};
+                    }
+                }
                 redrawImages();
             };
             img.src = data.dataURL;
+        } else if (data.type === 'clear') { // Очистка доски
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+            imagesList = [];
+            activeImage = null;
+            nextImageId = 0;
+
+            for (const id in gameElements) {
+                if (gameElements.hasOwnProperty(id)) {
+                    gameElements[id].remove();
+                }
+            }
+            gameElements = {};
+            nextGameElementId = 0;
+            clearDynamicSettings();
+
+        } else if (data.type === 'delete_image') { // Удаление изображения
+            imagesList = imagesList.filter(imgObj => imgObj.id !== data.id);
+            if (activeImage && activeImage.id === data.id) {
+                activeImage = null;
+            }
+            redrawImages();
+        } else if (data.type === 'move_image' || data.type === 'resize_image') { // Перемещение и/или изменение размера изображения
+            const imgIndex = imagesList.findIndex(img => img.id === data.id);
+            if (imgIndex !== -1) {
+                imagesList[imgIndex].x = data.x;
+                imagesList[imgIndex].y = data.y;
+                if (data.type === 'resize_image') {
+                    imagesList[imgIndex].width = data.width;
+                    imagesList[imgIndex].height = data.height;
+                }
+                if (!imagesList[imgIndex].img.src && data.dataURL) {
+                    const newImg = new Image();
+                    newImg.onload = () => {
+                        imagesList[imgIndex].img = newImg;
+                        redrawImages();
+                    }
+                    newImg.src = data.dataURL;
+                } else {
+                    redrawImages();
+                }
+            } else if (data.dataURL) { // Если изображения нет, создаем его
+                const img = new Image();
+                img.onload = () => {
+                     const imageObj = {
+                        id: data.id,
+                        img,
+                        x: data.x,
+                        y: data.y,
+                        width: data.width,
+                        height: data.height,
+                        dataURL: data.dataURL
+                    };
+                    imagesList.push(imageObj);
+                    if (data.id !== undefined && data.id >= nextImageId) {
+                        nextImageId = data.id + 1;
+                    }
+                    redrawImages();
+                };
+                img.src = data.dataURL;
+            }
+        } else if (data.type === 'image_drag_update') {
+            const imgIndex = imagesList.findIndex(img => img.id === data.id);
+            if (imgIndex !== -1) {
+                imagesList[imgIndex].x = data.x;
+                imagesList[imgIndex].y = data.y;
+                redrawImages();
+            }
+        } else if (data.type === 'image_resize_update') {
+            const imgIndex = imagesList.findIndex(img => img.id === data.id);
+            if (imgIndex !== -1) {
+                imagesList[imgIndex].x = data.x;
+                imagesList[imgIndex].y = data.y;
+                imagesList[imgIndex].width = data.width;
+                imagesList[imgIndex].height = data.height;
+                redrawImages();
+            }
         }
-    }
-};
+        else if (data.type === 'add_game_element') { // Добавление игры на доску
+            if (!gameElements[data.id]) {
+                const gameWrapper = createGameElementLocally(data.id, data.gameName, data.x, data.y, data.width, data.height);
+                if (gameWrapper && data.gameName === "puzzles") {
+                    if (!gameWrapper.dataset.puzzleInitialized) {
+                        createPuzzleOnBoard(gameWrapper, roomName, data.id);
+                        gameWrapper.dataset.puzzleInitialized = "true";
+                    }
+                }
+            }
+             // Обновляем nextGameElementId, чтобы избежать коллизий, если ID пришел от другого клиента
+            const numericId = parseInt(data.id.split('-')[1]);
+            if (!isNaN(numericId) && numericId >= nextGameElementId) {
+                nextGameElementId = numericId + 1;
+            }
+        } else if (data.type === 'delete_game_element') { // Удаление игры с доски
+            const gameWrapper = gameElements[data.id];
+            if (gameWrapper) {
+                if (gameWrapper.puzzleWebSocket && gameWrapper.puzzleWebSocket.readyState === WebSocket.OPEN) {
+                    gameWrapper.puzzleWebSocket.close();
+                    console.log(`Вебсокет для пазла ${gameWrapper.dataset.id} закрыт.`);
+                }
+                if (gameWrapper.classList.contains('active-game')) {
+                    clearDynamicSettings();
+                }
+                gameWrapper.remove();
+                delete gameElements[data.id];
+            }
+        } else if (data.type === 'move_game_element' || data.type === 'game_element_drag_update') { // Перемещение и/или изменение размера gameWrapper
+            const gameWrapper = gameElements[data.id];
+            if (gameWrapper) {
+                gameWrapper.style.left = data.x + 'px';
+                gameWrapper.style.top = data.y + 'px';
+            }
+        } else if (data.type === 'resize_game_element' || data.type === 'game_element_resize_update') {
+            const gameWrapper = gameElements[data.id];
+            if (gameWrapper) {
+                gameWrapper.style.left = data.x + 'px';
+                gameWrapper.style.top = data.y + 'px';
+                gameWrapper.style.width = data.width + 'px';
+                gameWrapper.style.height = data.height + 'px';
+            }
+        } else if (data.type === 'game_element_focus') { // Выделение активной игры
+            const gameWrapper = gameElements[data.id];
+            if (gameWrapper) {
+                document.querySelectorAll('.paste-game-wrapper.active-game').forEach(activeWrapper => {
+                    if (activeWrapper !== gameWrapper) {
+                        activeWrapper.classList.remove('active-game');
+                        activeWrapper.dataset.settingsUpdated = 'false';
+                        activeWrapper.style.borderColor = '';
+                        activeWrapper.style.zIndex = '';
+                    }
+                });
+                gameWrapper.classList.add('active-game');
+                gameWrapper.style.borderColor = 'blue';
+                gameWrapper.style.zIndex = '100';
+                updateGameSettings(gameWrapper.dataset.gameName);
+                gameWrapper.dataset.settingsUpdated = 'true';
+
+                if (gameWrapper.dataset.gameName === "puzzles") {
+                    setupWhiteboardPuzzleSaveLoad(gameWrapper);
+                }
+            }
+        } else if (data.type === 'game_element_blur') { // Удаление выделения
+             const gameWrapper = gameElements[data.id];
+             if (gameWrapper) {
+                gameWrapper.classList.remove('active-game');
+                gameWrapper.dataset.settingsUpdated = 'false';
+                gameWrapper.style.borderColor = '';
+                gameWrapper.style.zIndex = '';
+                if (!document.querySelector('.paste-game-wrapper.active-game')) {
+                    clearDynamicSettings();
+                }
+             }
+        } 
+    };
+
+    ws.onopen = () => {
+        console.log(`Вебсокет доски подключен к комнате: ${roomName}`);
+    };
+
+    ws.onclose = () => {
+        console.log(`Вебсокет доски отключен от комнаты: ${roomName}`);
+    };
+
+    ws.onerror = (error) => {
+        console.error(`Ошибка вебсокета доски для комнаты ${roomName}:`, error);
+    };
+
+} else {
+    console.warn("roomName для доски не найден. Синхронизация будет отключена. Работа в локальном режиме.");
+    ws = {
+        send: (message) => {
+            const data = JSON.parse(message);
+            if (data.type === 'add_game_element') {
+                if (!gameElements[data.id]) {
+                    const gameWrapper = createGameElementLocally(data.id, data.gameName, data.x, data.y, data.width, data.height);
+                    if (gameWrapper && data.gameName === "puzzles") {
+                        if (!gameWrapper.dataset.puzzleInitialized) {
+                            createPuzzleOnBoard(gameWrapper);
+                            gameWrapper.dataset.puzzleInitialized = "true";
+                        }
+                    }
+                }
+                // Обновляем nextGameElementId
+                const numericId = parseInt(data.id.split('-')[1]);
+                if (!isNaN(numericId) && numericId >= nextGameElementId) {
+                    nextGameElementId = numericId + 1;
+                }
+            } else if (data.type === 'delete_game_element') {
+                const gameWrapper = gameElements[data.id];
+                if (gameWrapper) {
+                    if (gameWrapper.classList.contains('active-game')) {
+                        clearDynamicSettings();
+                    }
+                    gameWrapper.remove();
+                    delete gameElements[data.id];
+                }
+            } else if (data.type === 'game_element_focus') {
+                 const gameWrapper = gameElements[data.id];
+                 if (gameWrapper) {
+                    document.querySelectorAll('.paste-game-wrapper.active-game').forEach(activeWrapper => {
+                        if (activeWrapper !== gameWrapper) {
+                            activeWrapper.classList.remove('active-game');
+                            activeWrapper.dataset.settingsUpdated = 'false';
+                            activeWrapper.style.borderColor = '';
+                            activeWrapper.style.zIndex = '';
+                        }
+                    });
+                    gameWrapper.classList.add('active-game');
+                    gameWrapper.style.borderColor = 'blue';
+                    gameWrapper.style.zIndex = '100';
+                    updateGameSettings(gameWrapper.dataset.gameName);
+                    gameWrapper.dataset.settingsUpdated = 'true';
+                    if (gameWrapper.dataset.gameName === "puzzles") {
+                        setupWhiteboardPuzzleSaveLoad(gameWrapper);
+                    }
+                 }
+            } else if (data.type === 'game_element_blur') {
+                const gameWrapper = gameElements[data.id];
+                if (gameWrapper) {
+                   gameWrapper.classList.remove('active-game');
+                   gameWrapper.dataset.settingsUpdated = 'false';
+                   gameWrapper.style.borderColor = '';
+                   gameWrapper.style.zIndex = '';
+                   if (!document.querySelector('.paste-game-wrapper.active-game')) {
+                       clearDynamicSettings();
+                   }
+                }
+            }
+        },
+        readyState: WebSocket.CLOSED
+    };
+}
 
 // Инициализация инструментов
 document.getElementById('pen_btn').addEventListener('click', () => {
@@ -116,12 +325,29 @@ document.getElementById('pen_btn').addEventListener('click', () => {
     toggleToolButtons('pen_btn');
     drawCanvas.style.cursor = 'crosshair';
     clearSelection();
+
+    const activeGameObject = document.querySelector('.paste-game-wrapper.active-game');
+    if (activeGameObject && activeGameObject.dataset.id && ws.readyState === WebSocket.OPEN) {
+        activeGameObject.classList.remove('active-game');
+        activeGameObject.dataset.settingsUpdated = 'false';
+        activeGameObject.style.borderColor = '';
+        activeGameObject.style.zIndex = '';
+        clearDynamicSettings();
+    }
 });
 document.getElementById('eraser_btn').addEventListener('click', () => {
     currentTool = 'eraser';
     toggleToolButtons('eraser_btn');
     drawCanvas.style.cursor = 'crosshair';
     clearSelection();
+    const activeGameObject = document.querySelector('.paste-game-wrapper.active-game');
+    if (activeGameObject && activeGameObject.dataset.id && ws.readyState === WebSocket.OPEN) {
+        activeGameObject.classList.remove('active-game');
+        activeGameObject.dataset.settingsUpdated = 'false';
+        activeGameObject.style.borderColor = '';
+        activeGameObject.style.zIndex = '';
+        clearDynamicSettings();
+    }
 });
 
 // Обработчики параметров рисования
@@ -139,32 +365,54 @@ document.getElementById('thickness').addEventListener('input', (e) => {
  */
 function toggleToolButtons(activeId) {
     document.querySelectorAll('.tool').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(activeId).classList.add('active');
+    if (activeId && document.getElementById(activeId)) { // Проверка существования элемента
+        document.getElementById(activeId).classList.add('active');
+    }
 }
 
-// Обработчики событий мыши
+// Обработчики событий мыши для Canvas
 drawCanvas.addEventListener('mousedown', (e) => {
     const { x, y } = getMousePos(drawCanvas, e);
 
     const clickedImage = getImageAt(x, y);
 
-    if (clickedImage) {
-        activeImage = clickedImage; // Делаем изображение активным
+    if (!e.target.closest('.paste-game-wrapper')) {
+        const activeGameObject = document.querySelector('.paste-game-wrapper.active-game');
+        if (activeGameObject) {
+            // Если есть активная игра и клик мимо нее, снимаем фокус
+            if (isWebSocketActive && ws.readyState === WebSocket.OPEN) {
+                 ws.send(JSON.stringify({ type: 'game_element_blur', id: activeGameObject.dataset.id }));
+            } else if (!isWebSocketActive) { // Локальный режим
+                activeGameObject.classList.remove('active-game');
+                activeGameObject.dataset.settingsUpdated = 'false';
+                activeGameObject.style.borderColor = '';
+                activeGameObject.style.zIndex = '';
+                clearDynamicSettings();
+            }
+        }
+    }
+
+
+    if (clickedImage) { // Взаимодействие с изображением на canvas
+        activeImage = clickedImage;
         redrawImages();
 
         if (overResizeHandle(x, y, activeImage)) {
             isResizing = true;
-            dragOffset.startX = activeImage.x;
-            dragOffset.startY = activeImage.y;
+            dragOffset.startX = x;
+            dragOffset.startY = y;
+            dragOffset.startImageX = activeImage.x;
+            dragOffset.startImageY = activeImage.y;
             dragOffset.startWidth = activeImage.width;
             dragOffset.startHeight = activeImage.height;
+            drawCanvas.style.cursor = 'nwse-resize';
         } else {
             isDragging = true;
             dragOffset.x = x - activeImage.x;
             dragOffset.y = y - activeImage.y;
+            drawCanvas.style.cursor = 'move';
         }
-        drawCanvas.style.cursor = 'move';
-    } else {
+    } else { // Клик на пустом месте canvas
         if (currentTool === 'pen' || currentTool === 'eraser') {
             drawing = true;
             prev = { x, y };
@@ -172,6 +420,7 @@ drawCanvas.addEventListener('mousedown', (e) => {
             drawCanvas.style.cursor = 'crosshair';
         } else {
             clearSelection();
+            drawCanvas.style.cursor = 'default';
         }
     }
 });
@@ -191,7 +440,6 @@ drawCanvas.addEventListener('mouseup', () => {
                 id: activeImage.id,
                 x: activeImage.x,
                 y: activeImage.y,
-                // Передаем dataURL на случай, если у других клиентов этого изображения еще нет
                 dataURL: activeImage.dataURL
             }));
         }
@@ -212,24 +460,22 @@ drawCanvas.addEventListener('mouseup', () => {
         }
         isResizing = false;
     }
+    imageUpdateScheduled = false;
 });
 
 drawCanvas.addEventListener('mousemove', (e) => {
     const { x, y } = getMousePos(drawCanvas, e);
+    const someonesDraggingDOM = Object.values(gameElements).some(el => el.isDragging || el.isResizing); // Проверка, не тащится ли DOM элемент
 
-    if (drawing && !someonesDragging) {
+    if (drawing && !someonesDraggingDOM) {
         const current = { x, y };
+        if (prev.x === current.x && prev.y === current.y) return;
         const colorForDraw = currentTool === 'pen' ? currentColor : '#000000';
 
         const message = {
             type: 'draw',
-            x0: prev.x,
-            y0: prev.y,
-            x1: current.x,
-            y1: current.y,
-            color: colorForDraw,
-            lineWidth: currentLineWidth,
-            tool: currentTool
+            x0: prev.x, y0: prev.y, x1: current.x, y1: current.y,
+            color: colorForDraw, lineWidth: currentLineWidth, tool: currentTool
         };
         if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(message));
@@ -237,51 +483,61 @@ drawCanvas.addEventListener('mousemove', (e) => {
 
         drawLine(drawCtx, prev.x, prev.y, current.x, current.y, colorForDraw, currentLineWidth, currentTool);
         prev = current;
-        drawCanvas.style.cursor = 'crosshair';
-    } else if (isDragging && activeImage && !someonesDragging) {
+    } else if (isDragging && activeImage && !someonesDraggingDOM) {
         activeImage.x = x - dragOffset.x;
         activeImage.y = y - dragOffset.y;
         redrawImages();
         drawCanvas.style.cursor = 'grabbing';
-    } else if (isResizing && activeImage && !someonesDragging) {
-        const newWidth = Math.abs(x - dragOffset.startX);
-        const newHeight = Math.abs(y - dragOffset.startY);
-
-        activeImage.width = Math.max(20, newWidth); // Мин. ширина
-        activeImage.height = Math.max(20, newHeight); // Мин. высота
-
-        if (x < dragOffset.startX) {
-            activeImage.x = x;
-        } else {
-            activeImage.x = dragOffset.startX;
+        if (!imageUpdateScheduled && ws.readyState === WebSocket.OPEN) {
+            imageUpdateScheduled = true;
+            requestAnimationFrame(() => {
+                if (isDragging && activeImage) {
+                    ws.send(JSON.stringify({
+                        type: 'image_drag_update', id: activeImage.id,
+                        x: activeImage.x, y: activeImage.y
+                    }));
+                }
+                imageUpdateScheduled = false;
+            });
         }
-        if (y < dragOffset.startY) {
-            activeImage.y = y;
-        } else {
-            activeImage.y = dragOffset.startY;
-        }
-
+    } else if (isResizing && activeImage && !someonesDraggingDOM) {
+        let newWidth = dragOffset.startWidth + (x - dragOffset.startX);
+        let newHeight = dragOffset.startHeight + (y - dragOffset.startY);
+        activeImage.width = Math.max(20, newWidth);
+        activeImage.height = Math.max(20, newHeight);
         redrawImages();
         drawCanvas.style.cursor = 'nwse-resize';
-    } else if (!drawing && !isDragging && !isResizing) {
-        // Управление курсором при наведении на изображения или маркеры
+        if (!imageUpdateScheduled && ws.readyState === WebSocket.OPEN) {
+            imageUpdateScheduled = true;
+            requestAnimationFrame(() => {
+                if (isResizing && activeImage) {
+                    ws.send(JSON.stringify({
+                        type: 'image_resize_update', id: activeImage.id,
+                        x: activeImage.x, y: activeImage.y,
+                        width: activeImage.width, height: activeImage.height
+                    }));
+                }
+                imageUpdateScheduled = false;
+            });
+        }
+    } else if (!drawing && !isDragging && !isResizing && !someonesDraggingDOM) {
         const hoveredImage = getImageAt(x, y);
-        if (hoveredImage) {
+        if (hoveredImage && currentTool !== 'pen' && currentTool !== 'eraser') { // Не менять курсор если рисуем
             if (overResizeHandle(x, y, hoveredImage)) {
                 drawCanvas.style.cursor = 'nwse-resize';
             } else {
                 drawCanvas.style.cursor = 'move';
             }
         } else {
-            drawCanvas.style.cursor = (currentTool === 'pen' || currentTool === 'eraser') ? 'crosshair' : 'default';
+             drawCanvas.style.cursor = (currentTool === 'pen' || currentTool === 'eraser') ? 'crosshair' : 'default';
         }
     }
 });
 
-// Обработчик нажатия клавиш для удаления
+// Обработчик нажатия клавиш для удаления изображения на canvas
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (activeImage && !isInputActive()) {
+        if (activeImage && !isInputActive()) { // Удаление изображения на canvas
             e.preventDefault();
             deleteImage(activeImage.id);
         }
@@ -294,7 +550,7 @@ function isInputActive() {
     return activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
 }
 
-// Удаления изображения
+// Удаления изображения с canvas
 function deleteImage(imageId) {
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'delete_image', id: imageId }));
@@ -306,7 +562,7 @@ function deleteImage(imageId) {
     redrawImages();
 }
 
-// Снятие выделения с изображения
+// Снятие выделения с изображения на canvas
 function clearSelection() {
     if (activeImage) {
         activeImage = null;
@@ -351,18 +607,7 @@ document.getElementById('img-upload').addEventListener('change', function() {
     const reader = new FileReader();
     reader.onload = () => {
         const dataURL = reader.result;
-        const imageId = nextImageId++; // Генерируем ID для нового изображения
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: 'image',
-                id: imageId,
-                dataURL,
-                x: 50,
-                y: 50,
-                width: 200,
-                height: 200
-            }));
-        }
+        const imageId = nextImageId++;
 
         const img = new Image();
         img.onload = () => {
@@ -371,32 +616,64 @@ document.getElementById('img-upload').addEventListener('change', function() {
                 img,
                 x: 50,
                 y: 50,
-                width: 200,
-                height: 200,
+                width: img.naturalWidth > 400 ? 400 : img.naturalWidth,
+                height: img.naturalHeight > 300 ? (img.naturalHeight * (400/img.naturalWidth)) : img.naturalHeight,
                 dataURL
             };
+            if (imageObj.width > 400 || imageObj.height > 300) {
+                const aspectRatio = imageObj.width / imageObj.height;
+                if (imageObj.width > imageObj.height) {
+                    imageObj.width = 400;
+                    imageObj.height = 400 / aspectRatio;
+                } else {
+                    imageObj.height = 300;
+                    imageObj.width = 300 * aspectRatio;
+                }
+            }
             imagesList.push(imageObj);
             redrawImages();
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'image',
+                    id: imageId, dataURL,
+                    x: imageObj.x, y: imageObj.y,
+                    width: imageObj.width, height: imageObj.height
+                }));
+            }
         };
+        img.onerror = () => console.error("Ошибка загрузки изображения для dataURL");
         img.src = dataURL;
     };
     reader.readAsDataURL(file);
-    this.value = ''; // Сбрасываем input, чтобы можно было загрузить тот же файл снова
+    this.value = '';
 });
+
 
 /**
  * Очищает доску и сбрасывает загруженные изображения.
  */
 function clearBoard() {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (isWebSocketActive && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'clear' }));
+    } else if (!isWebSocketActive) { // Локальный режим: очищаем сразу
+        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+        imagesList = [];
+        activeImage = null;
+        nextImageId = 0;
+        document.getElementById('img-upload').value = ''; // Сбрасываем input
+
+        for (const id in gameElements) {
+            if (gameElements.hasOwnProperty(id)) {
+                gameElements[id].remove();
+            }
+        }
+        gameElements = {};
+        nextGameElementId = 0;
+        clearDynamicSettings();
+        console.log("Доска очищена локально.");
     }
-    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-    imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-    imagesList = [];
-    activeImage = null;
-    nextImageId = 0;
-    document.getElementById('img-upload').value = '';
 }
 
 document.querySelector("#clear_btn").addEventListener("click", () => {
@@ -425,7 +702,7 @@ function redrawImages() {
     imageCtx.globalCompositeOperation = prevOp;
 }
 
-// Вспомогательные функции
+// Вспомогательные функции для изображений на canvas
 function getImageAt(x, y) {
     // Перебираем в обратном порядке, чтобы выбрать верхнее изображение, если они накладываются
     for (let i = imagesList.length - 1; i >= 0; i--) {
@@ -501,7 +778,14 @@ function resizeCanvasToDisplaySize() {
 
 window.addEventListener('load', () => {
     resizeCanvasToDisplaySize();
-    toggleToolButtons('pen_btn');
+    if (document.getElementById('pen_btn')) {
+        toggleToolButtons('pen_btn');
+        currentTool = 'pen'; // Убедимся, что currentTool соответствует
+        drawCanvas.style.cursor = 'crosshair';
+    } else {
+        currentTool = 'select'; // или другое значение по умолчанию, если кнопки pen нет
+        drawCanvas.style.cursor = 'default';
+    }
 });
 window.addEventListener('resize', resizeCanvasToDisplaySize);
 
@@ -537,6 +821,101 @@ window.addEventListener("click", (e) => {
     }
 });
 
+/**
+ * Создает DOM-элемент игры локально на основе данных.
+ * Не отправляет WebSocket сообщение о создании.
+ * @param {string} id - Уникальный ID элемента игры
+ * @param {string} gameName - Название игры
+ * @param {number} x - Координата X
+ * @param {number} y - Координата Y
+ * @param {number} width - Ширина
+ * @param {number} height - Высота
+ * @returns {HTMLDivElement | null} - Созданный элемент или null, если ошибка
+ */
+function createGameElementLocally(id, gameName, x, y, width, height) {
+    if (gameElements[id]) {
+        console.warn(`Game element with id ${id} already exists locally.`);
+        return gameElements[id];
+    }
+
+    const gameWrapper = document.createElement('div');
+    gameWrapper.className = 'paste-game-wrapper';
+    gameWrapper.style.left = x + 'px';
+    gameWrapper.style.top = y + 'px';
+    gameWrapper.style.width = width + 'px';
+    gameWrapper.style.height = height + 'px';
+    gameWrapper.dataset.gameName = gameName;
+    gameWrapper.dataset.id = id; // Сохраняем ID
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'paste-game-close';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = () => {
+        if (isWebSocketActive && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'delete_game_element',
+                id: gameWrapper.dataset.id
+            }));
+        } else if (!isWebSocketActive) { // Локальный режим: удаляем сразу
+            if (gameWrapper.classList.contains('active-game')) {
+                clearDynamicSettings();
+            }
+            gameWrapper.remove();
+            delete gameElements[gameWrapper.dataset.id];
+        }
+    };
+
+    gameWrapper.appendChild(closeBtn);
+    document.querySelector('.canvas-wrapper').appendChild(gameWrapper);
+    
+    makeDraggable(gameWrapper, id);
+    makeResizable(gameWrapper, id);
+
+    // Флаги для отслеживания состояния перетаскивания/изменения размера для этого конкретного элемента
+    gameWrapper.isDragging = false;
+    gameWrapper.isResizing = false;
+
+
+    gameWrapper.addEventListener('mousedown', (e) => {
+        // Игнорируем клики на кнопку закрытия и маркер изменения размера, они обрабатываются отдельно
+        if (e.target.closest('.paste-game-close') || e.target.classList.contains('resize-handle')) {
+            return;
+        }
+
+        // Если кликнули на игровой элемент, он должен стать активным
+        if (!gameWrapper.classList.contains('active-game')) {
+            if (isWebSocketActive && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'game_element_focus', id: gameWrapper.dataset.id }));
+            } else if (!isWebSocketActive) { // Локальный режим: фокусируем сразу
+                document.querySelectorAll('.paste-game-wrapper.active-game').forEach(activeWrapper => {
+                    if (activeWrapper !== gameWrapper) {
+                        activeWrapper.classList.remove('active-game');
+                        activeWrapper.dataset.settingsUpdated = 'false';
+                        activeWrapper.style.borderColor = '';
+                        activeWrapper.style.zIndex = '';
+                    }
+                });
+                gameWrapper.classList.add('active-game');
+                gameWrapper.style.borderColor = 'blue';
+                gameWrapper.style.zIndex = '100';
+                updateGameSettings(gameWrapper.dataset.gameName);
+                gameWrapper.dataset.settingsUpdated = 'true';
+                if (gameWrapper.dataset.gameName === "puzzles") {
+                    setupWhiteboardPuzzleSaveLoad();
+                }
+            }
+        } else {
+             gameWrapper.style.zIndex = (parseInt(window.getComputedStyle(gameWrapper).zIndex) || 0) + 1;
+        }
+        clearSelection(); // Снять выделение с картинки на canvas
+        e.stopPropagation();
+    });
+
+    gameElements[id] = gameWrapper;
+    return gameWrapper;
+}
+
+
 // Обработка добавления игры на доску
 document.querySelectorAll(".game-option").forEach(option => {
     if (option.dataset.listenerAttached === 'true') {
@@ -545,122 +924,52 @@ document.querySelectorAll(".game-option").forEach(option => {
 
     option.addEventListener("click", () => {
         const gameName = option.dataset.name;
-        const gameWrapper = addGamePasteGame();
-        gameWrapper.dataset.gameName = gameName;
+        const gameId = `game-${nextGameElementId++}`;
+        const initialX = 100;
+        const initialY = 100;
+        const initialWidth = 400;
+        const initialHeight = 300;
 
-        updateGameSettings(gameName);
+        // Сообщение для отправки или локальной обработки
+        const gameData = {
+            type: 'add_game_element',
+            id: gameId,
+            gameName: gameName,
+            x: initialX,
+            y: initialY,
+            width: initialWidth,
+            height: initialHeight
+        };
 
-        if (gameName === "puzzles") {
-            createPuzzleOnBoard(gameWrapper);
+        if (isWebSocketActive && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(gameData));
+        } else if (!isWebSocketActive) { // Локальный режим для доски
+            const localGameWrapper = createGameElementLocally(gameId, gameName, initialX, initialY, initialWidth, initialHeight);
+            if (localGameWrapper && gameName === "puzzles") {
+                if (!localGameWrapper.dataset.puzzleInitialized) {
+                    // В локальном режиме roomName будет null, gameId будет сгенерирован.
+                    createPuzzleOnBoard(localGameWrapper, null, gameId);
+                    localGameWrapper.dataset.puzzleInitialized = "true";
+                }
+            }
+            if (ws.send && typeof ws.send === 'function') {
+                ws.send(JSON.stringify({ type: 'game_element_focus', id: gameId }));
+            }
         }
         dropdown.classList.remove("show");
-
-        setTimeout(() => {
-            if (document.body.contains(gameWrapper)) {
-                gameWrapper.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-            }
-        }, 0);
     });
     option.dataset.listenerAttached = 'true';
 });
 
 /**
- * Создает и добавляет контейнер для вставляемой игры на доску.
- * @returns {HTMLDivElement} gameWrapper - созданный контейнер игры
- */
-function addGamePasteGame() {
-    const gameWrapper = document.createElement('div');
-    gameWrapper.className = 'paste-game-wrapper';
-    gameWrapper.style.left = '100px';
-    gameWrapper.style.top = '100px';
-    gameWrapper.style.width = '400px';
-    gameWrapper.style.height = '300px';
-    gameWrapper.style.aspectRatio = '4 / 3';
-
-    gameWrapper._blockImmediateDrag = true; // блокировка перемещения только что добавленной игры
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'paste-game-close';
-    closeBtn.textContent = '×';
-    closeBtn.onclick = () => {
-        // Если удаляем активный элемент, очищаем настройки
-        if (gameWrapper.classList.contains('active-game')) {
-            clearDynamicSettings();
-        }
-        gameWrapper.remove();
-    };
-
-    gameWrapper.appendChild(closeBtn);
-    document.querySelector('.canvas-wrapper').appendChild(gameWrapper);
-    makeDraggable(gameWrapper);
-    makeResizable(gameWrapper);
-
-    // сброс блокировки перемещения только что добавленной игры
-    setTimeout(() => {
-        if (gameWrapper) { // Проверяем, что элемент все еще существует
-           delete gameWrapper._blockImmediateDrag;
-        }
-    }, 1);
-
-    gameWrapper.addEventListener('mousedown', (e) => {
-        // Игнорируем клики на кнопку закрытия и кружок изменения размера
-        if (e.target.closest('.paste-game-close') || e.target.classList.contains('resize-handle')) {
-            return;
-        }
-
-        // Проверяем, стал ли wrapper активным
-        if (!gameWrapper.classList.contains('active-game')) {
-            const gameName = gameWrapper.dataset.gameName;
-
-            // Снимаем активность и флаг 'settingsUpdated' со всех остальных
-            document.querySelectorAll('.paste-game-wrapper.active-game').forEach(activeWrapper => {
-                activeWrapper.classList.remove('active-game');
-                activeWrapper.dataset.settingsUpdated = 'false';
-                activeWrapper.style.borderColor = '';
-                 activeWrapper.style.zIndex = '';
-            });
-
-            // Делаем текущий активным
-            gameWrapper.classList.add('active-game');
-            gameWrapper.style.borderColor = 'blue';
-            gameWrapper.style.zIndex = '100';
-
-            // Обновляем панель настроек, если нужно
-            if (gameName && gameWrapper.dataset.settingsUpdated !== 'true') {
-                updateGameSettings(gameName);
-                gameWrapper.dataset.settingsUpdated = 'true';
-
-                // Вызываем настройку обработчиков
-                if (gameName === "puzzles") {
-                    setupWhiteboardPuzzleSaveLoad();
-                }
-            } else if (!gameName) {
-                 clearDynamicSettings();
-            }
-        } else {
-             gameWrapper.style.zIndex = '100';
-        }
-    });
-
-    return gameWrapper;
-}
-
-let someonesDragging = false;
-
-/**
  * Делает контейнер игры перетаскиваемым.
  * @param {HTMLDivElement} gameWrapper - Контейнер игры
+ * @param {string} gameId - Уникальный ID этого игрового элемента
  */
-function makeDraggable(gameWrapper) {
-    gameWrapper.isDragging = false;
-    let startX, startY, initialLeft, initialTop;
+function makeDraggable(gameWrapper, gameId) {
+    let dragStartX, dragStartY, initialLeft, initialTop; // Локальные переменные для перетаскивания
 
-    // Обработка начала перетаскивания
-    const onMouseDown = (e) => {
-        if (gameWrapper._blockImmediateDrag === true) {
-            return;
-        }
-
+    const onElementMouseDown = (e) => {
         // Игнорируем клики на кнопку закрытия и маркер изменения размера
         if (e.target.closest('.paste-game-close') || e.target.classList.contains('resize-handle')) {
             return;
@@ -669,106 +978,164 @@ function makeDraggable(gameWrapper) {
         if (e.button !== 0) {
             return;
         }
+        // Блокировка перетаскивания только что добавленной игры
+        if (gameWrapper._blockImmediateDrag === true) {
+            return;
+        }
 
         gameWrapper.isDragging = true;
-        someonesDragging = true;
 
-        // Координаты мыши относительно viewport
-        startX = e.clientX;
-        startY = e.clientY;
-
-        // Текущие координаты элемента
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
         initialLeft = parseFloat(gameWrapper.style.left) || 0;
         initialTop = parseFloat(gameWrapper.style.top) || 0;
 
         gameWrapper.style.cursor = 'grabbing';
-        document.body.style.userSelect = 'none';
+        document.body.style.userSelect = 'none'; // Предотвращаем выделение текста при перетаскивании
 
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mousemove', onDocumentMouseMoveDrag);
+        document.addEventListener('mouseup', onDocumentMouseUpDrag);
+        
+        e.stopPropagation();
     };
 
-    // Обработка движения мыши во время перетаскивания
-    const onMouseMove = (e) => {
+    const onDocumentMouseMoveDrag = (e) => {
         if (!gameWrapper.isDragging) return;
 
-        // Рассчитываем смещение мыши от начальной точки
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-
-        // Рассчитываем новые координаты top/left
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
         const newLeft = initialLeft + dx;
         const newTop = initialTop + dy;
 
         gameWrapper.style.left = `${newLeft}px`;
         gameWrapper.style.top = `${newTop}px`;
+
+        // Плавная синхронизация
+        if (!gameElementUpdateScheduled && ws.readyState === WebSocket.OPEN) {
+            gameElementUpdateScheduled = true;
+            requestAnimationFrame(() => {
+                if (gameWrapper.isDragging) { // Проверяем, что все еще тащим
+                    ws.send(JSON.stringify({
+                        type: 'game_element_drag_update',
+                        id: gameId,
+                        x: parseFloat(gameWrapper.style.left),
+                        y: parseFloat(gameWrapper.style.top)
+                    }));
+                }
+                gameElementUpdateScheduled = false;
+            });
+        }
     };
 
-    // Обработка отпускания кнопки мыши
-    const onMouseUp = () => {
+    const onDocumentMouseUpDrag = () => {
         if (!gameWrapper.isDragging) return;
 
         gameWrapper.isDragging = false;
-        someonesDragging = false;
 
         gameWrapper.style.cursor = 'grab';
         document.body.style.userSelect = '';
 
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('mousemove', onDocumentMouseMoveDrag);
+        document.removeEventListener('mouseup', onDocumentMouseUpDrag);
+
+        // Отправка финального состояния
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'move_game_element',
+                id: gameId,
+                x: parseFloat(gameWrapper.style.left),
+                y: parseFloat(gameWrapper.style.top)
+            }));
+        }
+        gameElementUpdateScheduled = false;
     };
 
-    gameWrapper.addEventListener('mousedown', onMouseDown);
-
+    gameWrapper.addEventListener('mousedown', onElementMouseDown);
     gameWrapper.style.cursor = 'grab';
 }
 
 /**
  * Делает контейнер игры изменяемым по размеру.
  * @param {HTMLDivElement} gameWrapper - Контейнер игры
+ * @param {string} gameId - Уникальный ID этого игрового элемента
  */
-function makeResizable(gameWrapper) {
+function makeResizable(gameWrapper, gameId) {
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'resize-handle';
     gameWrapper.appendChild(resizeHandle);
 
-    gameWrapper.isResizing = false;
-    let startX, startY, startWidth, startHeight;
+    let resizeStartX, resizeStartY, initialWidth, initialHeight, initialElementX, initialElementY;
 
     resizeHandle.addEventListener('mousedown', (e) => {
         e.stopPropagation(); // чтобы drag и resize не конфликтовали
         gameWrapper.isResizing = true;
-        someonesDragging = true;
 
-        const rect = gameWrapper.getBoundingClientRect();
-        startX = e.clientX;
-        startY = e.clientY;
-        startWidth = rect.width;
-        startHeight = rect.height;
+        const rect = gameWrapper.getBoundingClientRect(); // Получаем размеры относительно viewport
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+        initialWidth = rect.width;
+        initialHeight = rect.height;
+        initialElementX = parseFloat(gameWrapper.style.left) || 0;
+        initialElementY = parseFloat(gameWrapper.style.top) || 0;
 
         document.body.style.userSelect = 'none';
+        // Используем слушатели на document для отслеживания мыши за пределами элемента
+        document.addEventListener('mousemove', onDocumentMouseMoveResize);
+        document.addEventListener('mouseup', onDocumentMouseUpResize);
     });
 
-    document.addEventListener('mousemove', (e) => {
+    const onDocumentMouseMoveResize = (e) => {
         if (!gameWrapper.isResizing) return;
 
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
+        const dx = e.clientX - resizeStartX;
+        const dy = e.clientY - resizeStartY;
 
-        const newWidth = Math.max(200, startWidth + dx);
-        const newHeight = Math.max(150, startHeight + dy);
+        const newWidth = Math.max(200, initialWidth + dx);
+        const newHeight = Math.max(150, initialHeight + dy);
 
         gameWrapper.style.width = `${newWidth}px`;
         gameWrapper.style.height = `${newHeight}px`;
-    });
 
-    document.addEventListener('mouseup', () => {
+        // Плавная синхронизация
+        if (!gameElementUpdateScheduled && ws.readyState === WebSocket.OPEN) {
+            gameElementUpdateScheduled = true;
+            requestAnimationFrame(() => {
+                if (gameWrapper.isResizing) {
+                    ws.send(JSON.stringify({
+                        type: 'game_element_resize_update',
+                        id: gameId,
+                        x: parseFloat(gameWrapper.style.left),
+                        y: parseFloat(gameWrapper.style.top),
+                        width: parseFloat(gameWrapper.style.width),
+                        height: parseFloat(gameWrapper.style.height)
+                    }));
+                }
+                gameElementUpdateScheduled = false;
+            });
+        }
+    };
+
+    const onDocumentMouseUpResize = () => {
         if (gameWrapper.isResizing) {
             gameWrapper.isResizing = false;
-            someonesDragging = false;
             document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onDocumentMouseMoveResize);
+            document.removeEventListener('mouseup', onDocumentMouseUpResize);
+
+            // Отправка финального состояния
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'resize_game_element',
+                    id: gameId,
+                    x: parseFloat(gameWrapper.style.left),
+                    y: parseFloat(gameWrapper.style.top),
+                    width: parseFloat(gameWrapper.style.width),
+                    height: parseFloat(gameWrapper.style.height)
+                }));
+            }
+            gameElementUpdateScheduled = false;
         }
-    });
+    };
 }
 
 // Панель настроек
@@ -778,12 +1145,7 @@ const settingsPanel = document.querySelector('.settings-panel');
 // Открытие/Скрытие настроек
 toggleButton.addEventListener('click', () => {
     settingsPanel.classList.toggle('hidden');
-
-    if (settingsPanel.classList.contains('hidden')) {
-        toggleButton.textContent = 'Открыть настройки';
-    } else {
-        toggleButton.textContent = 'Закрыть настройки';
-    }
+    toggleButton.textContent = settingsPanel.classList.contains('hidden') ? 'Открыть настройки' : 'Закрыть настройки';
 });
 
 /**
@@ -810,6 +1172,7 @@ function updateGameSettings(gameName) {
         console.error("Не найдена панель настроек для обновления настроек игры");
         return;
     }
+
     if (typeof images === 'undefined') {
          console.error("'переменная images (путь к статическим изображениям) не определена.");
          return;
@@ -825,7 +1188,10 @@ function updateGameSettings(gameName) {
         }
 
         const settingsContainer = document.createElement('div');
-        settingsContainer.className = "dynamic-setting puzzle-settings-container"; // Контейнер для настроек пазлов
+        settingsContainer.className = "dynamic-setting puzzle-settings-container";
+
+        // Проверяем наличие переменной 'images' перед использованием
+        const imagesPath = typeof images !== 'undefined' ? images : '/static/images/default_path';
 
         // Содержимое настроек
         const content = `
@@ -837,8 +1203,8 @@ function updateGameSettings(gameName) {
                 <h2>Выберите изображение для пазла</h2>
 
                 <div class="preset-images">
-                    <img src="${images}/british-cat.jpg" class="preset" data-src="${images}/british-cat.jpg">
-                    <img src="${images}/tree.png" class="preset" data-src="${images}/tree.png">
+                    <img src="${imagesPath}/british-cat.jpg" class="preset" data-src="${imagesPath}/british-cat.jpg" alt="Британский кот">
+                    <img src="${imagesPath}/tree.png" class="preset" data-src="${imagesPath}/tree.png" alt="Дерево">
                 </div>
 
                 <label class="upload-label">

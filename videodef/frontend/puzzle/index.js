@@ -1,4 +1,4 @@
-import { getPuzzleParts, placePieces, createPuzzle, updatePuzzleImage } from './puzzle-logic.js';
+import { getPuzzleParts, placePieces, createPuzzle, updatePuzzleImage, handlePieceClick, applyRemotePieceInteraction } from './puzzle-logic.js';
 
 window.createPuzzleSeparately = createPuzzleSeparately;
 
@@ -308,7 +308,8 @@ function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
  * @param {HTMLElement} options.puzzleContainer - Контейнер для кусочков пазла
  * @param {HTMLElement} options.message - Элемент для сообщений
  * @param {boolean} [options.instantUpdate=false] - Обновлять ли пазл сразу
- * @param {function} [options.onStateChange] - Колбэк при изменении состояния
+ * @param {function} [options.onStateChange] - Колбэк при изменении состояния (для отправки по WS или обновления UI)
+ * @param {HTMLButtonElement} [options.saveBtnRef] - Ссылка на кнопку сохранения (для обновления ее текста/data-атрибутов)
  */
 function setupPuzzleControls({
     customInput,
@@ -433,6 +434,9 @@ function setupPuzzleControls({
             }
             const useLoadedPositions = puzzleParams.piecePositions && puzzleParams.piecePositions.length === puzzleParams.gridSize * puzzleParams.gridSize;
             createPuzzle(puzzleContainer, puzzleParams, message, useLoadedPositions);
+            if (onStateChange){
+                onStateChange(puzzleParams); 
+            }
         };
         startBtn.removeEventListener('click', startBtn.clickHandler);
         startBtn.addEventListener('click', startHandler);
@@ -453,6 +457,7 @@ function createPuzzleSeparately() {
     localPuzzleParams.onWhiteboard = false;
     localPuzzleParams.name = "";
     localPuzzleParams.id = null;
+    localPuzzleParams.ws = null;
 
     const wrapper = document.getElementById('puzzle-wrapper');
     if (!wrapper) { console.error("#puzzle-wrapper not found!"); return; }
@@ -514,7 +519,6 @@ function createPuzzleSeparately() {
         localPuzzleParams.name = puzzleData.name;
         localPuzzleParams.selectedImage = puzzleData.image_url;
         localPuzzleParams.isPreset = !!puzzleData.preset_path;
-        localPuzzleParams.imageFile = null;
 
         difficultySelect.value = puzzleData.grid_size;
         puzzleNameInput.value = puzzleData.name;
@@ -580,18 +584,21 @@ function createPuzzleSeparately() {
 /**
  * Создает интерактивный пазл внутри игрового контейнера на доске.
  * @param {HTMLElement} gameWrapper - Родительский контейнер для пазла
+ * @param {string | null} boardRoomName - Имя комнаты доски (для URL WebSocket)
+ * @param {string} gameInstanceId - Уникальный ID этого экземпляра пазла на доске
  */
-export function createPuzzleOnBoard(gameWrapper) {
+export function createPuzzleOnBoard(gameWrapper, boardRoomName, gameInstanceId) {
     const [localPuzzleParams, puzzleContainer, message] = getPuzzleParts();
-    localPuzzleParams.id = null;
-
+    
     // Устанавливаем параметры по умолчанию для нового пазла на доске
     localPuzzleParams.onWhiteboard = true;
-    localPuzzleParams.name = "Новый пазл";
+    localPuzzleParams.gameId = gameInstanceId;
+    localPuzzleParams.id = null; // ID из БД (для сохранения/загрузки)
+    localPuzzleParams.boardRoomName = boardRoomName;
+    localPuzzleParams.name = `Пазл ${gameInstanceId.split('-')[1] || ''}`;
     localPuzzleParams.gridSize = 2;
     localPuzzleParams.selectedImage = null;
     localPuzzleParams.isPreset = false;
-    localPuzzleParams.imageFile = null;
     localPuzzleParams.piecePositions = [];
 
     gameWrapper.puzzleParams = localPuzzleParams;
@@ -609,213 +616,278 @@ export function createPuzzleOnBoard(gameWrapper) {
     puzzleContainer.innerHTML = '<p style="text-align: center; padding: 20px;">Активируйте пазл и выберите настройки в панели справа.</p>';
     message.style.display = 'none';
 
-    console.log("Экземпляр пазла создан на доске и ожидает активации");
+    // Инициация WebSocket для этого экземпляра пазла, если boardRoomName предоставлен (т.е. доска синхронизируется)
+    if (boardRoomName && gameInstanceId) {
+        const puzzleWsUrl = `ws://${window.location.host}/ws/puzzle_on_board/${boardRoomName}/${gameInstanceId}/`;
+        const puzzleWs = new WebSocket(puzzleWsUrl);
+        localPuzzleParams.ws = puzzleWs; // Сохраняем WebSocket в параметрах этого пазла
+        gameWrapper.puzzleWebSocket = puzzleWs; // Сохраняем в gameWrapper для доступа из whiteboard.js (для закрытия)
+
+        puzzleWs.onopen = () => {
+            console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] WebSocket connected to ${puzzleWsUrl}`);
+        };
+
+        puzzleWs.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] WS Received:`, data);
+
+            if (data.type === 'puzzle_piece_click') {
+                applyRemotePieceInteraction(
+                    gameWrapper.puzzleContainer,
+                    gameWrapper.puzzleParams,
+                    data.pieceIndex,
+                    gameWrapper.puzzleMessage
+                );
+            } else if (data.type === 'puzzle_state_change') {
+                // Применяем полное состояние, полученное от другого клиента
+                Object.assign(gameWrapper.puzzleParams, data.puzzleState); // Обновляем локальные параметры
+                
+                // Обновить UI панели настроек, если этот пазл сейчас активен
+                const activeBoardGame = document.querySelector('.paste-game-wrapper.active-game');
+                if (activeBoardGame === gameWrapper) {
+                    const settingsPanel = document.querySelector('.settings-panel');
+                    const puzzleNameInput = settingsPanel?.querySelector('#puzzle-name');
+                    const difficultySelect = settingsPanel?.querySelector('#difficulty');
+                    if (puzzleNameInput) puzzleNameInput.value = gameWrapper.puzzleParams.name || '';
+                    if (difficultySelect) difficultySelect.value = gameWrapper.puzzleParams.gridSize;
+                }
+                
+                // Перерисовываем сам пазл с новым состоянием
+                createPuzzle(gameWrapper.puzzleContainer, gameWrapper.puzzleParams, gameWrapper.puzzleMessage, true); // true - use existing positions
+            }
+        };
+
+        puzzleWs.onclose = (event) => {
+            console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
+        };
+        puzzleWs.onerror = (error) => {
+            console.error(`[PUZZLE INSTANCE: ${gameInstanceId}] WebSocket error:`, error);
+        };
+    } else {
+        // Локальный режим для этого экземпляра пазла (доска не синхронизируется или это локальное добавление)
+        localPuzzleParams.ws = null;
+        gameWrapper.puzzleWebSocket = null;
+        console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] Running in local mode (no WebSocket).`);
+    }
+    console.log(`Экземпляр пазла ${gameInstanceId} инициализирован на доске.`);
 }
 
 /**
  * Настраивает контролы и Save/Load для активного пазла на доске.
+ * Вызывается из whiteboard.js, когда пазл на доске получает фокус.
+ * @param {HTMLElement} activeGameWrapper - Активный игровой контейнер пазла.
  */
-export function setupWhiteboardPuzzleSaveLoad() {
-    console.log("Пытаюсь настроить сохранение/загрузку для активного пазла на доске...");
+export function setupWhiteboardPuzzleSaveLoad(activeGameWrapper) {
+    console.log("Настройка UI и Save/Load для активного пазла на доске:", activeGameWrapper?.dataset?.id);
 
-    // Проверяем, найден ли активный пазл и содержит ли он необходимые данные
-    const activeGameWrapper = document.querySelector('.paste-game-wrapper.active-game');
     if (!activeGameWrapper || !activeGameWrapper.puzzleParams || !activeGameWrapper.puzzleContainer || !activeGameWrapper.puzzleMessage) {
-        console.warn("На доске не найден активный пазл или в нём отсутствуют необходимые данные. Настройка пропущена.");
+        console.warn("Активный пазл на доске не найден или не инициализирован (отсутствуют puzzleParams). Настройка UI пропущена.");
         return;
     }
 
     const activePuzzleParams = activeGameWrapper.puzzleParams;
-    const activePuzzleContainer = activeGameWrapper.puzzleContainer;
-    const activePuzzleMessage = activeGameWrapper.puzzleMessage;
 
     const settingsPanel = document.querySelector('.settings-panel');
     if (!settingsPanel) {
-        console.error("Панель настроек не найдена. Не удается настроить элементы управления пазлом на доске");
+        console.error("Панель настроек не найдена. Не удается настроить пазл на доске.");
         return;
     }
 
+    // Находим контролы на панели настроек доски
     const puzzleNameInput = settingsPanel.querySelector('#puzzle-name');
     const customInput = settingsPanel.querySelector('#custom-image');
     const difficultySelect = settingsPanel.querySelector('#difficulty');
     const presetsNodeList = settingsPanel.querySelectorAll('.preset');
     const saveButton = settingsPanel.querySelector('#save-puzzle-btn');
     const loadButton = settingsPanel.querySelector('#load-puzzle-btn');
-    const startBtn = settingsPanel.querySelector('#start-game');
+    const startBtnOnPanel = settingsPanel.querySelector('#start-game'); // Кнопка "Начать игру" на панели
 
-    const loadModal = document.getElementById('load-puzzle-modal');
+    const loadModal = document.getElementById('load-puzzle-modal'); // Глобальное модальное окно
     const loadListContainer = document.getElementById('load-list-container');
     const loadConfirmBtn = document.getElementById('load-confirm-btn');
     const loadCancelBtn = document.getElementById('load-cancel-btn');
 
     if (!puzzleNameInput || !customInput || !difficultySelect || !presetsNodeList?.length || !saveButton || !loadButton) {
-        console.error("Основные элементы управления пазлом  (#puzzle-name, #custom-image, #difficulty, .preset, #save-puzzle-btn, #load-puzzle-btn) отсутствуют на панели настроек доски!");
+        console.error("Ключевые элементы управления пазлом отсутствуют на панели настроек доски!");
         return;
     }
     const presets = Array.from(presetsNodeList);
 
-    if (startBtn) {
-        startBtn.style.display = 'none';
+    // Кнопка "Начать игру" на панели настроек не нужна, т.к. пазл обновляется мгновенно (instantUpdate=true)
+    if (startBtnOnPanel) {
+        startBtnOnPanel.style.display = 'none';
+    }
+    
+    // Устанавливаем текст кнопки "Сохранить" в зависимости от того, загружен ли пазл
+    if (activePuzzleParams.id && saveButton) { // Если есть ID из БД
+        if (!saveButton.dataset.originalTextUpdate) saveButton.dataset.originalTextUpdate = "Обновить пазл";
+        saveButton.textContent = saveButton.dataset.originalTextUpdate;
+        saveButton.dataset.action = 'update';
+        saveButton.dataset.puzzleId = activePuzzleParams.id;
+    } else if (saveButton) { // Новый пазл
+        if (!saveButton.dataset.originalTextCreate) saveButton.dataset.originalTextCreate = "Сохранить";
+        saveButton.textContent = saveButton.dataset.originalTextCreate;
+        saveButton.dataset.action = 'create';
+        delete saveButton.dataset.puzzleId;
     }
 
-    if (!activePuzzleParams.id && saveButton) {
-         if (!saveButton.dataset.originalTextCreate) {
-             saveButton.dataset.originalTextCreate = saveButton.textContent;
-         }
-         saveButton.dataset.action = 'create';
-         delete saveButton.dataset.puzzleId;
-         saveButton.textContent = saveButton.dataset.originalTextCreate || 'Сохранить';
-    }
 
-    // Настраиваем обработчика
+    const handlePuzzleStateChangeForBoard = (changedParams) => {
+        console.log(`Параметры пазла ${changedParams.gameId} изменены через UI:`, changedParams);
+        // Отправляем полное состояние через WebSocket этого пазла
+        if (changedParams.onWhiteboard && changedParams.ws && changedParams.ws.readyState === WebSocket.OPEN) {
+            changedParams.ws.send(JSON.stringify({
+                type: 'puzzle_state_change',
+                puzzleState: { // Отправляем только необходимые данные
+                    gridSize: changedParams.gridSize,
+                    piecePositions: changedParams.piecePositions,
+                    selectedImage: changedParams.selectedImage,
+                    isPreset: changedParams.isPreset,
+                    name: changedParams.name,
+                    id: changedParams.id
+                }
+            }));
+        } else if (changedParams.onWhiteboard && !changedParams.ws) {
+            console.log(`[Локальный режим доски] Состояние пазла ${changedParams.gameId} изменено, WS не используется для этого экземпляра.`);
+        }
+        // Обновляем поле имени на панели, если оно изменилось
+        if (puzzleNameInput && typeof changedParams.name !== 'undefined') {
+             puzzleNameInput.value = changedParams.name;
+        }
+    };
+
+    // Настраиваем контролы на панели (картинка, сложность)
     setupPuzzleControls({
         customInput, presets, difficultySelect, startBtn: null,
-        puzzleParams: activePuzzleParams,
-        puzzleContainer: activePuzzleContainer,
-        message: activePuzzleMessage,
-        instantUpdate: true,
-        onStateChange: (params) => {
-             if (params && typeof params.name !== 'undefined') {
-                 puzzleNameInput.value = params.name;
-             }
-            console.log("Изменено состояние активного пазла на доске:", params);
-        },
+        puzzleParams: activePuzzleParams, // Передаем параметры активного пазла
+        puzzleContainer: activeGameWrapper.puzzleContainer,
+        message: activeGameWrapper.puzzleMessage,
+        instantUpdate: true, // Изменения настроек применяются и отправляются сразу
+        onStateChange: handlePuzzleStateChangeForBoard,
         saveBtnRef: saveButton
     });
 
+    // Инициализируем значения контролов на панели из текущих параметров активного пазла
     puzzleNameInput.value = activePuzzleParams.name || '';
     difficultySelect.value = activePuzzleParams.gridSize;
+    customInput.value = '';
 
-    // Сбрасываем выделение пресетов и состояние превью в панели настроек
-    presets.forEach(p => p.classList.remove('selected'));
     const previewContainer = settingsPanel.querySelector('#image-preview-container');
     const previewImg = settingsPanel.querySelector('#image-preview');
     const previewText = settingsPanel.querySelector('#image-preview-text');
+
+    presets.forEach(p => p.classList.remove('selected'));
     if(previewContainer) previewContainer.style.display = 'none';
 
-    // Устанавливаем правильный пресет или показываем превью пользовательского фото в панели настроек
     if (activePuzzleParams.isPreset && activePuzzleParams.selectedImage) {
-        let found = false;
-        presets.forEach(preset => {
-            if ((preset.dataset.src || preset.src) === activePuzzleParams.selectedImage) {
-                preset.classList.add('selected');
-                found = true;
-            }
-        });
-         if (!found) console.warn("Предустановленное изображение активного пазла не найдено в панели настроек", activePuzzleParams.selectedImage);
+        const selectedPresetElement = presets.find(p => (p.dataset.src || p.src) === activePuzzleParams.selectedImage);
+        if (selectedPresetElement) selectedPresetElement.classList.add('selected');
     } else if (!activePuzzleParams.isPreset && activePuzzleParams.selectedImage) {
-         if(previewContainer && previewImg && previewText) {
-             previewImg.src = activePuzzleParams.selectedImage;
-             previewText.textContent = activePuzzleParams.imageFile ? `Загружено: ${activePuzzleParams.imageFile.name}` : 'Загруженное изображение';
-             previewContainer.style.display = 'block';
-         }
+        if (previewContainer && previewImg && previewText) {
+            previewImg.src = activePuzzleParams.selectedImage;
+            previewText.textContent = activePuzzleParams.imageFile ? `Загружено: ${activePuzzleParams.imageFile.name}` : (activePuzzleParams.name || 'Загруженное изображение');
+            previewContainer.style.display = 'block';
+        }
     }
-     customInput.value = '';
 
 
-    // Получаем состояние активного пазла для сохранения
+    // --- Логика Сохранения/Загрузки для пазла на доске ---
     const getPuzzleStateForWhiteboard = () => {
         const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
+        // Убедимся, что мы работаем с тем же активным пазлом
         if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleParams) {
             alert("Активный пазл изменился или не найден. Сохранение отменено.");
             return null;
         }
         const params = currentActiveWrapper.puzzleParams;
-        params.name = puzzleNameInput.value.trim();
-        if (!params.name) {
-             alert("Введите название для сохранения.");
-             puzzleNameInput.focus();
+        params.name = puzzleNameInput.value.trim(); // Берем имя с панели
+
+        if (!params.name) { alert("Введите название для сохранения."); puzzleNameInput.focus(); return null; }
+        
+        // Если пазл еще не создан (нет piecePositions), создаем его перед сохранением
+        // Это также отправит 'puzzle_state_change' с новыми piecePositions
+        if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
+            console.log("Пазл не инициализирован, создаем его перед сохранением...");
+            createPuzzle(currentActiveWrapper.puzzleContainer, params, currentActiveWrapper.puzzleMessage, false);
+        }
+        // Проверка еще раз, на случай если createPuzzle не сработал или не установил piecePositions
+        if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
+             alert("Ошибка: Не удалось инициализировать элементы пазла для сохранения.");
              return null;
         }
-         if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
-             alert("Ошибка: Пазл не инициализирован или данные о позициях некорректны. Перемешайте элементы или измените настройки перед сохранением.");
-             console.error("Невозможно сохранить: недопустимые позиции элементов", params.piecePositions, "for grid size", params.gridSize);
-             return null;
-         }
 
-        return {
+        return { // Данные, необходимые для API сохранения
+            id: params.id,
             name: params.name,
             gridSize: params.gridSize,
-            piecePositions: params.piecePositions,
-            selectedImage: params.selectedImage,
-            presetElements: presets,
-            customImageInputEl: customInput
+            piecePositions: params.piecePositions, // массив индексов
+            selectedImage: params.selectedImage, // URL или DataURL
+            // presetElements и customImageInputEl нужны для initSaveLoadFeatures, чтобы определить тип файла
+            presetElements: presets, // Элементы пресетов с панели настроек
+            customImageInputEl: customInput // Элемент input type=file с панели
         };
     };
 
-    // Применяем загруженное состояние к активному пазлу
-    const applyLoadedStateForWhiteboard = (puzzleData) => {
+    const applyLoadedStateForWhiteboard = (loadedDbPuzzleData) => {
         const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
-         if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleParams) {
+        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleParams) {
             alert("Активный пазл изменился или не найден. Загрузка отменена.");
             return;
         }
         const targetParams = currentActiveWrapper.puzzleParams;
-        const targetContainer = currentActiveWrapper.puzzleContainer;
-        const targetMessage = currentActiveWrapper.puzzleMessage;
 
-        console.log("Применение загруженного состояния к пазлу на доске:", puzzleData);
+        console.log("Применение загруженного состояния (из БД) к пазлу на доске:", loadedDbPuzzleData);
 
-        targetParams.id = puzzleData.id;
-        targetParams.gridSize = puzzleData.grid_size;
-        targetParams.piecePositions = puzzleData.piece_positions || [];
-        targetParams.name = puzzleData.name;
-        targetParams.selectedImage = puzzleData.image_url;
-        targetParams.isPreset = !!puzzleData.preset_path;
-        targetParams.imageFile = null;
+        targetParams.id = loadedDbPuzzleData.id;
+        targetParams.name = loadedDbPuzzleData.name;
+        targetParams.gridSize = loadedDbPuzzleData.grid_size;
+        targetParams.piecePositions = loadedDbPuzzleData.piece_positions || [];
+        targetParams.selectedImage = loadedDbPuzzleData.image_url; // Полный URL изображения
+        targetParams.isPreset = !!loadedDbPuzzleData.preset_path;
+        targetParams.imageFile = null; // Сбрасываем файл, т.к. грузим из БД
 
-        // Обновляем кнопку "Сохранить" на панели настроек
+        // Обновляем UI панели настроек
+        puzzleNameInput.value = targetParams.name;
+        difficultySelect.value = targetParams.gridSize;
+        customInput.value = '';
+
+        // Обновляем кнопку "Сохранить" на панели, чтобы она была "Обновить"
         const currentSettingsPanel = document.querySelector('.settings-panel');
         if (currentSettingsPanel) {
             const currentSaveButton = currentSettingsPanel.querySelector('#save-puzzle-btn');
             if (currentSaveButton) {
-                currentSaveButton.textContent = 'Обновить пазл';
+                currentSaveButton.textContent = currentSaveButton.dataset.originalTextUpdate || 'Обновить пазл';
                 currentSaveButton.dataset.action = 'update';
-                currentSaveButton.dataset.puzzleId = puzzleData.id;
-                if (!currentSaveButton.dataset.originalTextCreate) {
-                    currentSaveButton.dataset.originalTextCreate = "Сохранить";
-                }
-                currentSaveButton.dataset.originalTextUpdate = "Обновить пазл";
+                currentSaveButton.dataset.puzzleId = loadedDbPuzzleData.id;
             }
         }
 
-        puzzleNameInput.value = targetParams.name;
-        difficultySelect.value = targetParams.gridSize;
-        customInput.value = '';
-        if(previewContainer) previewContainer.style.display = 'none';
+        createPuzzle(currentActiveWrapper.puzzleContainer, targetParams, currentActiveWrapper.puzzleMessage, true); // true - use existing (loaded) positions
 
-        presets.forEach(p => p.classList.remove('selected'));
-        if (targetParams.isPreset) {
-            let found = false;
-            presets.forEach(preset => {
-                 const presetSrcRelative = (preset.dataset.src || preset.src).replace(window.location.origin, '');
-                 const loadedUrlRelative = puzzleData.image_url.replace(window.location.origin, '');
-                 if (presetSrcRelative === loadedUrlRelative) {
-                     preset.classList.add('selected');
-                     found = true;
-                 }
-            });
-             if (!found) console.warn("Загруженное предустановленное изображение не найдено:", puzzleData.image_url);
-        } else {
-            // Показываем превью для загруженного пользовательского фото
-             if(previewContainer && previewImg && previewText && puzzleData.image_url) {
-                 previewImg.src = puzzleData.image_url;
-                 previewText.textContent = `Загружено: ${puzzleData.name}`;
-                 previewContainer.style.display = 'block';
-             } else {
-                 console.log("Загруженное изображение пользователя:", puzzleData.image_url);
-             }
+        if (targetParams.onWhiteboard && targetParams.ws && targetParams.ws.readyState === WebSocket.OPEN) {
+            console.log(`[APPLY LOADED] Отправка загруженного состояния пазла ${targetParams.gameId}`);
+            targetParams.ws.send(JSON.stringify({
+                type: 'puzzle_state_change',
+                puzzleState: {
+                    gridSize: targetParams.gridSize,
+                    piecePositions: targetParams.piecePositions,
+                    selectedImage: targetParams.selectedImage,
+                    isPreset: targetParams.isPreset,
+                    name: targetParams.name,
+                    id: targetParams.id
+                }
+            }));
+        } else if (targetParams.onWhiteboard && !targetParams.ws) {
+            console.log(`[APPLY LOADED - Локальный режим доски] Состояние пазла ${targetParams.gameId} загружено.`);
+            // Локальное обновление уже произошло через createPuzzle.
         }
-
-        createPuzzle(targetContainer, targetParams, targetMessage, true);
-
-        alert(`Пазл "${puzzleData.name}" загружен в активный контейнер.`);
+    
+        alert(`Пазл "${loadedDbPuzzleData.name}" загружен в активный контейнер.`);
     };
 
-    // Инициализируем функции Сохранения и Загрузки
     initSaveLoadFeatures(getPuzzleStateForWhiteboard, applyLoadedStateForWhiteboard, {
         saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn
     });
 
-    console.log("Настройка сохранения / загрузки завершена для активного пазла на доске.");
+    console.log("UI и Save/Load для активного пазла на доске успешно настроены.");
 }
