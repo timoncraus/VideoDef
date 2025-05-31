@@ -40,7 +40,7 @@ jobs:
 
       - name: Run coverage
         run: |
-          coverage run videodef/manage.py test
+          coverage run videodef/manage.py test videodef
           coverage report
           coverage xml
 
