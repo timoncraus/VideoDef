@@ -92,13 +92,13 @@ class ModelTests(TestCase):
     def test_get_avatar_path(self):
         filename = "photo.jpg"
         path = get_avatar_path(None, filename)
-        self.assertTrue(path.startswith("avatars\\"))
+        self.assertTrue(path.replace("\\", "/").startswith("avatars/"))
         self.assertTrue(path.endswith(".jpg"))
 
     def test_get_avatar_path_with_existing_file(self):
         with patch("os.path.exists", side_effect=[True, False]):
             path = get_avatar_path(None, "test.png")
-            self.assertTrue(path.startswith("avatars\\"))
+            self.assertTrue(path.replace("\\", "/").startswith("avatars/"))
             self.assertTrue(path.endswith(".png"))
 
     def test_generate_unique_id_conflict(self):
