@@ -23,7 +23,6 @@ jobs:
     env:
       DJANGO_SECRET_KEY: test_secret
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
-      DJANGO_SECRET_KEY: test_secret
       DB_NAME: test_db
       DB_USER: postgres
       DB_PASSWORD: postgres
