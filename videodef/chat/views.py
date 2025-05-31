@@ -8,6 +8,7 @@ from .models import SmallChat, Message
 from account.models import User
 from videocall.models import VideoCall
 
+
 def chats(request):
     user_chats = SmallChat.objects.filter(user1=request.user) | SmallChat.objects.filter(user2=request.user)
     chats_info = []
@@ -57,11 +58,9 @@ def chat_room(request, chat_id):
     })
 
 
-
-
 def get_chat(request, user1_id, user2_id):
     if user1_id == user2_id:
-        return redirect('chat:chats')  # запретить создавать чат с самим собой, если нужно
+        return redirect('chat:chats')
 
     user1 = get_object_or_404(User, unique_id=user1_id)
     user2 = get_object_or_404(User, unique_id=user2_id)

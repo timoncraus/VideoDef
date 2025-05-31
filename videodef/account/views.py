@@ -1,6 +1,6 @@
 from django.db import DatabaseError
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout
 from django.contrib import messages
 
 from .forms import RegisterForm, LoginForm, UserEditForm, ProfileEditForm
@@ -8,11 +8,14 @@ from .models import User
 from resume.models import Resume
 from child.models import Child
 
+
 def home(request):
     return render(request, "account/home.html")
 
+
 def about(request):
     return render(request, "account/about.html")
+
 
 def account(request):
     user = request.user
@@ -36,22 +39,24 @@ def account(request):
     else:
         user_form = UserEditForm(instance=user, auth_user=user)
         profile_form = ProfileEditForm(instance=profile, auth_user=user)
-    return render(request, "account/edit_form.html", 
-        {
+    return render(request, "account/edit_form.html", {
             'forms': {'user_form': user_form, 'profile_form': profile_form},
             "unique_id": user.unique_id,
             "date_registr": user.date_registr,
             "last_seen": user.last_seen
         })
 
+
 def view_other_user(request, user_id):
     user_info = get_object_or_404(User, unique_id=user_id)
     resumes = Resume.objects.filter(status=Resume.ACTIVE, user=user_info)
     children = Child.objects.filter(user=user_info)
-    return render(request, 'account/user_view.html', 
-        {'user_info': user_info, 
-        'resumes': resumes,
-        'children': children})
+    return render(request, 'account/user_view.html', {
+            'user_info': user_info,
+            'resumes': resumes,
+            'children': children
+        })
+
 
 def register_view(request):
     if request.method == 'POST':
@@ -68,7 +73,8 @@ def register_view(request):
             messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         form = RegisterForm()
-    return render(request, 'account/register_form.html', { 'forms': {'register_form': form} })
+    return render(request, 'account/register_form.html', {'forms': {'register_form': form}})
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -82,7 +88,8 @@ def login_view(request):
             messages.error(request, 'Неверный логин или пароль')
     else:
         form = LoginForm()
-    return render(request, 'account/login_form.html', { 'forms': {'login_form': form} })
+    return render(request, 'account/login_form.html', {'forms': {'login_form': form}})
+
 
 def logout_view(request):
     logout(request)

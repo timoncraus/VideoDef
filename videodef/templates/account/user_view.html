@@ -11,7 +11,11 @@
         {% endif %}
     </div>
 
-    <a href="{% url 'chat:get_chat' user_info.unique_id request.user.unique_id %}">Написать в чат</a>
+    {% if request.user.is_authenticated %}
+        <a href="{% url 'chat:get_chat' user_info.unique_id request.user.unique_id %}">Написать в чат</a>
+    {% else %}
+        <span>Войдите, чтобы написать в чат</span>
+    {% endif %}
 
     <p><strong>ID:</strong> {{ user_info.unique_id }}</p>
     <p><strong>Дата регистрации:</strong> {{ user_info.date_registr }} по мск</p>

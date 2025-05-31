@@ -19,7 +19,6 @@ def start_call(request):
         data = json.loads(request.body)
         receiver_id = data.get("receiver_id")
         receiver = get_object_or_404(User, unique_id=receiver_id)
-        print(receiver_id, receiver)
         room_name = str(uuid.uuid4())
 
         VideoCall.objects.create(

@@ -3,6 +3,7 @@ from django.db import models
 from account.models import User, Gender
 from resume.models import ViolationType
 
+
 class Child(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='children')
     name = models.CharField(max_length=400, verbose_name="Имя")
@@ -20,6 +21,7 @@ class Child(models.Model):
 
     def __str__(self):
         return f"Ребенок №{self.id} ({self.name})"
+
 
 class ChildImage(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='images')

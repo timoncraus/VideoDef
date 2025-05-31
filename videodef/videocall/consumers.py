@@ -107,8 +107,6 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
         if event['sender'] != self.channel_name:
             await self.send(text_data=event['message'])
 
-    
-
 
 class NotifyConsumer(AsyncWebsocketConsumer):
     async def connect(self):

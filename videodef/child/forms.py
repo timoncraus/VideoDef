@@ -13,6 +13,7 @@ class ChildForm(forms.ModelForm):
             'violation_types': forms.CheckboxSelectMultiple,
         }
 
+
 ChildImageFormSet = inlineformset_factory(
     Child,
     ChildImage,
@@ -21,6 +22,7 @@ ChildImageFormSet = inlineformset_factory(
     max_num=2,
     can_delete=True
 )
+
 
 ChildInitialImageFormSet = inlineformset_factory(
     Child,

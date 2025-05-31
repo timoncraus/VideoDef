@@ -50,8 +50,6 @@ class UserManager(BaseUserManager):
         return user
 
 
-from django.db import models
-
 class Role(models.Model):
     name = models.CharField(max_length=50, verbose_name="Название роли")
 
@@ -76,6 +74,7 @@ class Gender(models.Model):
 
 def get_random_filename():
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(32))
+
 
 def get_avatar_path(user, filename):
     _, ext = filename.split('.')
@@ -102,7 +101,7 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()
-    
+
     class Meta:
         verbose_name = "Профиль"
         verbose_name_plural = "Профили"
@@ -118,7 +117,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=15, unique=True, verbose_name="Номер телефона")
     date_registr = models.DateTimeField(auto_now_add=True, verbose_name="Дата регистрации")
     last_seen = models.DateTimeField(auto_now=True, verbose_name="Последний раз в сети")
-    profile = models.OneToOneField(Profile, null=True, blank=True, on_delete=models.CASCADE, related_name="user", verbose_name="Профиль")
+    profile = models.OneToOneField(Profile, null=True, blank=True, on_delete=models.CASCADE,
+                                   related_name="user", verbose_name="Профиль")
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 

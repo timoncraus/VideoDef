@@ -2,7 +2,6 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 
-from account.models import User
 from .models import SmallChat, Message
 
 
@@ -53,8 +52,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat = SmallChat.objects.get(id=self.chat_id)
         return Message.objects.create(chat=chat, sender=sender, content=message)
 
-
     @database_sync_to_async
     def update_last_seen(self):
         self.user.update_last_seen()
-

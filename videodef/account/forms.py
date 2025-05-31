@@ -1,24 +1,25 @@
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
-from django.contrib.auth import authenticate
 from django.conf import settings
 from .models import User, Profile, Role, Gender
 from django import forms
-from .auth_backends import CustomAuthBackend
+
 
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(max_length=40, required=True, label="Имя")
     last_name = forms.CharField(max_length=40, required=True, label="Фамилия")
     patronymic = forms.CharField(max_length=40, required=False, label="Отчество")
-    date_birth = forms.DateField(required=True, label="Дата рождения", 
-        widget=forms.DateInput(attrs={'type': 'date'}))
+    date_birth = forms.DateField(
+        required=True,
+        label="Дата рождения",
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
     role = forms.ModelChoiceField(
         queryset=Role.objects.all(),
         required=True,
         label="Роль",
         empty_label="Выберите роль"
     )
-
     gender = forms.ModelChoiceField(
         queryset=Gender.objects.all(),
         required=True,
@@ -26,7 +27,7 @@ class RegisterForm(UserCreationForm):
         empty_label="Выберите пол"
     )
     photo = forms.ImageField(required=False, label="Фото")
-    
+
     class Meta:
         model = User
         fields = ['username', 'email', 'phone_number', 'password1', 'password2']
@@ -81,6 +82,7 @@ class UserEditForm(forms.ModelForm):
     def __init__(self, *args, auth_user, **kwargs):
         auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
+
     class Meta:
         model = User
         fields = ['username', 'email', 'phone_number']
@@ -90,6 +92,7 @@ class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, auth_user, **kwargs):
         auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
+
     class Meta:
         model = Profile
         fields = ['photo', 'first_name', 'last_name', 'patronymic', 'date_birth', 'role', 'gender']
