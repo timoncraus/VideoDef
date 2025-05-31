@@ -23,6 +23,12 @@ jobs:
     env:
       DJANGO_SECRET_KEY: test_secret
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      DJANGO_SECRET_KEY: test_secret
+      DB_NAME: test_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: 5432
 
     steps:
       - uses: actions/checkout@v3
