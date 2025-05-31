@@ -22,8 +22,6 @@ jobs:
 
     env:
       DJANGO_SECRET_KEY: test_secret
-      PYTHONPATH: ${{ github.workspace }}/videodef
-      DJANGO_SETTINGS_MODULE: videodef.settings
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
 
     steps:
@@ -40,7 +38,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run coverage
-        working-directory: videodef
+        working-directory: videodef/videodef
+        env:
+          DJANGO_SETTINGS_MODULE: main.settings
+          PYTHONPATH: .
         run: |
           python manage.py migrate
           coverage run manage.py test
