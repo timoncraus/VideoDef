@@ -15,7 +15,7 @@ def chats(request):
     ) | SmallChat.objects.filter(user2=request.user)
     chats_info = []
     for chat in user_chats:
-        last_message = Message.objects.filter(chat=chat).order_by("-timestamp").first()
+        last_message = Message.objects.filter(chat=chat).order_by("timestamp").last()
         if last_message:
             if last_message.sender_id == request.user.unique_id:
                 sender_name = "Вы"
