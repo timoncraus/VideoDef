@@ -9,5 +9,8 @@ class Command(BaseCommand):
         call_command("create_min")
 
         call_command("create_test_users")
+        call_command("create_test_children")
+        call_command("create_test_documents")
+        call_command("create_test_resumes")
 
         self.stdout.write(self.style.SUCCESS("Все тестовые данные успешно созданы."))

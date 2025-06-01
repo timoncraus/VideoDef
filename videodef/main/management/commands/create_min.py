@@ -11,6 +11,7 @@ class Command(BaseCommand):
         call_command("create_admin_user")
 
         call_command("create_violation_types")
+        call_command("create_document_verification_statuses")
 
         call_command("create_game_genres")
 
