@@ -1,12 +1,12 @@
 from django.db import models
 from django.conf import settings
-from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.templatetags.static import static
 import os
 import random
 import string
 import uuid
+
 
 class Genre(models.Model):
     name = models.CharField(
@@ -30,9 +30,11 @@ class Genre(models.Model):
         verbose_name_plural = "Жанры игр"
         ordering = ['name']
 
+
 # --- Генерации случайной части ID игры ---
 def generate_game_random_code(length=10):
     return uuid.uuid4().hex[:length].upper()
+
 
 class UserGame(models.Model):
     game_id = models.CharField(
@@ -68,7 +70,7 @@ class UserGame(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk:
             if not self.genre_id:
-                 raise ValueError("Невозможно сгенерировать game_id: не указан жанр игры.")
+                raise ValueError("Невозможно сгенерировать game_id: не указан жанр игры.")
             try:
                 genre = Genre.objects.get(pk=self.genre_id)
                 genre_code = genre.code
@@ -82,7 +84,7 @@ class UserGame(models.Model):
                 if not UserGame.objects.filter(pk=new_id).exists():
                     self.pk = new_id
                     break
-        
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -95,12 +97,14 @@ class UserGame(models.Model):
         verbose_name_plural = "Пользовательские игры"
         ordering = ['-created_at']
 
+
 # --- Функция для генерации пути сохранения загружаемых изображений пазлов ---
 def get_puzzle_image_path(instance, filename):
     _, ext = os.path.splitext(filename)
     random_filename = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(32))
     path = os.path.join("puzzle_images", f"{random_filename}{ext}")
     return path
+
 
 class UserPuzzle(models.Model):
     game = models.OneToOneField(
@@ -147,19 +151,20 @@ class UserPuzzle(models.Model):
             try:
                 return static(self.preset_image_path)
             except Exception:
-                 return self.preset_image_path
+                return self.preset_image_path
         return None
 
     def clean(self):
         super().clean()
 
         if not self.name:
-             raise ValidationError({'name': "Название не может быть пустым."})
+            raise ValidationError({'name': "Название не может быть пустым."})
 
         if self.preset_image_path and self.user_image:
             raise ValidationError("Нельзя одновременно указать и пресет, и пользовательское изображение.")
         if not self.preset_image_path and not self.user_image:
-            raise ValidationError("Необходимо указать либо путь к пресету, либо загрузить пользовательское изображение.")
+            raise ValidationError("Необходимо указать либо путь к пресету,"
+                                  " либо загрузить пользовательское изображение.")
 
     def __str__(self):
         return f"Данные пазла '{self.name}' ({self.grid_size}x{self.grid_size}) для игры {self.pk}"
