@@ -1,10 +1,6 @@
-from django.test import TestCase
-from django.utils import timezone
-
-from account.models import User, Profile
-from videocall.models import VideoCall
-from videocall.tests.utils import VideoCallTestBase
 import datetime
+
+from videocall.tests.utils import VideoCallTestBase
 
 
 class VideoCallModelTest(VideoCallTestBase):

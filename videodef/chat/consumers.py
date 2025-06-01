@@ -7,8 +7,8 @@ from .models import SmallChat, Message
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.chat_id = self.scope['url_route']['kwargs']['chat_id']
-        self.room_group_name = f'chat_{self.chat_id}'
+        self.chat_id = self.scope["url_route"]["kwargs"]["chat_id"]
+        self.room_group_name = f"chat_{self.chat_id}"
         self.user = self.scope["user"]
         if self.user.is_anonymous:
             await self.close()
@@ -21,31 +21,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+        message = text_data_json["message"]
         await self.update_last_seen()
         sender = self.user
 
         mes_obj = await self.save_message(sender, message)
 
         await self.channel_layer.group_send(
-
             self.room_group_name,
             {
-                'type': 'chat_message',
-                'message': message,
-                'sender_id': sender.unique_id,
-                'timestamp': mes_obj.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-
-            }
+                "type": "chat_message",
+                "message": message,
+                "sender_id": sender.unique_id,
+                "timestamp": mes_obj.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            },
         )
 
     async def chat_message(self, event):
-        message_type = "sent" if self.user.unique_id == event['sender_id'] else "received"
-        await self.send(text_data=json.dumps({
-            'message_type': message_type,
-            'message': event['message'],
-            'timestamp': event['timestamp'],
-        }))
+        message_type = (
+            "sent" if self.user.unique_id == event["sender_id"] else "received"
+        )
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "message_type": message_type,
+                    "message": event["message"],
+                    "timestamp": event["timestamp"],
+                }
+            )
+        )
 
     @database_sync_to_async
     def save_message(self, sender, message):

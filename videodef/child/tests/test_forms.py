@@ -1,10 +1,6 @@
-from django.test import TestCase
-
-from account.models import User, Gender
-from resume.models import ViolationType
 from child.forms import ChildForm
-from child.models import Child
 from child.tests.utils import ChildTestBase
+
 
 class ChildFormTest(ChildTestBase):
     def test_valid_form(self):
@@ -21,5 +17,5 @@ class ChildFormTest(ChildTestBase):
     def test_invalid_form(self):
         form = ChildForm(data={})
         self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-        self.assertIn('date_birth', form.errors)
+        self.assertIn("name", form.errors)
+        self.assertIn("date_birth", form.errors)

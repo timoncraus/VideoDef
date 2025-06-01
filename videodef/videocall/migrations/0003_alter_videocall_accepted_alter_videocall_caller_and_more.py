@@ -9,38 +9,52 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('videocall', '0002_alter_videocall_options'),
+        ("videocall", "0002_alter_videocall_options"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='videocall',
-            name='accepted',
-            field=models.BooleanField(default=False, verbose_name='Принят'),
+            model_name="videocall",
+            name="accepted",
+            field=models.BooleanField(default=False, verbose_name="Принят"),
         ),
         migrations.AlterField(
-            model_name='videocall',
-            name='caller',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='outgoing_calls', to=settings.AUTH_USER_MODEL, verbose_name='Звонящий'),
+            model_name="videocall",
+            name="caller",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="outgoing_calls",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Звонящий",
+            ),
         ),
         migrations.AlterField(
-            model_name='videocall',
-            name='ended_at',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Дата окончания'),
+            model_name="videocall",
+            name="ended_at",
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="Дата окончания"
+            ),
         ),
         migrations.AlterField(
-            model_name='videocall',
-            name='receiver',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='incoming_calls', to=settings.AUTH_USER_MODEL, verbose_name='Принимающий'),
+            model_name="videocall",
+            name="receiver",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="incoming_calls",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Принимающий",
+            ),
         ),
         migrations.AlterField(
-            model_name='videocall',
-            name='room_name',
-            field=models.CharField(max_length=100, unique=True, verbose_name='Название комнаты'),
+            model_name="videocall",
+            name="room_name",
+            field=models.CharField(
+                max_length=100, unique=True, verbose_name="Название комнаты"
+            ),
         ),
         migrations.AlterField(
-            model_name='videocall',
-            name='started_at',
-            field=models.DateTimeField(auto_now_add=True, verbose_name='Дата начала'),
+            model_name="videocall",
+            name="started_at",
+            field=models.DateTimeField(auto_now_add=True, verbose_name="Дата начала"),
         ),
     ]

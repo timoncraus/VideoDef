@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('document', '0006_alter_document_ver_status'),
+        ("document", "0006_alter_document_ver_status"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='documentverificationstatus',
-            name='name',
-            field=models.CharField(max_length=50, verbose_name='Название статуса'),
+            model_name="documentverificationstatus",
+            name="name",
+            field=models.CharField(max_length=50, verbose_name="Название статуса"),
         ),
     ]

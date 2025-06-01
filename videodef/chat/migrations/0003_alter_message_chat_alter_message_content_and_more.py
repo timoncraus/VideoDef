@@ -9,38 +9,59 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('chat', '0002_alter_message_options_alter_smallchat_options_and_more'),
+        ("chat", "0002_alter_message_options_alter_smallchat_options_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='message',
-            name='chat',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='chat.smallchat', verbose_name='Чат'),
+            model_name="message",
+            name="chat",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="messages",
+                to="chat.smallchat",
+                verbose_name="Чат",
+            ),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='content',
-            field=models.TextField(max_length=1000, verbose_name='Содержимое'),
+            model_name="message",
+            name="content",
+            field=models.TextField(max_length=1000, verbose_name="Содержимое"),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='sender',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, verbose_name='Отправитель'),
+            model_name="message",
+            name="sender",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Отправитель",
+            ),
         ),
         migrations.AlterField(
-            model_name='message',
-            name='timestamp',
-            field=models.DateTimeField(auto_now_add=True, verbose_name='Дата отправления'),
+            model_name="message",
+            name="timestamp",
+            field=models.DateTimeField(
+                auto_now_add=True, verbose_name="Дата отправления"
+            ),
         ),
         migrations.AlterField(
-            model_name='smallchat',
-            name='user1',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='smallchat_user1_set', to=settings.AUTH_USER_MODEL, verbose_name='Пользователь 1'),
+            model_name="smallchat",
+            name="user1",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="smallchat_user1_set",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Пользователь 1",
+            ),
         ),
         migrations.AlterField(
-            model_name='smallchat',
-            name='user2',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='smallchat_user2_set', to=settings.AUTH_USER_MODEL, verbose_name='Пользователь 2'),
+            model_name="smallchat",
+            name="user2",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="smallchat_user2_set",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Пользователь 2",
+            ),
         ),
     ]

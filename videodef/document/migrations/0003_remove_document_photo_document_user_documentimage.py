@@ -9,30 +9,49 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('document', '0002_document_created_at_document_updated_at'),
+        ("document", "0002_document_created_at_document_updated_at"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='document',
-            name='photo',
+            model_name="document",
+            name="photo",
         ),
         migrations.AddField(
-            model_name='document',
-            name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to=settings.AUTH_USER_MODEL),
+            model_name="document",
+            name="user",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="documents",
+                to=settings.AUTH_USER_MODEL,
+            ),
             preserve_default=False,
         ),
         migrations.CreateModel(
-            name='DocumentImage',
+            name="DocumentImage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='document_images/')),
-                ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='document.document')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="document_images/")),
+                (
+                    "document",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="images",
+                        to="document.document",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Изображение документа',
-                'verbose_name_plural': 'Изображения документа',
+                "verbose_name": "Изображение документа",
+                "verbose_name_plural": "Изображения документа",
             },
         ),
     ]

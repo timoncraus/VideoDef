@@ -1,5 +1,5 @@
 from chat.tests.utils import ChatTestBase
-from chat.models import SmallChat, Message
+from chat.models import SmallChat
 
 
 class ChatModelTest(ChatTestBase):

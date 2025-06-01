@@ -1,5 +1,6 @@
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
+
 from .models import UserGame
 
 
@@ -10,7 +11,7 @@ def delete_user_game_associated_files_simplified(sender, instance, **kwargs):
     Удаляет связанные файлы
     """
     try:
-        if hasattr(instance, 'puzzle_details'):
+        if hasattr(instance, "puzzle_details"):
             puzzle_details = instance.puzzle_details
 
             if puzzle_details:
@@ -21,9 +22,15 @@ def delete_user_game_associated_files_simplified(sender, instance, **kwargs):
                     if storage.exists(image_name):
                         try:
                             puzzle_details.user_image.delete(save=False)
-                            print(f"SIGNAL: Файл '{image_name}' для UserGame PK '{instance.pk}' удален.")
+                            print(
+                                f"SIGNAL: Файл '{image_name}' для UserGame PK '{instance.pk}' удален."
+                            )
                         except Exception as e:
-                            print(f"SIGNAL ERROR: Ошибка при удалении файла '{image_name}' \
-                                  для UserGame PK '{instance.pk}': {e}")
+                            print(
+                                f"SIGNAL ERROR: Ошибка при удалении файла '{image_name}' \
+                                  для UserGame PK '{instance.pk}': {e}"
+                            )
     except Exception as e:
-        print(f"SIGNAL UNEXPECTED ERROR: Ошибка при обработке удаления файлов для UserGame PK '{instance.pk}': {e}")
+        print(
+            f"SIGNAL UNEXPECTED ERROR: Ошибка при обработке удаления файлов для UserGame PK '{instance.pk}': {e}"
+        )

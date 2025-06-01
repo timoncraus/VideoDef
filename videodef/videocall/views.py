@@ -11,7 +11,8 @@ from account.models import User
 
 
 def videocall(request, room_name):
-    return render(request, 'videocall/videocall.html', {'room_name': room_name})
+    return render(request, "videocall/videocall.html", {"room_name": room_name})
+
 
 @login_required
 def start_call(request):
@@ -22,9 +23,7 @@ def start_call(request):
         room_name = str(uuid.uuid4())
 
         VideoCall.objects.create(
-            caller=request.user,
-            receiver=receiver,
-            room_name=room_name
+            caller=request.user, receiver=receiver, room_name=room_name
         )
 
         channel_layer = get_channel_layer()
@@ -33,10 +32,10 @@ def start_call(request):
             {
                 "type": "incoming_call",
                 "from": str(request.user.profile),
-                "room_name": room_name
-            }
+                "room_name": room_name,
+            },
         )
 
-        return JsonResponse({'success': True, 'room_name': room_name})
+        return JsonResponse({"success": True, "room_name": room_name})
 
-    return JsonResponse({'success': False}, status=400)
+    return JsonResponse({"success": False}, status=400)

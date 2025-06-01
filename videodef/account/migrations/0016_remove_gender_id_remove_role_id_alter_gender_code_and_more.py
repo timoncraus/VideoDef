@@ -6,26 +6,30 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0015_gender_role_alter_profile_gender_alter_profile_role'),
+        ("account", "0015_gender_role_alter_profile_gender_alter_profile_role"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='gender',
-            name='id',
+            model_name="gender",
+            name="id",
         ),
         migrations.RemoveField(
-            model_name='role',
-            name='id',
+            model_name="role",
+            name="id",
         ),
         migrations.AlterField(
-            model_name='gender',
-            name='code',
-            field=models.CharField(max_length=1, primary_key=True, serialize=False, verbose_name='Код пола'),
+            model_name="gender",
+            name="code",
+            field=models.CharField(
+                max_length=1, primary_key=True, serialize=False, verbose_name="Код пола"
+            ),
         ),
         migrations.AlterField(
-            model_name='role',
-            name='code',
-            field=models.CharField(max_length=2, primary_key=True, serialize=False, verbose_name='Код роли'),
+            model_name="role",
+            name="code",
+            field=models.CharField(
+                max_length=2, primary_key=True, serialize=False, verbose_name="Код роли"
+            ),
         ),
     ]

@@ -6,12 +6,15 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('videocall', '0001_initial'),
+        ("videocall", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='videocall',
-            options={'verbose_name': 'Видеозвонок', 'verbose_name_plural': 'Видеозвонки'},
+            name="videocall",
+            options={
+                "verbose_name": "Видеозвонок",
+                "verbose_name_plural": "Видеозвонки",
+            },
         ),
     ]

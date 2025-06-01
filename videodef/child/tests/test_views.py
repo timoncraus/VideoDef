@@ -1,12 +1,11 @@
-from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
-from account.models import Gender
 from child.models import Child
 from child.tests.utils import ChildTestBase
 
 User = get_user_model()
+
 
 class ChildViewsTest(ChildTestBase):
     def test_list_view(self):
@@ -31,12 +30,15 @@ class ChildViewsTest(ChildTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Петя")
 
-        response_post = self.client.post(url, {
-            "name": "Обновлённый Петя",
-            "info": "Новая информация",
-            "gender": self.gender.id,
-            "date_birth": "2014-01-01"
-        })
+        response_post = self.client.post(
+            url,
+            {
+                "name": "Обновлённый Петя",
+                "info": "Новая информация",
+                "gender": self.gender.id,
+                "date_birth": "2014-01-01",
+            },
+        )
         self.assertRedirects(response_post, url)
         self.child.refresh_from_db()
         self.assertEqual(self.child.name, "Обновлённый Петя")
@@ -48,6 +50,8 @@ class ChildViewsTest(ChildTestBase):
         self.assertFalse(Child.objects.filter(pk=self.child.pk).exists())
 
     def test_detail_view(self):
-        response = self.client.get(reverse("child:public_child_detail", kwargs={"pk": self.child.pk}))
+        response = self.client.get(
+            reverse("child:public_child_detail", kwargs={"pk": self.child.pk})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Петя")

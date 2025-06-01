@@ -1,6 +1,14 @@
 from django.test import TestCase
-from account.models import User, Role, Gender, Profile, get_random_filename, get_avatar_path
 from unittest.mock import patch
+
+from account.models import (
+    User,
+    Role,
+    Gender,
+    Profile,
+    get_random_filename,
+    get_avatar_path,
+)
 
 
 class ModelTests(TestCase):
@@ -13,7 +21,7 @@ class ModelTests(TestCase):
             patronymic="Иванович",
             date_birth="1990-01-01",
             role=self.role,
-            gender=self.gender
+            gender=self.gender,
         )
 
     def test_profile_str(self):
@@ -26,7 +34,7 @@ class ModelTests(TestCase):
             patronymic="Петрович",
             date_birth="1991-02-02",
             role=None,
-            gender=self.gender
+            gender=self.gender,
         )
         self.assertEqual(profile.role_display, "Неизвестно")
 
@@ -35,42 +43,70 @@ class ModelTests(TestCase):
             username="testuser",
             email="test@example.com",
             phone_number="+79991234567",
-            profile=self.profile
+            profile=self.profile,
         )
         self.assertEqual(len(user.unique_id), 7)
-        self.assertTrue(all(char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' for char in user.unique_id))
+        self.assertTrue(
+            all(
+                char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                for char in user.unique_id
+            )
+        )
 
     def test_create_user_without_username(self):
         with self.assertRaisesMessage(ValueError, "Пользователь должен иметь логин"):
-            User.objects.create_user(username=None, email="test@example.com", password="123456")
+            User.objects.create_user(
+                username=None, email="test@example.com", password="123456"
+            )
 
     def test_create_superuser(self):
-        user = User.objects.create_superuser(username="admin", email="admin@example.com",
-                                             password="adminpass")
+        user = User.objects.create_superuser(
+            username="admin", email="admin@example.com", password="adminpass"
+        )
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
 
     def test_authenticate_by_username(self):
-        user = User.objects.create_user(username="testuser2", email="test2@example.com",
-                                        password="pass1234", profile=self.profile)
+        user = User.objects.create_user(
+            username="testuser2",
+            email="test2@example.com",
+            password="pass1234",
+            profile=self.profile,
+        )
         authenticated_user = User.objects.authenticate_user("testuser2", "pass1234")
         self.assertEqual(authenticated_user, user)
 
     def test_authenticate_by_email(self):
-        user = User.objects.create_user(username="emailuser", email="email@example.com",
-                                        password="emailpass", profile=self.profile)
-        authenticated_user = User.objects.authenticate_user("email@example.com", "emailpass")
+        user = User.objects.create_user(
+            username="emailuser",
+            email="email@example.com",
+            password="emailpass",
+            profile=self.profile,
+        )
+        authenticated_user = User.objects.authenticate_user(
+            "email@example.com", "emailpass"
+        )
         self.assertEqual(authenticated_user, user)
 
     def test_authenticate_by_phone(self):
-        user = User.objects.create_user(username="phoneuser", email="phone@example.com",
-                                        password="phonepass", phone_number="+71234567890", profile=self.profile)
+        user = User.objects.create_user(
+            username="phoneuser",
+            email="phone@example.com",
+            password="phonepass",
+            phone_number="+71234567890",
+            profile=self.profile,
+        )
         authenticated_user = User.objects.authenticate_user("+71234567890", "phonepass")
         self.assertEqual(authenticated_user, user)
 
     def test_authenticate_by_unique_id(self):
-        user = User.objects.create_user(username="iduser", email="id@example.com",
-                                        password="idpass", phone_number="+79991231212", profile=self.profile)
+        user = User.objects.create_user(
+            username="iduser",
+            email="id@example.com",
+            password="idpass",
+            phone_number="+79991231212",
+            profile=self.profile,
+        )
         uid = user.unique_id
         authenticated_user = User.objects.authenticate_user(uid, "idpass")
         self.assertEqual(authenticated_user, user)
@@ -80,8 +116,12 @@ class ModelTests(TestCase):
             User.objects.authenticate_user("unknown", "any")
 
     def test_authenticate_invalid_password(self):
-        user = User.objects.create_user(username="wrongpass", email="wrong@example.com",
-                                        password="correctpass", profile=self.profile)
+        user = User.objects.create_user(
+            username="wrongpass",
+            email="wrong@example.com",
+            password="correctpass",
+            profile=self.profile,
+        )
         with self.assertRaises(ValueError):
             User.objects.authenticate_user("wrongpass", "wrongpass")
 
@@ -102,13 +142,21 @@ class ModelTests(TestCase):
             self.assertTrue(path.endswith(".png"))
 
     def test_generate_unique_id_conflict(self):
-        user = User(username="tempuser", email="temp@example.com", phone_number="+79991234567", profile=self.profile)
+        user = User(
+            username="tempuser",
+            email="temp@example.com",
+            phone_number="+79991234567",
+            profile=self.profile,
+        )
         taken_id = "ABCDEFG"
-        with patch("random.choices", side_effect=[[c for c in taken_id], [c for c in "HIJKLMN"]]):
+        with patch(
+            "random.choices",
+            side_effect=[[c for c in taken_id], [c for c in "HIJKLMN"]],
+        ):
             with patch("account.models.User.objects.filter") as mock_filter:
                 mock_filter.side_effect = [
                     type("QuerySet", (), {"exists": lambda self: True})(),
-                    type("QuerySet", (), {"exists": lambda self: False})()
+                    type("QuerySet", (), {"exists": lambda self: False})(),
                 ]
                 new_id = user.generate_unique_id()
                 self.assertEqual(new_id, "HIJKLMN")

@@ -7,17 +7,23 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('document', '0001_initial'),
-        ('resume', '0003_alter_violationtype_options'),
+        ("document", "0001_initial"),
+        ("resume", "0003_alter_violationtype_options"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='resume',
-            name='document',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='document.document', verbose_name='Документ'),
+            model_name="resume",
+            name="document",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="document.document",
+                verbose_name="Документ",
+            ),
         ),
         migrations.DeleteModel(
-            name='Document',
+            name="Document",
         ),
     ]

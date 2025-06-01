@@ -1,15 +1,13 @@
-from django.test import TestCase
-from django.utils import timezone
-
-from account.models import User, Gender
-from resume.models import ViolationType
-from child.models import Child, ChildImage
+from child.models import ChildImage
 from child.tests.utils import ChildTestBase
+
 
 class ChildModelTest(ChildTestBase):
     def test_create_child(self):
         self.child.violation_types.add(self.violation)
-        self.assertEqual(str(self.child), f"Ребенок №{self.child.id} ({self.child.name})")
+        self.assertEqual(
+            str(self.child), f"Ребенок №{self.child.id} ({self.child.name})"
+        )
         self.assertEqual(self.child.user.username, "parent")
         self.assertEqual(self.child.gender.name, "Мужской")
 

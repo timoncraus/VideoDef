@@ -1,4 +1,4 @@
-from document.models import Document, DocumentImage
+from document.models import DocumentImage
 from document.tests.utils import DocumentTestBase
 
 

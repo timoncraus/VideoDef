@@ -1,4 +1,5 @@
 from django.urls import reverse
+
 from resume.models import Resume
 from resume.tests.utils import ResumeTestBase
 
@@ -36,11 +37,14 @@ class ResumeViewsTest(ResumeTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Резюме")
 
-        response_post = self.client.post(url, {
-            "short_info": "Обновлённое резюме",
-            "detailed_info": "Новое описание",
-            "status": Resume.ACTIVE,
-        })
+        response_post = self.client.post(
+            url,
+            {
+                "short_info": "Обновлённое резюме",
+                "detailed_info": "Новое описание",
+                "status": Resume.ACTIVE,
+            },
+        )
         self.assertRedirects(response_post, url)
         self.resume.refresh_from_db()
         self.assertEqual(self.resume.short_info, "Обновлённое резюме")

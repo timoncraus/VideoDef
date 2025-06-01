@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0011_alter_profile_role'),
+        ("account", "0011_alter_profile_role"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='last_seen',
-            field=models.DateTimeField(auto_now=True, verbose_name='Последний раз в сети'),
+            model_name="user",
+            name="last_seen",
+            field=models.DateTimeField(
+                auto_now=True, verbose_name="Последний раз в сети"
+            ),
         ),
     ]

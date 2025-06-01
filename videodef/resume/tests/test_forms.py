@@ -18,5 +18,5 @@ class ResumeFormTest(ResumeTestBase):
     def test_invalid_form(self):
         form = ResumeForm(data={}, user=self.user)
         self.assertFalse(form.is_valid())
-        self.assertIn('short_info', form.errors)
-        self.assertIn('detailed_info', form.errors)
+        self.assertIn("short_info", form.errors)
+        self.assertIn("detailed_info", form.errors)
