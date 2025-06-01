@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 "first_name": "Ирина",
                 "last_name": "Иванова",
                 "patronymic": "Ивановна",
-                "gender": gender_male,
+                "gender": gender_female,
                 "role": role_parent,
                 "date_birth": date(1990, 1, 1),
                 "avatar_file": "photos/Ирина.jpg",
