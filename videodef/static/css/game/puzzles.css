@@ -3,15 +3,16 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    gap: 40px;
-    padding: 40px;
+    gap: 30px; 
+    padding: 20px; 
+    font-family: Arial, sans-serif;
 }
 
 /* Обёртка пазла */
 .puzzle-wrapper {
     width: 600px;
     height: 600px;
-    background: white;
+    background: #e9e9e9;
     border: 3px solid #ccc;
     border-radius: 10px;
     position: relative;
@@ -19,179 +20,239 @@
 
 /* Контейнер для элементов пазла */
 .puzzle-container { 
-    width: 85%;
-    height: 85%;
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0 auto;
-    position: relative;
-    overflow: hidden;
+    width: 85%; 
+    height: 85%; 
+    margin: auto; 
+    position: relative; 
+    overflow: hidden; 
 }
 
 /* Стили для отдельного элемента пазла */
 .puzzle-piece {
-    width: 100px;
-    height: 100px;
-    background-size: 300px 300px;
-    position: absolute;
+    position: absolute; 
     transition: left 0.2s, top 0.2s, box-shadow 0.2s;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0,0,0,0.1); 
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); 
     border-radius: 4px;
+    box-sizing: border-box; 
 }
 
 /* Эффекты при наведении на элемент */
 .puzzle-piece:hover {
-    box-shadow: 0 0 8px #0295c7;
+    box-shadow: 0 0 8px #007bff; 
 }
 
 /* Стиль для выбранного элемента */
 .puzzle-piece.selected {
-    border: 2px solid #005f7f;
-    box-shadow: 0 0 12px #005f7f;
+    border: 2px solid #0056b3; 
+    box-shadow: 0 0 10px #0056b3; 
 }
 
 /* Сообщение о победе */
 #game-message {
-    font-size: 1.5em;
-    text-align: center;
-    color: #4CAF50;
-    background-color: #e8f5e9;
+    width: 90%; 
+    max-width: 500px;
+    margin: 20px auto; 
     padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+    background-color: #e8f5e9; 
+    border: 1px solid #a5d6a7; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    text-align: center;
+    box-sizing: border-box;
+    font-size: 1.3em; 
+    color: #388e3c; 
+}
+#game-message p { 
+    margin: 0;
 }
 
 /* Панель настроек */
 .puzzles-settings {
-    width: 35%;
+    width: 35%; 
+    max-width: 380px; 
+    min-width: 320px;
     height: 600px;
     background: white;
-    border: 3px solid #005f7f;
-    border-radius: 10px;
-    padding: 5px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    overflow-y: auto;
+    border: 3px solid #005f7f; 
+    border-radius: 10px; 
+    padding: 0; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    overflow-y: auto; 
+    box-sizing: border-box;
+    display: flex; 
+    flex-direction: column;
 }
 
-/* Контент модального окна */
-.modal-content {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
-    max-width: 500px;
-    width: 100%;
+.puzzles-settings .modal-content {
+    width: 100%; 
+    max-width: none; 
+    padding: 20px;
+    border-radius: 0;
+    background: transparent;
+    text-align: left;
+    box-sizing: border-box;
+    flex-grow: 1; 
 }
 
-/* Контейнер для пресетов изображений */
+.puzzles-settings .modal-content h2 { 
+    margin-top: 0; 
+    margin-bottom: 20px; 
+    color: #333; 
+    text-align: center; 
+    font-size: 1.5em;
+}
+
+.puzzles-settings .modal-content h3 { 
+    font-size: 1.1em; 
+    margin-top: 20px; 
+    margin-bottom: 10px; 
+    color: #333; 
+}
+.puzzles-settings .modal-content label { 
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: bold; 
+    color: #555; 
+    font-size: 0.9em; 
+}
+
+.puzzles-settings .modal-content input[type="text"],
+.puzzles-settings .modal-content select#difficulty {
+    width: 100%; 
+    padding: 8px; 
+    margin-bottom: 15px; 
+    border: 1px solid #00bfff;
+    border-radius: 4px; 
+    box-sizing: border-box; 
+    font-size: 0.9em;
+}
+
+#puzzle-name {
+    width: 100% !important;
+}
+
 .preset-images {
     display: flex;
-    justify-content: center;
-    background-color: #00bfff;
-    border: 3px solid #005f7f;
-    border-radius: 8px;
+    flex-wrap: wrap; 
+    justify-content: center; 
     gap: 10px;
-    margin: 15px 0;
-    padding: 10px 0;
-    overflow-x: scroll;
+    margin: 15px 0; 
+    padding: 10px; 
+    background-color: #f0f8ff; 
+    border: 2px solid #00bfff; 
+    border-radius: 8px;
 }
 
 /* Стили для пресетов изображений */
 .preset {
-    width: 80px;
-    height: 80px;
+    width: 80px; 
+    height: 80px; 
     object-fit: cover;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 2px solid transparent; 
     border-radius: 6px;
-    transition: border 0.2s, transform 0.2s;
+    transition: border-color 0.2s, transform 0.2s;
+    box-sizing: border-box;
 }
 
 /* Эффекты для пресетов */
 .preset:hover {
-    border-color: #00bfff;
-    transform: scale(1.05);
+    border-color: #00bfff; 
+    transform: scale(1.05); 
 }
 
-.preset.selected {
-    border: 4px solid;
-    border-color: #005f7f;
-    box-shadow: 0 0 10px #005f7f;
+.preset.selected { 
+    border-width: 3px; 
+    border-color: #005f7f; 
+    box-shadow: 0 0 8px rgba(0, 95, 127, 0.5); 
 }
 
-/* Стили для кнопки загрузки */
-.upload-label {
+.puzzles-settings .modal-content label.upload-label {
     display: block;
-    margin: 15px 0;
-    font-weight: bold;
+    margin: 15px 0 10px 0;
+    font-weight: bold;    
+    font-size: 0.9em;
 }
-
-/* Стили выпадающего списка сложности */
-#difficulty {
-    margin: 15px 0;
+#custom-image {
+    display: block; 
+    margin-top: 5px;
+    margin-bottom: 10px;
+    width: 100%;
     padding: 8px;
-    font-size: 16px;
+    border: 1px solid #00bfff;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.9em;
 }
 
-/* Контейнер для предпросмотра изображения */
-.image-preview-container {
-    margin-top: 15px;
+#image-preview-container {
+    margin-top: 10px;
+    margin-bottom: 20px; 
     padding: 10px;
     background-color: #f9f9f9;
-    border: 1px dashed #ccc;
+    border: 1px dashed #00bfff;
     border-radius: 5px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    text-align: center; 
 }
-
-#image-preview {
+#image-preview { 
     display: block;
-    max-width: 120px;
-    max-height: 120px;
-    border: 1px solid #ddd;
-    margin-bottom: 8px;
-    object-fit: cover;
+    max-width: 80px;
+    max-height: 80px;
+    object-fit: cover; 
+    border: 1px solid #00bfff;
+    margin: 0 auto 8px auto; 
+    border-radius: 3px; 
 }
-
-#image-preview-text {
-    font-size: 0.85em;
-    color: #666;
-    margin: 0;
+#image-preview-text { 
+    font-size: 0.85em; 
+    color: #666; 
+    margin: 0; 
 }
 
 /* Контейнер для кнопок в настройках */
 .settings-buttons {
-    margin-top: 20px;
+    margin-top: 30px; 
     display: flex;
-    justify-content: space-around;
+    justify-content: space-around; 
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: wrap; 
 }
 
 /* Общие стили для кнопок Начать игру/Сохранить/Загрузить */
 #start-game,
 #save-puzzle-btn,
 #load-puzzle-btn {
-    padding: 10px 15px;
-    font-size: 0.9em;
-    background-color: #00bfff;
-    border: 2px solid #005f7f;
-    border-radius: 6px;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.2s;
-    flex-grow: 1;
-    min-width: 100px;
+    padding: 10px 15px; 
+    font-size: 0.9em;   
+    border-radius: 6px; 
+    font-weight: bold; 
+    color: white; 
+    cursor: pointer; 
+    transition: background-color 0.2s, box-shadow 0.2s; 
+    flex-grow: 1; 
+    min-width: 100px; 
+    text-align: center; 
 }
 
-#start-game:hover,
+#start-game {
+    background-color: #28a745; 
+    border: 2px solid #1c7430; 
+}
+#start-game:hover {
+    background-color: #218838; 
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+#save-puzzle-btn,
+#load-puzzle-btn {
+    background-color: #007bff; 
+    border: 2px solid #0056b3;
+}
+
 #save-puzzle-btn:hover,
 #load-puzzle-btn:hover {
-    background-color: #00a0cc;
+    background-color: #0056b3; 
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }

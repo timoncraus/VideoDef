@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block style %}
+<link rel="stylesheet" href="{% static 'css/game/memory-game.css' %}" />
+{% endblock %}
+
+{% block page_name %}Поиск пар{% endblock %}
+
+{% block content %}
+<div class="memory-page-wrapper">
+    <!-- Игровая зона: содержит поле для карточек и сообщение о завершении -->
+    <div id="memory-game-area" class="memory-game-area">
+        <!-- Обёртка для игрового поля и сообщения о победе. -->
+        <div id="memory-game-wrapper" class="memory-game-wrapper">
+            <p class="initial-message">Выберите настройки и нажмите "Начать игру".</p>
+        </div>
+        <!-- Сообщение о завершении игры будет создано и вставлено сюда динамически JavaScript'ом -->
+    </div>
+
+    <!-- Панель настроек игры (справа от игровой зоны) -->
+    <div id="memory-game-settings" class="game-settings-panel">
+        <div class="settings-content-inner">
+            <h2>Настройки игры</h2>
+
+            <!-- Поле для ввода названия игры -->
+            <label for="game-name">Название игры:</label>
+            <input type="text" id="game-name" placeholder="Моя игра в пары">
+
+            <!-- Выбор набора карточек -->
+            <h3>Выберите набор карточек:</h3>
+            <div class="presets-container"> <!-- Контейнер для предустановленных наборов -->
+                <div class="preset-set" data-set-name="fruits">Фрукты 🍓</div>
+                <div class="preset-set" data-set-name="animals">Животные 🐼</div>
+            </div>
+
+            <!-- Загрузка пользовательских изображений -->
+            <label for="custom-images-input" class="upload-label">
+                ИЛИ Загрузите свои изображения:
+            </label>
+            <input type="file" id="custom-images-input" accept="image/*" multiple>
+            
+            <!-- Область для предпросмотра загруженных изображений -->
+            <div id="custom-images-preview" class="image-preview-container" style="display: none;"> <!-- Класс изменен для унификации -->
+                <p id="custom-images-info-text">Загружено изображений: <span id="custom-images-count">0</span></p>
+                <div class="preview-grid"></div>
+            </div>
+
+            <!-- Выбор сложности (количества пар) -->
+            <label for="pair-count-select">Количество пар:</label>
+            <select id="pair-count-select">
+                <option value="2">2 пары</option>
+                <option value="3">3 пары</option>
+                <option value="4" selected>4 пары</option>
+                <option value="5">5 пар</option>
+                <option value="6">6 пар</option> 
+            </select>
+            
+            <!-- Кнопка для старта/перезапуска игры -->
+            <div class="settings-buttons">
+                <button id="start-memory-game">Начать игру</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
+    const loginUrl = "{% url 'login' %}?next=" + window.location.pathname;
+    const presetImagesBasePath = "{% static 'images/memory_game_presets/' %}"; 
+</script>
+<script src="{% static 'js/game/memory_game.bundle.js' %}"></script>
+<!-- Инициализация игры после загрузки DOM -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof window.MemoryGameModule !== 'undefined' && typeof window.MemoryGameModule.createMemoryGameSeparately === 'function') {
+            window.MemoryGameModule.createMemoryGameSeparately();
+        } else {
+            console.error("Функция createMemoryGameSeparately не найдена. Проверьте сборку Webpack и экспорт функции.");
+        }
+    });
+</script>
+{% endblock %}

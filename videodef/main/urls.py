@@ -54,6 +54,7 @@ game_patterns = [
     path('', game_views.games, name="games"),
     path('my/', game_views.my_games_view, name='my_games'),
     path('puzzles/', game_views.puzzle_game, name="puzzle_game"),
+    path('memory-game/', game_views.memory_game, name="memory_game"),
     path('whiteboard/', game_views.whiteboard, name="whiteboard"),
 
     # Для сохранения и загрузки игр

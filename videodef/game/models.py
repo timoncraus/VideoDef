@@ -124,7 +124,7 @@ class UserPuzzle(models.Model):
         help_text="JSON-массив текущего расположения элементов пазла"
     )
     preset_image_path = models.CharField(
-        max_length=255,
+        max_length=100,
         blank=True, null=True,
         verbose_name="Путь к пресету изображения",
         help_text="Путь к изображению из стандартного набора (если используется)"
