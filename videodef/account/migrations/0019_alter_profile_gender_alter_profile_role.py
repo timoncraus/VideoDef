@@ -7,20 +7,28 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0018_remove_gender_id_remove_role_id_gender_code_and_more'),
+        ("account", "0018_remove_gender_id_remove_role_id_gender_code_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='profile',
-            name='gender',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='account.gender', verbose_name='Пол'),
+            model_name="profile",
+            name="gender",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="account.gender",
+                verbose_name="Пол",
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='role',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='account.role', verbose_name='Роль'),
+            model_name="profile",
+            name="role",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="account.role",
+                verbose_name="Роль",
+            ),
             preserve_default=False,
         ),
     ]

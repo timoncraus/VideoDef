@@ -6,7 +6,7 @@
     <form method="post">
         {% csrf_token %}
         <button type="submit" class="bg-red-500   py-2 px-4 rounded mr-2">Удалить</button>
-        <a href="{% url 'my_children' %}" class="bg-gray-300 py-2 px-4 rounded">Отмена</a>
+        <a href="{% url 'child:my_children' %}" class="bg-gray-300 py-2 px-4 rounded">Отмена</a>
     </form>
 </div>
 {% endblock %}

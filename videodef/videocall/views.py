@@ -3,13 +3,16 @@ from django.shortcuts import render, get_object_or_404
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.http import JsonResponse
-from .models import VideoCall
-from account.models import User
 import uuid
 import json
 
+from .models import VideoCall
+from account.models import User
+
+
 def videocall(request, room_name):
-    return render(request, 'videocall/videocall.html', {'room_name': room_name})
+    return render(request, "videocall/videocall.html", {"room_name": room_name})
+
 
 @login_required
 def start_call(request):
@@ -17,13 +20,10 @@ def start_call(request):
         data = json.loads(request.body)
         receiver_id = data.get("receiver_id")
         receiver = get_object_or_404(User, unique_id=receiver_id)
-        print(receiver_id, receiver)
         room_name = str(uuid.uuid4())
 
         VideoCall.objects.create(
-            caller=request.user,
-            receiver=receiver,
-            room_name=room_name
+            caller=request.user, receiver=receiver, room_name=room_name
         )
 
         channel_layer = get_channel_layer()
@@ -32,10 +32,10 @@ def start_call(request):
             {
                 "type": "incoming_call",
                 "from": str(request.user.profile),
-                "room_name": room_name
-            }
+                "room_name": room_name,
+            },
         )
 
-        return JsonResponse({'success': True, 'room_name': room_name})
+        return JsonResponse({"success": True, "room_name": room_name})
 
-    return JsonResponse({'success': False}, status=400)
+    return JsonResponse({"success": False}, status=400)
