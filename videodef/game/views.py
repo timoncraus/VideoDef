@@ -39,7 +39,7 @@ def puzzle_game(request):
     return render(request, "game/puzzles.html")
 
 def memory_game(request):
-    return render(request, "game/memory-game.html")
+    return render(request, "game/memory_game.html")
 
 def whiteboard(request):
     return render(request, "game/whiteboard.html")

@@ -3,6 +3,7 @@
 
 {% block style %}
 <link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
+<link rel="stylesheet" href="{% static 'css/game/game_settings_panel.css' %}" />
 <link rel="stylesheet" href="{% static 'css/game/game_load_window.css' %}" />
 {% endblock %}
 
@@ -15,33 +16,30 @@
         <!--Здесь скрипт вставит пазл-->
     </div>
 
-    <!-- Окно настроек -->
-    <div id="puzzles-settings" class="puzzles-settings">
-        <div class="modal-content">
+    <div id="puzzles-settings" class="game-settings-panel">
+        <div class="settings-content-inner">
             <h2>Настройки пазла</h2>
 
             <!-- Имя для сохранения -->
             <label for="puzzle-name">Название для сохранения:</label>
-            <input type="text" id="puzzle-name" placeholder="Название пазла" style="width: 80%; padding: 8px; margin-bottom: 15px;">
+            <input type="text" id="puzzle-name" placeholder="Название пазла">
 
-            <h2>Выберите изображение для пазла</h2>
+            <h3>Выберите изображение для пазла</h3>
 
-            <!-- Пресеты изображений -->
-            <div class="preset-images">
-                <img src="{% static 'images/british-cat.jpg' %}" class="preset" data-src="{% static 'images/british-cat.jpg' %}">
-                <img src="{% static 'images/tree.png' %}" class="preset" data-src="{% static 'images/tree.png' %}">
+            <div class="presets-container">
+                <img src="{% static 'images/british-cat.jpg' %}" class="preset" data-src="{% static 'images/british-cat.jpg' %}" alt="Британский кот">
+                <img src="{% static 'images/tree.png' %}" class="preset" data-src="{% static 'images/tree.png' %}" alt="Дерево">
             </div>
 
             <!-- Загрузка пользовательского изображения -->
             <label class="upload-label">
                 Загрузить своё:
-                <input type="file" id="custom-image" accept="image/*">
             </label>
+            <input type="file" id="custom-image" accept="image/*">
             
-            <!-- Элемент для предпросмотра/индикации загруженного изображения -->
-            <div id="image-preview-container" class="image-preview-container" style="display: none; margin-top: 10px; text-align: center;">
-                <img id="image-preview" src="#" alt="Предпросмотр" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; margin-bottom: 5px;">
-                <p id="image-preview-text" style="font-size: 0.9em; color: #555;">Используется загруженное изображение.</p>
+            <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                <img id="image-preview" src="#" alt="Предпросмотр">
+                <p id="image-preview-text">Используется загруженное изображение.</p>
             </div>
 
             <!-- Выбор сложности пазла -->
@@ -62,7 +60,7 @@
     </div>
 </div>
 
-<!-- Модальное окно для загрузки пазлов (изначально скрыто) -->
+<!-- Модальное окно для загрузки пазлов -->
 <div id="load-puzzle-modal" class="modal-overlay" style="display: none;">
     <div class="modal-container">
         <h2>Выберите сохраненный пазл</h2>
@@ -76,19 +74,6 @@
         </div>
     </div>
 </div>
-
-    <!-- <div class="puzzle-container">
-        {% for i in "123456789" %}
-            <div class="puzzle-piece" id="piece-{{i}}" draggable="true" data-index="{{i}}"></div>
-        {% endfor %}
-    </div> 
-    
-    <div id="game-message" style="display: none; text-align: center; font-size: 1.5em; margin-top: 20px;">
-        Поздравляем! Вы собрали пазл!
-    </div> -->
-
-    <!-- Инициализация переменных и скриптов -->
-    
 {% endblock %}
 
 
@@ -106,7 +91,12 @@
 <!-- Инициализация игры после загрузки DOM -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        createPuzzleSeparately();
+        // Убедитесь, что эта функция существует в puzzle.bundle.js
+        if(typeof createPuzzleSeparately === 'function') {
+            createPuzzleSeparately();
+        } else {
+            console.error("Функция createPuzzleSeparately не найдена.");
+        }
     });
 </script>
 {% endblock %}

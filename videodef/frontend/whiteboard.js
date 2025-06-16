@@ -1197,26 +1197,29 @@ function updateGameSettings(gameName) {
         const content = `
             <div class="modal-content">
                 <h2>Настройки пазла</h2>
+                <!-- Имя для сохранения -->
                 <label for="puzzle-name">Название для сохранения:</label>
-                <input type="text" id="puzzle-name" placeholder="Название пазла" style="width: 80%; padding: 8px; margin-bottom: 15px;">
+                <input type="text" id="puzzle-name" placeholder="Название пазла">
 
-                <h2>Выберите изображение для пазла</h2>
+                <h3>Выберите изображение для пазла</h3>
 
-                <div class="preset-images">
+                <div class="presets-container">
                     <img src="${imagesPath}/british-cat.jpg" class="preset" data-src="${imagesPath}/british-cat.jpg" alt="Британский кот">
                     <img src="${imagesPath}/tree.png" class="preset" data-src="${imagesPath}/tree.png" alt="Дерево">
                 </div>
 
+                <!-- Загрузка пользовательского изображения -->
                 <label class="upload-label">
                     Загрузить своё:
-                    <input type="file" id="custom-image" accept="image/*">
                 </label>
-
-                <div id="image-preview-container" class="image-preview-container" style="display: none; margin-top: 10px; text-align: center;">
-                    <img id="image-preview" src="#" alt="Предпросмотр" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; margin-bottom: 5px;">
-                    <p id="image-preview-text" style="font-size: 0.9em; color: #555;">Используется загруженное изображение.</p>
+                <input type="file" id="custom-image" accept="image/*">
+                
+                <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                    <img id="image-preview" src="#" alt="Предпросмотр">
+                    <p id="image-preview-text">Используется загруженное изображение.</p>
                 </div>
 
+                <!-- Выбор сложности пазла -->
                 <label for="difficulty">Выберите сложность:</label>
                 <select id="difficulty">
                     <option value="2" selected>2x2</option>
@@ -1224,11 +1227,12 @@ function updateGameSettings(gameName) {
                     <option value="4">4x4</option>
                 </select>
 
+                <!-- Кнопки управления -->
                 <div class="settings-buttons">
-                    <button id="start-game">Начать игру</button> <!-- Эта кнопка будет скрыта JS -->
+                    <button id="start-game">Начать игру</button>
                     <button id="save-puzzle-btn">Сохранить</button>
                     <button id="load-puzzle-btn">Загрузить</button>
-                </div>
+            </div>
             </div>
         `;
 
