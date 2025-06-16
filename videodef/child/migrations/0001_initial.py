@@ -11,84 +11,39 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("resume", "0005_remove_resume_document_resume_documents"),
-        ("account", "0022_alter_profile_options_alter_user_options"),
+        ('resume', '0005_remove_resume_document_resume_documents'),
+        ('account', '0022_alter_profile_options_alter_user_options'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name="Child",
+            name='Child',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("name", models.CharField(max_length=400, verbose_name="Имя")),
-                ("info", models.TextField(max_length=5000, verbose_name="Информация")),
-                ("date_birth", models.DateField(verbose_name="Дата рождения")),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("updated_at", models.DateTimeField(auto_now=True)),
-                (
-                    "gender",
-                    models.ForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to="account.gender",
-                        verbose_name="Пол",
-                    ),
-                ),
-                (
-                    "user",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="children",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                (
-                    "violation_types",
-                    models.ManyToManyField(
-                        blank=True,
-                        to="resume.violationtype",
-                        verbose_name="Виды нарушений",
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=400, verbose_name='Имя')),
+                ('info', models.TextField(max_length=5000, verbose_name='Информация')),
+                ('date_birth', models.DateField(verbose_name='Дата рождения')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('gender', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='account.gender', verbose_name='Пол')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='children', to=settings.AUTH_USER_MODEL)),
+                ('violation_types', models.ManyToManyField(blank=True, to='resume.violationtype', verbose_name='Виды нарушений')),
             ],
             options={
-                "verbose_name": "Ребенок",
-                "verbose_name_plural": "Дети",
+                'verbose_name': 'Ребенок',
+                'verbose_name_plural': 'Дети',
             },
         ),
         migrations.CreateModel(
-            name="ChildImage",
+            name='ChildImage',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("image", models.ImageField(upload_to="child_images/")),
-                (
-                    "child",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="images",
-                        to="child.child",
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('image', models.ImageField(upload_to='child_images/')),
+                ('child', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='child.child')),
             ],
             options={
-                "verbose_name": "Изображение ребенка",
-                "verbose_name_plural": "Изображения ребенка",
+                'verbose_name': 'Изображение ребенка',
+                'verbose_name_plural': 'Изображения ребенка',
             },
         ),
     ]

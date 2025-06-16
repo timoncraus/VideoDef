@@ -1,5 +1,0 @@
-coverage:
-  status:
-    patch:
-      target: 80%
-      threshold: 20%

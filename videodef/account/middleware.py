@@ -1,3 +1,5 @@
+from django.contrib.auth.models import User
+
 class UpdateLastSeenMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response

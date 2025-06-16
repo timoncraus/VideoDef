@@ -10,7 +10,7 @@
     {% else %}
         <img src="/static/images/default.png" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
     {% endif %}
-    <p><a href="{% url 'account:view_other_user' resume.user.unique_id %}" class="text-gray-500 mb-2">{{ resume.user.profile }}</a></p>
+    <p><a href="{% url 'view_other_user' resume.user.unique_id %}" class="text-gray-500 mb-2">{{ resume.user.profile }}</a></p>
     <h1 class="text-3xl font-bold mb-6">{{ resume.short_info }}</h1>
     <div class="mb-4">
         <p class="text-lg">{{ resume.detailed_info }}</p>
@@ -27,7 +27,7 @@
         {% for document in resume.documents.all %}
             <div class="mt-4">
                 <p>
-                    <a href="{% url 'document:public_document_detail' document.id %}">
+                    <a href="{% url 'public_document_detail' document.id %}">
                         Документ: {{ document.info }} 
                     </a>
                     — {{ document.ver_status }}
@@ -48,6 +48,6 @@
     </div>
     <p><strong>Дата создания:</strong> {{ resume.created_at }} по мск</p>
     <p><strong>Дата последнего обновления:</strong> {{ resume.updated_at }} по мск</p>
-    <a href="{% url 'chat:get_chat' resume.user.unique_id request.user.unique_id %}">Написать в чат</a>
+    <a href="{% url 'get_chat' resume.user.unique_id request.user.unique_id %}">Написать в чат</a>
 </div>
 {% endblock %}

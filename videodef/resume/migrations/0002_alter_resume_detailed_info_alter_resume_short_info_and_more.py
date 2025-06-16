@@ -6,25 +6,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("resume", "0001_initial"),
+        ('resume', '0001_initial'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="resume",
-            name="detailed_info",
-            field=models.TextField(
-                max_length=5000, verbose_name="Подробная информация"
-            ),
+            model_name='resume',
+            name='detailed_info',
+            field=models.TextField(max_length=5000, verbose_name='Подробная информация'),
         ),
         migrations.AlterField(
-            model_name="resume",
-            name="short_info",
-            field=models.CharField(max_length=400, verbose_name="Краткая информация"),
+            model_name='resume',
+            name='short_info',
+            field=models.CharField(max_length=400, verbose_name='Краткая информация'),
         ),
         migrations.AlterField(
-            model_name="violationtype",
-            name="name",
+            model_name='violationtype',
+            name='name',
             field=models.CharField(max_length=300),
         ),
     ]

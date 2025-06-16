@@ -6,19 +6,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account", "0009_alter_profile_role"),
+        ('account', '0009_alter_profile_role'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="profile",
-            name="gender",
-            field=models.CharField(
-                choices=[("M", "Мужской"), ("W", "Женский")],
-                default="M",
-                max_length=1,
-                verbose_name="Пол",
-            ),
+            model_name='profile',
+            name='gender',
+            field=models.CharField(choices=[('M', 'Мужской'), ('W', 'Женский')], default='M', max_length=1, verbose_name='Пол'),
             preserve_default=False,
         ),
     ]

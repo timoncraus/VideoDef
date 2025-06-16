@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("document", "0003_remove_document_photo_document_user_documentimage"),
+        ('document', '0003_remove_document_photo_document_user_documentimage'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="document",
-            name="info",
-            field=models.TextField(max_length=5000, verbose_name="Информация"),
+            model_name='document',
+            name='info',
+            field=models.TextField(max_length=5000, verbose_name='Информация'),
         ),
         migrations.AlterField(
-            model_name="document",
-            name="name",
-            field=models.TextField(max_length=400, verbose_name="Название"),
+            model_name='document',
+            name='name',
+            field=models.TextField(max_length=400, verbose_name='Название'),
         ),
     ]

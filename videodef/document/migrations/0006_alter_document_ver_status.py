@@ -8,19 +8,13 @@ import document.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("document", "0005_alter_document_name"),
+        ('document', '0005_alter_document_name'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="document",
-            name="ver_status",
-            field=models.ForeignKey(
-                default=document.models.get_default_ver_status,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                to="document.documentverificationstatus",
-                verbose_name="Статус проверки",
-            ),
+            model_name='document',
+            name='ver_status',
+            field=models.ForeignKey(default=document.models.get_default_ver_status, null=True, on_delete=django.db.models.deletion.SET_NULL, to='document.documentverificationstatus', verbose_name='Статус проверки'),
         ),
     ]

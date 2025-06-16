@@ -1,25 +1,17 @@
-from django.views.generic import (
-    ListView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-    DetailView,
-)
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse, reverse_lazy
+from .models import Resume, ViolationType
+from .forms import ResumeForm, ResumeImageFormSet, ResumeInitialImageFormSet
 from django.contrib.auth.mixins import LoginRequiredMixin
 import django_filters
 from django import forms
 from django_filters.views import FilterView
 
-from .models import Resume, ViolationType
-from .forms import ResumeForm, ResumeImageFormSet, ResumeInitialImageFormSet
-
-
 # Для преподавателя: список резюме
 class ResumeListView(LoginRequiredMixin, ListView):
     model = Resume
-    template_name = "resume/my_resumes.html"
-    context_object_name = "resumes"
+    template_name = 'resume/my_resumes.html'
+    context_object_name = 'resumes'
 
     def get_queryset(self):
         return Resume.objects.filter(user=self.request.user)
@@ -29,27 +21,25 @@ class ResumeListView(LoginRequiredMixin, ListView):
 class ResumeCreateView(LoginRequiredMixin, CreateView):
     model = Resume
     form_class = ResumeForm
-    template_name = "resume/my_resume_create.html"
-    success_url = reverse_lazy("resume:my_resumes")
+    template_name = 'resume/my_resume_create.html'
+    success_url = reverse_lazy('my_resumes')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
         response = super().form_valid(form)
-        images_formset = ResumeInitialImageFormSet(
-            self.request.POST, self.request.FILES, instance=self.object
-        )
+        images_formset = ResumeInitialImageFormSet(self.request.POST, self.request.FILES, instance=self.object)
         if images_formset.is_valid():
             images_formset.save()
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["images_formset"] = ResumeInitialImageFormSet()
+        context['images_formset'] = ResumeInitialImageFormSet()
         return context
-
+    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
+        kwargs['user'] = self.request.user
         return kwargs
 
 
@@ -57,36 +47,34 @@ class ResumeCreateView(LoginRequiredMixin, CreateView):
 class ResumeUpdateView(LoginRequiredMixin, UpdateView):
     model = Resume
     form_class = ResumeForm
-    template_name = "resume/my_resume_create.html"
+    template_name = 'resume/my_resume_create.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["images_formset"] = ResumeImageFormSet(instance=self.object)
+        context['images_formset'] = ResumeImageFormSet(instance=self.object)
         return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        images_formset = ResumeImageFormSet(
-            self.request.POST, self.request.FILES, instance=self.object
-        )
+        images_formset = ResumeImageFormSet(self.request.POST, self.request.FILES, instance=self.object)
         if images_formset.is_valid():
             images_formset.save()
         return response
-
+    
     def get_success_url(self):
-        return reverse("resume:edit_my_resume", kwargs={"pk": self.object.pk})
-
+        return reverse('edit_my_resume', kwargs={'pk': self.object.pk})
+    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
+        kwargs['user'] = self.request.user
         return kwargs
 
 
 # Для преподавателя: удаление резюме
 class ResumeDeleteView(LoginRequiredMixin, DeleteView):
     model = Resume
-    template_name = "resume/my_resume_confirm_delete.html"
-    success_url = reverse_lazy("resume:my_resumes")
+    template_name = 'resume/my_resume_confirm_delete.html'
+    success_url = reverse_lazy('my_resumes')
 
 
 # Для родителя: фильтрация резюме по видам нарушений
@@ -95,12 +83,12 @@ class ResumeFilter(django_filters.FilterSet):
         queryset=ViolationType.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         label="Виды нарушений",
-        method="filter_violation_types",
+        method='filter_violation_types',
     )
 
     class Meta:
         model = Resume
-        fields = ["violation_types"]
+        fields = ['violation_types']
 
     def filter_violation_types(self, queryset, name, value):
         if not value:
@@ -111,11 +99,12 @@ class ResumeFilter(django_filters.FilterSet):
         return queryset
 
 
+
 # Для родителя: поиск преподавателей
 class PublicResumeListView(FilterView):
     model = Resume
-    template_name = "resume/public_resume_list.html"
-    context_object_name = "resumes"
+    template_name = 'resume/public_resume_list.html'
+    context_object_name = 'resumes'
     filterset_class = ResumeFilter
 
     def get_queryset(self):
@@ -123,14 +112,12 @@ class PublicResumeListView(FilterView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["selected_violation_types"] = self.request.GET.getlist(
-            "violation_types"
-        )
+        context['selected_violation_types'] = self.request.GET.getlist('violation_types')
         return context
 
 
 # Для родителя: подробная страничка резюме
 class ResumeDetailView(DetailView):
     model = Resume
-    template_name = "resume/public_resume_detail.html"
-    context_object_name = "resume"
+    template_name = 'resume/public_resume_detail.html'
+    context_object_name = 'resume'

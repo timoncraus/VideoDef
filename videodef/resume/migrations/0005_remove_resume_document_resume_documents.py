@@ -6,20 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("document", "0006_alter_document_ver_status"),
-        ("resume", "0004_alter_resume_document_delete_document"),
+        ('document', '0006_alter_document_ver_status'),
+        ('resume', '0004_alter_resume_document_delete_document'),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name="resume",
-            name="document",
+            model_name='resume',
+            name='document',
         ),
         migrations.AddField(
-            model_name="resume",
-            name="documents",
-            field=models.ManyToManyField(
-                blank=True, to="document.document", verbose_name="Документы"
-            ),
+            model_name='resume',
+            name='documents',
+            field=models.ManyToManyField(blank=True, to='document.document', verbose_name='Документы'),
         ),
     ]

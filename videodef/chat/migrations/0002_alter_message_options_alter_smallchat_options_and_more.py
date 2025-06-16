@@ -6,20 +6,20 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("chat", "0001_initial"),
+        ('chat', '0001_initial'),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name="message",
-            options={"verbose_name": "Сообщение", "verbose_name_plural": "Сообщения"},
+            name='message',
+            options={'verbose_name': 'Сообщение', 'verbose_name_plural': 'Сообщения'},
         ),
         migrations.AlterModelOptions(
-            name="smallchat",
-            options={"verbose_name": "Чат", "verbose_name_plural": "Чаты"},
+            name='smallchat',
+            options={'verbose_name': 'Чат', 'verbose_name_plural': 'Чаты'},
         ),
         migrations.RemoveField(
-            model_name="smallchat",
-            name="name",
+            model_name='smallchat',
+            name='name',
         ),
     ]

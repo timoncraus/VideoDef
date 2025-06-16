@@ -15,136 +15,60 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="Document",
+            name='Document',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("photo", models.ImageField(upload_to="documents/")),
-                ("info", models.TextField(verbose_name="Информация")),
-                (
-                    "is_verified",
-                    models.BooleanField(
-                        default=False, verbose_name="Проверено администратором"
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('photo', models.ImageField(upload_to='documents/')),
+                ('info', models.TextField(verbose_name='Информация')),
+                ('is_verified', models.BooleanField(default=False, verbose_name='Проверено администратором')),
             ],
             options={
-                "verbose_name": "Документ",
-                "verbose_name_plural": "Документы",
+                'verbose_name': 'Документ',
+                'verbose_name_plural': 'Документы',
             },
         ),
         migrations.CreateModel(
-            name="Resume",
+            name='Resume',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                (
-                    "short_info",
-                    models.CharField(max_length=300, verbose_name="Краткая информация"),
-                ),
-                (
-                    "detailed_info",
-                    models.TextField(verbose_name="Подробная информация"),
-                ),
-                (
-                    "status",
-                    models.CharField(
-                        choices=[("draft", "Черновик"), ("active", "Активно")],
-                        default="draft",
-                        max_length=15,
-                        verbose_name="Статус резюме",
-                    ),
-                ),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("updated_at", models.DateTimeField(auto_now=True)),
-                (
-                    "document",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to="resume.document",
-                        verbose_name="Документ",
-                    ),
-                ),
-                (
-                    "user",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="resumes",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('short_info', models.CharField(max_length=300, verbose_name='Краткая информация')),
+                ('detailed_info', models.TextField(verbose_name='Подробная информация')),
+                ('status', models.CharField(choices=[('draft', 'Черновик'), ('active', 'Активно')], default='draft', max_length=15, verbose_name='Статус резюме')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('document', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='resume.document', verbose_name='Документ')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='resumes', to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                "verbose_name": "Резюме",
-                "verbose_name_plural": "Резюме",
+                'verbose_name': 'Резюме',
+                'verbose_name_plural': 'Резюме',
             },
         ),
         migrations.CreateModel(
-            name="ViolationType",
+            name='ViolationType',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("name", models.CharField(max_length=150)),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=150)),
             ],
             options={
-                "verbose_name": "Виды нарушений",
+                'verbose_name': 'Виды нарушений',
             },
         ),
         migrations.CreateModel(
-            name="ResumeImage",
+            name='ResumeImage',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("image", models.ImageField(upload_to="resume_images/")),
-                (
-                    "resume",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="images",
-                        to="resume.resume",
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('image', models.ImageField(upload_to='resume_images/')),
+                ('resume', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='resume.resume')),
             ],
             options={
-                "verbose_name": "Изображение резюме",
-                "verbose_name_plural": "Изображения резюме",
+                'verbose_name': 'Изображение резюме',
+                'verbose_name_plural': 'Изображения резюме',
             },
         ),
         migrations.AddField(
-            model_name="resume",
-            name="violation_types",
-            field=models.ManyToManyField(
-                blank=True, to="resume.violationtype", verbose_name="Виды нарушений"
-            ),
+            model_name='resume',
+            name='violation_types',
+            field=models.ManyToManyField(blank=True, to='resume.violationtype', verbose_name='Виды нарушений'),
         ),
     ]

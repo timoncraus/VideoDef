@@ -31,43 +31,46 @@
     
                     <!-- Общие вкладки -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account:about' %}"><i class="bi bi-info-circle"></i> О проекте</a>
+                        <a class="nav-link" href="{% url 'about' %}"><i class="bi bi-info-circle"></i> О проекте</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'game:games' %}"><i class="bi bi-controller"></i> Игры</a>
+                        <a class="nav-link" href="{% url 'games' %}"><i class="bi bi-controller"></i> Игры</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'chat:chats' %}"><i class="bi bi-chat-left-text"></i> Переписки</a>
+                        <a class="nav-link" href="{% url 'chats' %}"><i class="bi bi-chat-left-text"></i> Переписки</a>
                     </li>
     
                     {% if user.is_authenticated %}
                         <!-- Общие для преподавателя и родителя -->
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'game:my_games' %}"><i class="bi bi-person-circle"></i> Мои игры</a>
+                            <a class="nav-link" href="{% url 'my_games' %}"><i class="bi bi-person-circle"></i> Мои игры</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="bi bi-calendar-event"></i> Расписание</a>
                         </li>
     
                         {% if request.user.profile.role.name == 'Преподаватель' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'document:my_documents' %}"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
+                                <a class="nav-link" href="{% url 'my_documents' %}"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'resume:my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
+                                <a class="nav-link" href="{% url 'my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
                             </li>
                         {% endif %}
     
                         {% if request.user.profile.role.name == 'Родитель' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'child:my_children' %}"><i class="bi bi-person-lines-fill"></i> Мои дети</a>
+                                <a class="nav-link" href="{% url 'my_children' %}"><i class="bi bi-person-lines-fill"></i> Мои дети</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'resume:public_resume_list' %}"><i class="bi bi-search"></i> Найти преподавателя</a>
+                                <a class="nav-link" href="{% url 'public_resume_list' %}"><i class="bi bi-search"></i> Найти преподавателя</a>
                             </li>
                         {% endif %}
                     {% endif %}
     
                     <!-- Всегда доступно -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account:account' %}"><i class="bi bi-person-circle"></i> Личный кабинет</a>
+                        <a class="nav-link" href="{% url 'account' %}"><i class="bi bi-person-circle"></i> Личный кабинет</a>
                     </li>
                 </ul>
             </div>
@@ -80,7 +83,7 @@
             {% include "messages.html" %}
             {% include "non_field_errors.html" %}
 
-            <h2 class="display-4 text-center mb-4 page-name">{% block page_name %}{% endblock %}</h2>
+            <h2 class="display-4 text-center mb-4 page_name">{% block page_name %}{% endblock %}</h2>
             
             {% block content %}{% endblock %}
         </div>

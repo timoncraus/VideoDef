@@ -7,25 +7,18 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account", "0004_remove_user_date_birth_remove_user_date_last_edit_and_more"),
+        ('account', '0004_remove_user_date_birth_remove_user_date_last_edit_and_more'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="profile",
-            name="photo",
-            field=models.ImageField(blank=True, upload_to="", verbose_name="Фото"),
+            model_name='profile',
+            name='photo',
+            field=models.ImageField(blank=True, upload_to='', verbose_name='Фото'),
         ),
         migrations.AlterField(
-            model_name="user",
-            name="profile",
-            field=models.OneToOneField(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="user",
-                to="account.profile",
-                verbose_name="Профиль",
-            ),
+            model_name='user',
+            name='profile',
+            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='user', to='account.profile', verbose_name='Профиль'),
         ),
     ]

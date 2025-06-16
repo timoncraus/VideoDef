@@ -6,42 +6,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account", "0017_remove_gender_code_remove_role_code_gender_id_and_more"),
+        ('account', '0017_remove_gender_code_remove_role_code_gender_id_and_more'),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name="gender",
-            name="id",
+            model_name='gender',
+            name='id',
         ),
         migrations.RemoveField(
-            model_name="role",
-            name="id",
+            model_name='role',
+            name='id',
         ),
         migrations.AddField(
-            model_name="gender",
-            name="code",
-            field=models.CharField(
-                default=None,
-                max_length=1,
-                primary_key=True,
-                serialize=False,
-                unique=True,
-                verbose_name="Код пола",
-            ),
+            model_name='gender',
+            name='code',
+            field=models.CharField(default=None, max_length=1, primary_key=True, serialize=False, unique=True, verbose_name='Код пола'),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name="role",
-            name="code",
-            field=models.CharField(
-                default=None,
-                max_length=2,
-                primary_key=True,
-                serialize=False,
-                unique=True,
-                verbose_name="Код роли",
-            ),
+            model_name='role',
+            name='code',
+            field=models.CharField(default=None, max_length=2, primary_key=True, serialize=False, unique=True, verbose_name='Код роли'),
             preserve_default=False,
         ),
     ]

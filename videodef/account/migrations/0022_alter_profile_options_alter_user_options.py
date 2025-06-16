@@ -6,19 +6,16 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account", "0021_user_is_staff_alter_user_is_superuser"),
+        ('account', '0021_user_is_staff_alter_user_is_superuser'),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name="profile",
-            options={"verbose_name": "Профиль", "verbose_name_plural": "Профили"},
+            name='profile',
+            options={'verbose_name': 'Профиль', 'verbose_name_plural': 'Профили'},
         ),
         migrations.AlterModelOptions(
-            name="user",
-            options={
-                "verbose_name": "Пользователь",
-                "verbose_name_plural": "Пользователи",
-            },
+            name='user',
+            options={'verbose_name': 'Пользователь', 'verbose_name_plural': 'Пользователи'},
         ),
     ]
