@@ -105,6 +105,7 @@
 
 | ![Скриншот мои чаты](for_readme/my_chats_screenshot.JPG) | ![Скриншот больше профиля](for_readme/profile_more_screenshot.JPG) |
 |--------------------------------------------------------|----------------------------------------------------|
+| ![Скриншот входа в аккаунт](for_readme/login.JPG) | ![Скриншот регистрации аккаунта](for_readme/registr.JPG) |
 | ![Скриншот страницы о проекте](for_readme/about_screenshot.JPG) | ![Скриншот ребенок](for_readme/child_screenshot.JPG) |
 | ![Скриншот мои игры](for_readme/my_games_screenshot.JPG) | ![Скриншот игры](for_readme/games_screenshot.JPG) |
 | ![Скриншот мои резюме](for_readme/my_resumes_screenshot.JPG) | ![Скриншот редактирование резюме 1](for_readme/edit_resume_screenshot.JPG) |
