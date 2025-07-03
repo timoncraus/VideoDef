@@ -18,7 +18,7 @@ hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
 msgpack==1.1.0
-pillow==10.4.0
+pillow==11.3.0
 psycopg2==2.9.9
 psycopg2-binary==2.9.9
 pyasn1==0.6.1
