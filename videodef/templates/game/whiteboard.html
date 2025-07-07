@@ -3,6 +3,7 @@
 {% block style %}
 <link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
 <link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
+<link rel="stylesheet" href="{% static 'css/game/memory_game.css' %}" />
 <link rel="stylesheet" href="{% static 'css/game/game_settings_panel.css' %}" />
 <link rel="stylesheet" href="{% static 'css/game/game_load_window.css' %}" />
 {% endblock %}
@@ -28,6 +29,7 @@
             </div>
             <div class="dropdown-content" id="game-menu">
                 <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
+                <div class="game-option" data-name="memory-game">🔍 Поиск пар</div>
                 <div class="game-option" data-name="cut-images">✂️ Разрезные картинки</div>
                 <div class="game-option" data-name="grid-draw">📐 Дорисовать по клеточкам</div>
             </div>

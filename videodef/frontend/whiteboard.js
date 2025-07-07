@@ -1,4 +1,5 @@
 import { createPuzzleOnBoard, setupWhiteboardPuzzleSaveLoad } from './puzzle/index.js';
+import { createMemoryGameOnBoard, setupWhiteboardMemoryGame } from './memory_game/index.js';
 
 // Получение элементов в случае если мы на странице видеозвонка
 const videosElement = document.getElementById('videos');
@@ -167,10 +168,13 @@ if (isWebSocketActive) {
         else if (data.type === 'add_game_element') { // Добавление игры на доску
             if (!gameElements[data.id]) {
                 const gameWrapper = createGameElementLocally(data.id, data.gameName, data.x, data.y, data.width, data.height);
-                if (gameWrapper && data.gameName === "puzzles") {
-                    if (!gameWrapper.dataset.puzzleInitialized) {
+                if (gameWrapper) {
+                    if (data.gameName === "puzzles" && !gameWrapper.dataset.puzzleInitialized) {
                         createPuzzleOnBoard(gameWrapper, roomName, data.id);
                         gameWrapper.dataset.puzzleInitialized = "true";
+                    } else if (data.gameName === "memory-game" && !gameWrapper.dataset.memoryGameInitialized) {
+                        createMemoryGameOnBoard(gameWrapper, roomName, data.id);
+                        gameWrapper.dataset.memoryGameInitialized = "true";
                     }
                 }
             }
@@ -225,6 +229,8 @@ if (isWebSocketActive) {
 
                 if (gameWrapper.dataset.gameName === "puzzles") {
                     setupWhiteboardPuzzleSaveLoad(gameWrapper);
+                } else if (gameWrapper.dataset.gameName === "memory-game") {
+                    setupWhiteboardMemoryGame(gameWrapper);
                 }
             }
         } else if (data.type === 'game_element_blur') { // Удаление выделения
@@ -261,10 +267,13 @@ if (isWebSocketActive) {
             if (data.type === 'add_game_element') {
                 if (!gameElements[data.id]) {
                     const gameWrapper = createGameElementLocally(data.id, data.gameName, data.x, data.y, data.width, data.height);
-                    if (gameWrapper && data.gameName === "puzzles") {
-                        if (!gameWrapper.dataset.puzzleInitialized) {
-                            createPuzzleOnBoard(gameWrapper);
+                    if (gameWrapper) {
+                        if (data.gameName === "puzzles" && !gameWrapper.dataset.puzzleInitialized) {
+                            createPuzzleOnBoard(gameWrapper, roomName, data.id);
                             gameWrapper.dataset.puzzleInitialized = "true";
+                        } else if (data.gameName === "memory-game" && !gameWrapper.dataset.memoryGameInitialized) {
+                            createMemoryGameOnBoard(gameWrapper, roomName, data.id);
+                            gameWrapper.dataset.memoryGameInitialized = "true";
                         }
                     }
                 }
@@ -300,6 +309,8 @@ if (isWebSocketActive) {
                     gameWrapper.dataset.settingsUpdated = 'true';
                     if (gameWrapper.dataset.gameName === "puzzles") {
                         setupWhiteboardPuzzleSaveLoad(gameWrapper);
+                    } else if (gameWrapper.dataset.gameName === "memory-game") {
+                        setupWhiteboardMemoryGame(gameWrapper);
                     }
                  }
             } else if (data.type === 'game_element_blur') {
@@ -902,6 +913,8 @@ function createGameElementLocally(id, gameName, x, y, width, height) {
                 gameWrapper.dataset.settingsUpdated = 'true';
                 if (gameWrapper.dataset.gameName === "puzzles") {
                     setupWhiteboardPuzzleSaveLoad();
+                } else if (gameWrapper.dataset.gameName === "memory-game") {
+                    setupWhiteboardMemoryGame(gameWrapper);
                 }
             }
         } else {
@@ -945,11 +958,13 @@ document.querySelectorAll(".game-option").forEach(option => {
             ws.send(JSON.stringify(gameData));
         } else if (!isWebSocketActive) { // Локальный режим для доски
             const localGameWrapper = createGameElementLocally(gameId, gameName, initialX, initialY, initialWidth, initialHeight);
-            if (localGameWrapper && gameName === "puzzles") {
-                if (!localGameWrapper.dataset.puzzleInitialized) {
-                    // В локальном режиме roomName будет null, gameId будет сгенерирован.
+            if (localGameWrapper) {
+                if (gameName === "puzzles" && !localGameWrapper.dataset.puzzleInitialized) {
                     createPuzzleOnBoard(localGameWrapper, null, gameId);
                     localGameWrapper.dataset.puzzleInitialized = "true";
+                } else if (gameName === "memory-game" && !localGameWrapper.dataset.memoryGameInitialized) {
+                    createMemoryGameOnBoard(localGameWrapper, null, gameId);
+                    localGameWrapper.dataset.memoryGameInitialized = "true";
                 }
             }
             if (ws.send && typeof ws.send === 'function') {
@@ -1156,10 +1171,6 @@ function clearDynamicSettings() {
     if (!settingsPanel) return;
     const dynamicElements = settingsPanel.querySelectorAll('.dynamic-setting');
     dynamicElements.forEach(el => el.remove());
-    const puzzleSettingsContainer = settingsPanel.querySelector('.puzzle-settings-container');
-    if (puzzleSettingsContainer) {
-        puzzleSettingsContainer.remove();
-    }
 }
 
 /**
@@ -1241,5 +1252,49 @@ function updateGameSettings(gameName) {
 
         // Добавляем в панель настроек
         settingsPanel.appendChild(settingsContainer);
-    } else if (gameName === "another-game") {}
+    } else if (gameName === "memory-game") {
+        const settingsContainer = document.createElement('div');
+        settingsContainer.className = "dynamic-setting memory-game-settings-container";
+        
+        const content = `
+            <div class="settings-content-inner">
+                <h2>Настройки "Поиск пар"</h2>
+                <label for="game-name">Название игры:</label>
+                <input type="text" id="game-name" placeholder="Моя игра в пары">
+
+                <h3>Выберите набор карточек:</h3>
+                <div class="presets-container">
+                    <div class="preset-set" data-set-name="fruits">Фрукты 🍓</div>
+                    <div class="preset-set" data-set-name="animals">Животные 🐼</div>
+                </div>
+
+                <label for="custom-images-input" class="upload-label">
+                    ИЛИ Загрузите свои изображения:
+                </label>
+                <input type="file" id="custom-images-input" accept="image/*" multiple>
+                
+                <div id="custom-images-preview" class="image-preview-container" style="display: none;">
+                    <p id="custom-images-info-text">Загружено изображений: <span id="custom-images-count">0</span></p>
+                    <div class="preview-grid"></div>
+                </div>
+
+                <label for="pair-count-select">Количество пар:</label>
+                <select id="pair-count-select">
+                    <option value="2">2 пары</option>
+                    <option value="3">3 пары</option>
+                    <option value="4" selected>4 пары</option>
+                    <option value="5">5 пары</option>
+                    <option value="6">6 пар</option> 
+                </select>
+                
+                <div class="settings-buttons">
+                    <button id="start-memory-game">Перемешать</button> <!-- На доске кнопка может выполнять роль "перемешать" -->
+                </div>
+            </div>
+        `;
+
+        settingsContainer.innerHTML = content;
+        
+        settingsPanel.appendChild(settingsContainer);   
+    }
 }

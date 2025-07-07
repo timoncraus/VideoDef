@@ -1,4 +1,4 @@
-const PRESET_IMAGE_SETS_CONFIG = {
+export const PRESET_IMAGE_SETS_CONFIG = {
     fruits: [
         'fruits/apple.png', 'fruits/banana.png', 'fruits/cherry.png', 'fruits/grapes.png', 
         'fruits/lemon.png', 'fruits/orange.png', 'fruits/strawberry.png', 'fruits/pineapple.png',
@@ -115,16 +115,14 @@ export function shuffle(array) {
  * @returns {boolean} `true` если инициализация прошла успешно, `false` в случае ошибки (например, нехватка изображений).
  */
 export function initializeBoard(boardWrapper, gameParams) {
-    // Сбрасываем ссылки на DOM-элементы
     gameParams.uiTimeEl = null;
     gameParams.uiAttemptsEl = null;
     gameParams.uiCompletionMessageEl = null;
     gameParams.uiCompletionTextEl = null;
 
-    // Очищаем обертку от предыдущего содержимого
     boardWrapper.innerHTML = ''; 
     
-    // Создаем главный контейнер для игровой доски=
+    // Создаем главный контейнер для игровой доски
     const gameBoard = document.createElement('div');
     gameBoard.className = 'memory-game-board';
     boardWrapper.appendChild(gameBoard); 
@@ -174,7 +172,6 @@ export function initializeBoard(boardWrapper, gameParams) {
     // Подготовка набора изображений для игры
     let imagesForGame; 
     if (gameParams.isCustomSet) { // Если используется пользовательский набор
-        // Проверяем, достаточно ли загружено уникальных изображений для выбранного количества пар
         if (gameParams.customImageObjects.length < gameParams.pairCount) {
             boardWrapper.innerHTML = `<p class="initial-message">Ошибка: Загружено ${gameParams.customImageObjects.length} уникальных изображений, а нужно ${gameParams.pairCount} для пар. Пожалуйста, загрузите больше изображений или выберите меньшую сложность.</p>`;
             if(gameParams.uiCompletionMessageEl) gameParams.uiCompletionMessageEl.style.display = 'none';
@@ -184,7 +181,6 @@ export function initializeBoard(boardWrapper, gameParams) {
         const uniqueCustomUrls = gameParams.customImageObjects.slice(0, gameParams.pairCount).map(obj => obj.url);
         imagesForGame = shuffle([...uniqueCustomUrls, ...uniqueCustomUrls]);
     } else { // Если используется предустановленный набор
-        // Проверяем, достаточно ли изображений в выбранном пресете
         if (gameParams.selectedImageSet.length < gameParams.pairCount) {
             boardWrapper.innerHTML = `<p class="initial-message">Ошибка: В выбранном наборе ${gameParams.selectedImageSet.length} изображений, а нужно ${gameParams.pairCount} для пар. Выберите другой набор или сложность.</p>`;
             if(gameParams.uiCompletionMessageEl) gameParams.uiCompletionMessageEl.style.display = 'none';
@@ -220,11 +216,9 @@ export function initializeBoard(boardWrapper, gameParams) {
         const backFace = document.createElement('div');
         backFace.classList.add('card-face', 'back');
 
-        // Добавляем лицевую и оборотную стороны в контейнер карточки
         cardItem.appendChild(frontFace);
         cardItem.appendChild(backFace);
         
-        // Назначаем обработчик клика
         cardItem.addEventListener('click', () => handleCardClick(cardItem, gameParams));
         cardsGridContainer.appendChild(cardItem);
     });
@@ -259,11 +253,10 @@ function handleCardClick(clickedCard, gameParams) {
 
     clickedCard.classList.add('flipped');
 
-    if (!gameParams.firstSelectedCard) { // Если это первая выбранная карточка
+    if (!gameParams.firstSelectedCard) {
         gameParams.firstSelectedCard = clickedCard;
         return;
     }
-    // Если это вторая выбранная карточка
     gameParams.secondSelectedCard = clickedCard;
     gameParams.lockBoard = true;
     gameParams.attempts++;
