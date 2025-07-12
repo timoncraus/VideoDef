@@ -702,7 +702,7 @@ export function setupWhiteboardPuzzleSaveLoad(activeGameWrapper) {
     const loadButton = settingsPanel.querySelector('#load-puzzle-btn');
     const startBtnOnPanel = settingsPanel.querySelector('#start-game'); // Кнопка "Начать игру" на панели
 
-    const loadModal = document.getElementById('load-puzzle-modal'); // Глобальное модальное окно
+    const loadModal = document.getElementById('load-game-modal'); // Глобальное модальное окно
     const loadListContainer = document.getElementById('load-list-container');
     const loadConfirmBtn = document.getElementById('load-confirm-btn');
     const loadCancelBtn = document.getElementById('load-cancel-btn');

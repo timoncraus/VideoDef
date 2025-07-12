@@ -1,27 +1,25 @@
-/* --- Стили для Панели Настроек Игры --- */
-
 /* Общий контейнер панели настроек */
 .game-settings-panel {
-    width: 35%; /* Базовая ширина, может быть переопределена для конкретной игры */
-    min-width: 320px; /* Минимальная ширина для читаемости */
-    max-width: 450px; /* Максимальная ширина */
-    height: 600px;    /* Фиксированная высота, как в пазлах */
+    width: 35%;
+    min-width: 320px;
+    max-width: 450px;
+    height: 600px;
     background: white;
     border: 3px solid #005f7f; 
     border-radius: 10px; 
-    padding: 0; /* Внешний padding убран, внутренний у .settings-content-inner */
+    padding: 0;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-    overflow-y: auto; /* Позволяет прокручивать содержимое, если оно не помещается */
+    overflow-y: auto;
     box-sizing: border-box;
-    display: flex; /* Для корректного растягивания .settings-content-inner */
+    display: flex;
     flex-direction: column;
 }
 
 /* Внутренний контейнер для контента настроек */
 .settings-content-inner {
-    padding: 20px; /* Внутренние отступы для всего содержимого */
-    text-align: left; /* Текст меток и т.д. выравнивается по левому краю */
-    flex-grow: 1; /* Позволяет этому блоку занимать все доступное место по высоте */
+    padding: 20px;
+    text-align: left;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
 }
@@ -54,15 +52,15 @@
     width: 100%; 
     padding: 8px;
     margin-bottom: 15px; 
-    border: 1px solid #00bfff; /* Яркая рамка для акцента */
+    border: 1px solid #00bfff;
     border-radius: 4px;
     box-sizing: border-box; 
     font-size: 0.9em;
-    background-color: #fff; /* Явный фон для инпутов */
+    background-color: #fff;
 }
 /* Специфичный стиль для input type=file, если он отличается от text/select */
 .settings-content-inner input[type="file"] {
-     margin-top: 5px; /* Небольшой отступ сверху для input файла */
+     margin-top: 5px;
      margin-bottom: 10px;
 }
 
@@ -75,8 +73,8 @@
     gap: 10px;
     margin: 15px 0; 
     padding: 10px; 
-    background-color: #f0f8ff; /* Светло-голубой фон для пресетов */
-    border: 2px solid #00bfff; /* Рамка в цвет инпутов */
+    background-color: #f0f8ff;
+    border: 2px solid #00bfff;
     border-radius: 8px;
 }
 
@@ -119,7 +117,7 @@
 /* Метка для загрузки файлов */
 .upload-label {
     display: block;
-    margin: 15px 0 10px 0; /* Отступы для метки загрузки */
+    margin: 15px 0 10px 0;
     font-weight: bold;
     font-size: 0.9em;
 }
@@ -130,7 +128,7 @@
     margin-bottom: 20px;
     padding: 10px;
     background-color: #f9f9f9;
-    border: 1px dashed #00bfff; /* Пунктирная рамка */
+    border: 1px dashed #00bfff;
     border-radius: 5px;
     text-align: center; 
 }
@@ -151,10 +149,10 @@
     width: 80px; 
     height: 80px;
     object-fit: cover; 
-    border: 1px solid #00bfff; /* Рамка для миниатюр */
+    border: 1px solid #00bfff;
     border-radius: 3px;
 }
-#image-preview { /* Специфично для пазлов, если нужно по центру */
+#image-preview {
      display: block;
      margin: 0 auto 8px auto; 
 }
@@ -162,10 +160,10 @@
 
 /* Контейнер для кнопок внизу панели настроек */
 .settings-buttons { 
-    margin-top: auto; /* Прижимает кнопки к низу, если .settings-content-inner это flex-контейнер */
-    padding-top: 20px; /* Отступ сверху перед кнопками */
+    margin-top: auto;
+    padding-top: 20px;
     display: flex; 
-    justify-content: space-around; /* Распределяет кнопки */
+    justify-content: space-around;
     gap: 10px;
     flex-wrap: wrap; 
 }
@@ -179,15 +177,15 @@
     color: white; 
     cursor: pointer; 
     transition: background-color 0.2s, box-shadow 0.2s; 
-    flex-grow: 1; /* Кнопки занимают доступное пространство */
+    flex-grow: 1;
     min-width: 100px; 
     text-align: center; 
-    border: 2px solid transparent; /* Для согласованности */
+    border: 2px solid transparent;
 }
 
-/* Стили для разных типов кнопок (можно переопределить в специфичных CSS файлах игры) */
-.settings-buttons button#start-memory-game, /* Для игры "Поиск пар" */
-.settings-buttons button#start-game {       /* Для игры "Пазлы" */
+/* Стили для разных типов кнопок */
+.settings-buttons button#start-memory-game,
+.settings-buttons button#start-game {
     background-color: #28a745; 
     border-color: #1c7430; 
 }
@@ -198,12 +196,16 @@
 }
 
 .settings-buttons button#save-puzzle-btn,
-.settings-buttons button#load-puzzle-btn {
-    background-color: #007bff; 
+.settings-buttons button#load-puzzle-btn,
+.settings-buttons button#save-memory-game-btn,
+.settings-buttons button#load-memory-game-btn {
+    background-color: #007bff;
     border-color: #0056b3;
 }
 .settings-buttons button#save-puzzle-btn:hover,
-.settings-buttons button#load-puzzle-btn:hover {
-    background-color: #0056b3; 
+.settings-buttons button#load-puzzle-btn:hover,
+.settings-buttons button#save-memory-game-btn:hover,
+.settings-buttons button#load-memory-game-btn:hover {
+    background-color: #0056b3;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }

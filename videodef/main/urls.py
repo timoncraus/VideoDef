@@ -62,6 +62,10 @@ game_patterns = [
     path('puzzles/load/', game_views.load_puzzles_view, name='load_puzzles'),
     path('puzzles/update/<str:game_id>/', game_views.update_puzzle_view, name='update_puzzle'),
 
+    path('memory-game/save/', game_views.save_memory_game_view, name='save_memory_game'),
+    path('memory-game/load/', game_views.load_memory_games_view, name='load_memory_games'),
+    path('memory-game/update/<str:game_id>/', game_views.update_memory_game_view, name='update_memory_game'),
+
     # Удаление игры
     path('delete/<str:game_id>/', game_views.delete_game_view, name='delete_game'),
 ]

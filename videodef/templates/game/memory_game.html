@@ -4,18 +4,21 @@
 {% block style %}
 <link rel="stylesheet" href="{% static 'css/game/memory_game.css' %}" />
 <link rel="stylesheet" href="{% static 'css/game/game_settings_panel.css' %}" />
+<link rel="stylesheet" href="{% static 'css/game/game_load_window.css' %}" />
 {% endblock %}
 
 {% block page_name %}Поиск пар{% endblock %}
 
 {% block content %}
 <div class="memory-page-wrapper">
+    <!-- Игровая зона -->
     <div id="memory-game-area" class="memory-game-area">
         <div id="memory-game-wrapper" class="memory-game-wrapper">
             <p class="initial-message">Выберите настройки и нажмите "Начать игру".</p>
         </div>
     </div>
 
+    <!-- Панель настроек игры -->
     <div id="memory-game-settings" class="game-settings-panel">
         <div class="settings-content-inner">
             <h2>Настройки игры</h2>
@@ -42,9 +45,28 @@
                 <option value="5">5 пары</option>
                 <option value="6">6 пар</option> 
             </select>
+
+            <!-- Кнопки управления игрой -->
             <div class="settings-buttons">
                 <button id="start-memory-game">Начать игру</button>
+                <button id="save-memory-game-btn">Сохранить</button>
+                <button id="load-memory-game-btn">Загрузить</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для загрузки игр типа 'Поиск пар' -->
+<div id="load-game-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <h2>Выберите сохраненную игру</h2>
+        <div id="load-list-container">
+            <!-- Сюда JS добавит список игр -->
+            <p>Загрузка...</p>
+        </div>
+        <div class="modal-buttons">
+            <button id="load-confirm-btn" disabled>Загрузить выбранный</button>
+            <button id="load-cancel-btn">Отмена</button>
         </div>
     </div>
 </div>
@@ -55,6 +77,10 @@
     const isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
     const loginUrl = "{% url 'login' %}?next=" + window.location.pathname;
     const presetImagesBasePath = "{% static 'images/memory_game_presets/' %}"; 
+    const saveMemoryGameUrl = "{% url 'save_memory_game' %}";
+    const loadMemoryGamesUrl = "{% url 'load_memory_games' %}";
+    const updateMemoryGameBaseUrl = "{% url 'update_memory_game' game_id=0 %}"; 
+    const csrfToken = "{{ csrf_token }}";
 </script>
 <script src="{% static 'js/game/memory_game.bundle.js' %}"></script>
 <script>

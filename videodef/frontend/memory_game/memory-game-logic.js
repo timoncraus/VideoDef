@@ -67,15 +67,14 @@ function calculateGridDimensions(totalCards) {
 export function getGameParts() {
     return {
         // Параметры по умолчанию
+        id: null,
         name: "Моя игра в пары",
         pairCount: 4,
         selectedImageSet: getFullPresetImageUrls(DEFAULT_PRESET_NAME),
         isCustomSet: false,
-        customImageObjects: [],
-        
+        customImageObjects: [], // { url: DataURL, file: FileObject } для пользовательских изображений
+        card_layout: [],
         gridSize: { rows: 0, cols: 0 },
-        cardContentSet: [],
-        
         firstSelectedCard: null,
         secondSelectedCard: null,
         matchesFound: 0,
@@ -90,7 +89,13 @@ export function getGameParts() {
         uiTimeEl: null,
         uiAttemptsEl: null,
         uiCompletionMessageEl: null,
-        uiCompletionTextEl: null
+        uiCompletionTextEl: null,
+
+        // Параметры для доски
+        onWhiteboard: false,
+        gameId: null,
+        boardRoomName: null,
+        ws: null
     };
 }
 
@@ -112,14 +117,9 @@ export function shuffle(array) {
  * Инициализирует и создает игровое поле.
  * @param {HTMLElement} boardWrapper - DOM-элемент, в который будет встроено игровое поле (`.memory-game-wrapper`).
  * @param {object} gameParams - Объект с текущими параметрами игры.
- * @returns {boolean} `true` если инициализация прошла успешно, `false` в случае ошибки (например, нехватка изображений).
+ * @param {boolean} useExistingLayout - Если true, использует gameParams.card_layout, иначе генерирует новый.
  */
-export function initializeBoard(boardWrapper, gameParams) {
-    gameParams.uiTimeEl = null;
-    gameParams.uiAttemptsEl = null;
-    gameParams.uiCompletionMessageEl = null;
-    gameParams.uiCompletionTextEl = null;
-
+export function initializeBoard(boardWrapper, gameParams, useExistingLayout = false) {
     boardWrapper.innerHTML = ''; 
     
     // Создаем главный контейнер для игровой доски
@@ -144,24 +144,19 @@ export function initializeBoard(boardWrapper, gameParams) {
     gameBoard.appendChild(cardsGridContainer);
 
     // Создаем DOM-элемент для сообщения о завершении игры, если он еще не был создан.
-    if (!gameParams.uiCompletionMessageEl) { 
-        const completionMessageDiv = document.createElement('div');
-        completionMessageDiv.id = 'game-completion-message';
-        completionMessageDiv.style.display = 'none';
-        const completionTextP = document.createElement('p');
-        completionMessageDiv.appendChild(completionTextP);
-        boardWrapper.appendChild(completionMessageDiv); 
-        gameParams.uiCompletionMessageEl = completionMessageDiv;
-        gameParams.uiCompletionTextEl = completionTextP;
-    } else {
-        gameParams.uiCompletionMessageEl.style.display = 'none';
-    }
+    const completionMessageDiv = document.createElement('div');
+    completionMessageDiv.id = 'game-completion-message';
+    completionMessageDiv.style.display = 'none';
+    const completionTextP = document.createElement('p');
+    completionMessageDiv.appendChild(completionTextP);
+    boardWrapper.appendChild(completionMessageDiv); 
+
+    // Каждый раз сохраняем ссылку на новый, существующий в DOM элемент.
+    gameParams.uiCompletionMessageEl = completionMessageDiv;
+    gameParams.uiCompletionTextEl = completionTextP;
 
     // Обновляем/сбрасываем игровые параметры
     gameParams.totalMatches = gameParams.pairCount;
-    const totalCards = gameParams.pairCount * 2;
-    gameParams.gridSize = calculateGridDimensions(totalCards);
-    
     gameParams.matchesFound = 0;
     gameParams.attempts = 0;
     gameParams.firstSelectedCard = null;
@@ -169,40 +164,43 @@ export function initializeBoard(boardWrapper, gameParams) {
     gameParams.lockBoard = false;
     gameParams.secondsElapsed = 0;
 
-    // Подготовка набора изображений для игры
-    let imagesForGame; 
-    if (gameParams.isCustomSet) { // Если используется пользовательский набор
-        if (gameParams.customImageObjects.length < gameParams.pairCount) {
-            boardWrapper.innerHTML = `<p class="initial-message">Ошибка: Загружено ${gameParams.customImageObjects.length} уникальных изображений, а нужно ${gameParams.pairCount} для пар. Пожалуйста, загрузите больше изображений или выберите меньшую сложность.</p>`;
-            if(gameParams.uiCompletionMessageEl) gameParams.uiCompletionMessageEl.style.display = 'none';
-            updateUIDetails(gameParams);
-            return false;
+    let uniqueImageUrls;
+    if (gameParams.isCustomSet) {
+        const sourceUrls = (gameParams.customImageObjects && gameParams.customImageObjects.length > 0)
+            ? gameParams.customImageObjects.map(obj => obj.url)
+            : gameParams.selectedImageSet;
+        if (!sourceUrls || sourceUrls.length < gameParams.pairCount) {
+            boardWrapper.innerHTML = `<p class="initial-message">Ошибка: Недостаточно пользовательских изображений.</p>`;
+            return;
         }
-        const uniqueCustomUrls = gameParams.customImageObjects.slice(0, gameParams.pairCount).map(obj => obj.url);
-        imagesForGame = shuffle([...uniqueCustomUrls, ...uniqueCustomUrls]);
-    } else { // Если используется предустановленный набор
+        uniqueImageUrls = sourceUrls.slice(0, gameParams.pairCount);
+    } else {
         if (gameParams.selectedImageSet.length < gameParams.pairCount) {
-            boardWrapper.innerHTML = `<p class="initial-message">Ошибка: В выбранном наборе ${gameParams.selectedImageSet.length} изображений, а нужно ${gameParams.pairCount} для пар. Выберите другой набор или сложность.</p>`;
-            if(gameParams.uiCompletionMessageEl) gameParams.uiCompletionMessageEl.style.display = 'none';
-            updateUIDetails(gameParams);
-            return false;
+             boardWrapper.innerHTML = `<p class="initial-message">Ошибка: Недостаточно изображений в пресете.</p>`;
+             return;
         }
-        const neededImageUrls = gameParams.selectedImageSet.slice(0, gameParams.pairCount);
-        imagesForGame = shuffle([...neededImageUrls, ...neededImageUrls]);
+        uniqueImageUrls = gameParams.selectedImageSet.slice(0, gameParams.pairCount);
     }
-    gameParams.cardContentSet = imagesForGame; // Сохраняем подготовленный набор URL-ов
+    
+    if (!useExistingLayout || !gameParams.card_layout || gameParams.card_layout.length !== gameParams.pairCount * 2) {
+        const indices = Array.from({ length: gameParams.pairCount }, (_, i) => i);
+        gameParams.card_layout = shuffle([...indices, ...indices]);
+    }
 
     // Настраиваем CSS Grid для контейнера карточек
+    const totalCards = gameParams.pairCount * 2;
+    gameParams.gridSize = calculateGridDimensions(totalCards);
     cardsGridContainer.style.gridTemplateColumns = `repeat(${gameParams.gridSize.cols}, 1fr)`;
     cardsGridContainer.style.gridTemplateRows = `repeat(${gameParams.gridSize.rows}, 1fr)`;
 
     // Создаем и добавляем карточки на поле
-    gameParams.cardContentSet.forEach((imageUrl, index) => {
+    gameParams.card_layout.forEach((imageIndex, cardDomIndex) => {
+        const imageUrl = uniqueImageUrls[imageIndex];
         const cardItem = document.createElement('div');
         cardItem.classList.add('memory-card');
         cardItem.dataset.imageUrl = imageUrl;
-        cardItem.dataset.id = index;
-
+        cardItem.dataset.cardDomIndex = cardDomIndex;
+        
         // Создаем лицевую сторону карточки
         const frontFace = document.createElement('div');
         frontFace.classList.add('card-face', 'front');
@@ -238,7 +236,7 @@ function updateUIDetails(gameParams) {
 }
 
 /**
- * Обрабатывает клик по карточке.
+ * Обрабатывает клик по карточке. Отправляет событие по WebSocket, если игра на доске.
  * @param {HTMLElement} clickedCard - DOM-элемент карточки, по которой кликнули.
  * @param {object} gameParams - Объект с параметрами игры.
  */
@@ -250,7 +248,40 @@ function handleCardClick(clickedCard, gameParams) {
         gameParams.matchesFound === gameParams.totalMatches) {
         return;
     }
+    if (gameParams.onWhiteboard && gameParams.ws && gameParams.ws.readyState === WebSocket.OPEN) {
+        gameParams.ws.send(JSON.stringify({
+            type: 'card_click',
+            cardDomIndex: parseInt(clickedCard.dataset.cardDomIndex, 10)
+        }));
+    }
+    flipAndCheck(clickedCard, gameParams, true);
+}
 
+/**
+ * Применяет удаленный клик по карточке, полученный через WebSocket.
+ * @param {HTMLElement} boardWrapper - Контейнер игры.
+ * @param {object} gameParams - Параметры игры.
+ * @param {number} cardDomIndex - Индекс карточки, по которой кликнули.
+ */
+export function applyRemoteCardClick(boardWrapper, gameParams, cardDomIndex) {
+    const cardToClick = boardWrapper.querySelector(`.memory-card[data-card-dom-index="${cardDomIndex}"]`);
+    if (cardToClick) {
+        console.log(`Применение удаленного клика по карточке с индексом ${cardDomIndex}`);
+        flipAndCheck(cardToClick, gameParams, false);
+    } else {
+        console.warn(`[REMOTE] Карточка с индексом ${cardDomIndex} не найдена.`);
+    }
+}
+
+/**
+ * Общая логика переворота карточки и проверки совпадения.
+ * @param {HTMLElement} clickedCard - Карточка для взаимодействия.
+ * @param {object} gameParams - Параметры игры.
+ * @param {boolean} isInitiator - true, если это локальный клик, инициирующий ход.
+ */
+function flipAndCheck(clickedCard, gameParams, isInitiator) {
+    if (clickedCard.classList.contains('flipped') || clickedCard.classList.contains('matched') || gameParams.lockBoard) return;
+    
     clickedCard.classList.add('flipped');
 
     if (!gameParams.firstSelectedCard) {
@@ -259,8 +290,12 @@ function handleCardClick(clickedCard, gameParams) {
     }
     gameParams.secondSelectedCard = clickedCard;
     gameParams.lockBoard = true;
-    gameParams.attempts++;
-    updateUIDetails(gameParams);
+    
+    if (isInitiator) { // Счетчик ходов увеличивается только у того, кто начал ход.
+        gameParams.attempts++;
+        updateUIDetails(gameParams);
+    }
+
     checkForMatch(gameParams);
 }
 

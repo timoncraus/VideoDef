@@ -5,13 +5,14 @@ from django.views.decorators.http import require_POST, require_GET, require_http
 from django.core.exceptions import ValidationError
 from django.db import transaction, InternalError
 from django.core.files.uploadhandler import MemoryFileUploadHandler, TemporaryFileUploadHandler
+from django.core.files.storage import default_storage
 from django.http.multipartparser import MultiPartParser
 from django.conf import settings
 from django.templatetags.static import static
 from django.db.models import Value, CharField, OuterRef, Subquery, F
 from django.db.models.functions import Concat, Coalesce
 from io import BytesIO
-from .models import UserGame, UserPuzzle, Genre
+from .models import UserGame, UserPuzzle, UserMemoryGame, Genre, get_memory_game_image_path
 import json
 import traceback
 
@@ -46,19 +47,14 @@ def whiteboard(request):
 
 @login_required
 def my_games_view(request):
-    """
-    Отображает страницу со списком всех сохраненных игр текущего пользователя
-    """
-    
-    # --- Получение базового запроса с аннотацией display_name ---
-    puzzle_name_subquery = UserPuzzle.objects.filter(
-        game_id=OuterRef('pk')
-    ).values('name')[:1]
+    puzzle_name_subquery = UserPuzzle.objects.filter(game_id=OuterRef('pk')).values('name')[:1]
+    memory_game_name_subquery = UserMemoryGame.objects.filter(game_id=OuterRef('pk')).values('name')[:1]
 
     user_games_query = UserGame.objects.filter(user=request.user)\
     .select_related('genre').annotate(
         display_name=Coalesce(
             Subquery(puzzle_name_subquery, output_field=CharField(null=True)),
+            Subquery(memory_game_name_subquery, output_field=CharField(null=True)),
             Concat(F('genre__name'), Value(' ('), F('game_id'), Value(')'))
         )
     )
@@ -72,14 +68,7 @@ def my_games_view(request):
     # --- Обработка сортировки ---
     sort_by_param = request.GET.get('sort_by', 'created')
     sort_order_param = request.GET.get('order', 'desc')
-
-    valid_sort_fields = {
-        'name': 'display_name',
-        'genre': 'genre__name',
-        'created': 'created_at',
-        'updated': 'updated_at'
-    }
-    
+    valid_sort_fields = {'name': 'display_name', 'genre': 'genre__name', 'created': 'created_at', 'updated': 'updated_at'}
     sort_field_db = valid_sort_fields.get(sort_by_param, 'created_at')
 
     if sort_order_param == 'desc':
@@ -90,18 +79,39 @@ def my_games_view(request):
     # Выполняем запрос
     user_games_list = list(user_games_query)
 
-    # --- Добавление URL изображений для пазлов ---
+    # --- Добавление URL изображений игр ---
     puzzle_game_pks = [game.pk for game in user_games_list if game.genre.code == 'PZL']
+    memory_game_pks = [game.pk for game in user_games_list if game.genre.code == 'MEM']
+
     puzzle_details_map = {}
     if puzzle_game_pks:
-        puzzles_data = UserPuzzle.objects.filter(game_id__in=puzzle_game_pks)\
-        .only('game_id', 'preset_image_path', 'user_image')
+        puzzles_data = UserPuzzle.objects.filter(game_id__in=puzzle_game_pks).only('game_id', 'preset_image_path', 'user_image')
         for p_data in puzzles_data:
             puzzle_details_map[p_data.game_id] = p_data.image_url
+
+    memory_game_details_map = {}
+    if memory_game_pks:
+        for game_pk in memory_game_pks:
+            details = UserMemoryGame.objects.get(pk=game_pk)
+            if details.custom_image_paths and details.custom_image_paths[0]:
+                memory_game_details_map[game_pk] = default_storage.url(details.custom_image_paths[0])
+            elif details.preset_name:
+                try:
+                    base_path = settings.STATIC_URL + 'images/memory_game_presets/'
+                    if details.preset_name == 'fruits':
+                        memory_game_details_map[game_pk] = base_path + 'fruits/apple.png'
+                    elif details.preset_name == 'animals':
+                         memory_game_details_map[game_pk] = base_path + 'animals/panda.png'
+                    else:
+                        memory_game_details_map[game_pk] = static('images/Memory_game_icon.png')
+                except Exception:
+                     memory_game_details_map[game_pk] = static('images/Memory_game_icon.png')
 
     for game_obj in user_games_list:
         if game_obj.genre.code == 'PZL':
             game_obj.display_image_url = puzzle_details_map.get(game_obj.pk)
+        elif game_obj.genre.code == 'MEM':
+            game_obj.display_image_url = memory_game_details_map.get(game_obj.pk)
         else:
             game_obj.display_image_url = None
 
@@ -109,13 +119,8 @@ def my_games_view(request):
     context = {
         'user_games': user_games_list,
         'genres_for_filter': genres_for_filter,
-        'current_filters': {
-            'genre': selected_genre_id,
-        },
-        'current_sort': {
-            'by': sort_by_param,
-            'order': sort_order_param,
-        }
+        'current_filters': {'genre': selected_genre_id},
+        'current_sort': {'by': sort_by_param, 'order': sort_order_param}
     }
     return render(request, "game/my_games.html", context)
 
@@ -126,31 +131,25 @@ def delete_game_view(request, game_id):
     Удаляет игру с указанным game_id, принадлежащую текущему пользователю.
     """
     try:
-        game_to_delete = get_object_or_404(UserGame, pk=game_id, user=request.user)
+        game_to_delete = get_object_or_404(UserGame.objects.select_related(
+            'puzzle_details', 'memory_game_details'
+        ), pk=game_id, user=request.user)
         
-        game_name_display = game_to_delete.game_id
-        
-        if game_to_delete.genre and game_to_delete.genre.code == 'PZL':
-            try:
-                if hasattr(game_to_delete, 'puzzle_details') and game_to_delete.puzzle_details:
-                    game_name_display = game_to_delete.puzzle_details.name
-            except UserPuzzle.DoesNotExist:
-                pass
+        display_name = game_to_delete.game_id
+        if hasattr(game_to_delete, 'puzzle_details') and game_to_delete.puzzle_details:
+            display_name = game_to_delete.puzzle_details.name
+        elif hasattr(game_to_delete, 'memory_game_details') and game_to_delete.memory_game_details:
+            display_name = game_to_delete.memory_game_details.name
 
         game_to_delete.delete()
         
-        return JsonResponse({
-            'status': 'success',
-            'message': f'Игра "{game_name_display}" успешно удалена.'
-        })
-
+        return JsonResponse({'status': 'success', 'message': f'Игра "{display_name}" успешно удалена.'})
     except UserGame.DoesNotExist: 
-        return JsonResponse({'status': 'error', 'message': 'Игра не найдена или у вас нет прав на её удаление.'}, status=404)
+        return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
     except Exception as e:
-        print(f"Ошибка при удалении игры {game_id} для пользователя {request.user.username}: {e}")
-        traceback.print_exc()
-        return JsonResponse({'status': 'error', 'message': 'Произошла ошибка при удалении игры.'}, status=500)
-
+        print(f"Ошибка при удалении игры {game_id}: {e}")
+        return JsonResponse({'status': 'error', 'message': 'Ошибка при удалении.'}, status=500)
+    
 @login_required
 @require_POST
 def save_puzzle_view(request):
@@ -410,3 +409,156 @@ def update_puzzle_view(request, game_id):
             'status': 'error',
             'message': 'Произошла внутренняя ошибка сервера при обновлении пазла. Попробуйте позже.'
         }, status=500)
+    
+
+@login_required
+@require_POST
+@transaction.atomic
+def save_memory_game_view(request):
+    """
+    Обрабатывает POST-запрос для сохранения состояния игры 'Поиск пар' для текущего пользователя.
+    Ожидает данные в формате FormData (из request.POST и request.FILES).
+    Создает записи в UserGame и UserMemoryGame.
+    """
+    try:
+        memory_genre = Genre.objects.get(code='MEM')
+    except Genre.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Ошибка конфигурации: Жанр "Поиск пар" не найден.'}, status=500)
+
+    try:
+        data = request.POST
+        files = request.FILES
+
+        name = data.get('name', '').strip()
+        pair_count = int(data.get('pairCount', 0))
+        card_layout = json.loads(data.get('cardLayout', '[]'))
+        preset_name = data.get('presetName') or None
+        custom_images = files.getlist('customImages[]')
+
+        # --- Валидация ---
+        if not name: 
+            return JsonResponse({'status': 'error', 'message': 'Название не может быть пустым.'}, status=400)
+        if not (2 <= pair_count <= 50): 
+            return JsonResponse({'status': 'error', 'message': 'Неверное количество пар.'}, status=400)
+        if not (isinstance(card_layout, list) and len(card_layout) == pair_count * 2 and all(isinstance(i, int) for i in card_layout)):
+            return JsonResponse({'status': 'error', 'message': 'Некорректные данные о расположении карточек.'}, status=400)
+
+        # --- Логика определения типа набора ---
+        is_custom_set = bool(custom_images)
+        if not preset_name and not is_custom_set:
+            return JsonResponse({'status': 'error', 'message': 'Необходимо выбрать пресет или загрузить изображения.'}, status=400)
+
+        custom_image_paths = []
+        if is_custom_set:
+            if len(custom_images) < pair_count:
+                return JsonResponse({'status': 'error', 'message': f'Недостаточно пользовательских изображений. Загружено {len(custom_images)}, требуется {pair_count}.'}, status=400)
+            
+            for file in custom_images:
+                file_path = get_memory_game_image_path(None, file.name)
+                saved_path = default_storage.save(file_path, file)
+                custom_image_paths.append(saved_path)
+        
+        new_game = UserGame.objects.create(user=request.user, genre=memory_genre)
+        
+        UserMemoryGame.objects.create(
+            game=new_game,
+            name=name,
+            pair_count=pair_count,
+            card_layout=card_layout,
+            preset_name=preset_name,
+            custom_image_paths=custom_image_paths if custom_image_paths else None
+        )
+
+        return JsonResponse({'status': 'success', 'message': f'Игра "{name}" успешно сохранена!', 'id': new_game.pk})
+    except Exception as e:
+        print(f"Ошибка при сохранении 'Поиска пар': {e}")
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при сохранении.'}, status=500)
+
+
+@login_required
+@require_GET
+def load_memory_games_view(request):
+    """
+    Обрабатывает GET-запрос для получения списка всех сохраненных игр 'Поиск пар'
+    для текущего пользователя. Возвращает полный набор данных для каждой игры
+    """
+    try:
+        games = UserMemoryGame.objects.filter(game__user=request.user).select_related('game').order_by('-game__created_at')
+        
+        data_list = []
+        for g in games:
+            custom_image_urls = []
+            if g.custom_image_paths:
+                for path in g.custom_image_paths:
+                    if default_storage.exists(path):
+                        custom_image_urls.append(default_storage.url(path))
+            
+            data_list.append({
+                'id': g.pk,
+                'name': g.name,
+                'pair_count': g.pair_count,
+                'card_layout': g.card_layout,
+                'preset_name': g.preset_name,
+                'custom_image_urls': custom_image_urls if custom_image_urls else None,
+            })
+        return JsonResponse({'status': 'success', 'games': data_list})
+    except Exception as e:
+        print(f"Ошибка при загрузке 'Поиска пар': {e}")
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при загрузке.'}, status=500)
+
+
+@login_required
+@require_http_methods(["PUT"])
+@transaction.atomic
+def update_memory_game_view(request, game_id):
+    """
+    Обрабатывает PUT-запрос для обновления существующей игры 'Поиск пар'.
+    Данные ожидает в FormData.
+    """
+    try:
+        game_to_update = get_object_or_404(UserMemoryGame, pk=game_id, game__user=request.user)
+        
+        parser = MultiPartParser(request.META, BytesIO(request.body), request.upload_handlers)
+        post_data, files_data = parser.parse()
+        
+        name = post_data.get('name', '').strip()
+        pair_count = int(post_data.get('pairCount', 0))
+        card_layout = json.loads(post_data.get('cardLayout', '[]'))
+        preset_name = post_data.get('presetName') or None
+        custom_images = files_data.getlist('customImages[]')
+
+        if not name: return JsonResponse({'status': 'error', 'message': 'Название не может быть пустым.'}, status=400)
+        if not (2 <= pair_count <= 50): return JsonResponse({'status': 'error', 'message': 'Неверное количество пар.'}, status=400)
+        if not (isinstance(card_layout, list) and len(card_layout) == pair_count * 2 and all(isinstance(i, int) for i in card_layout)):
+            return JsonResponse({'status': 'error', 'message': 'Некорректные данные о расположении карточек.'}, status=400)
+
+        # Обновляем основные поля
+        game_to_update.name = name
+        game_to_update.pair_count = pair_count
+        game_to_update.card_layout = card_layout
+        
+        # Логика обновления изображений
+        if preset_name: # Пользователь переключился на пресет
+            game_to_update.delete_custom_images()
+            game_to_update.custom_image_paths = None
+            game_to_update.preset_name = preset_name
+        else: # Пользователь остался на пользовательском наборе
+            game_to_update.preset_name = None
+            if custom_images:
+                game_to_update.delete_custom_images()
+                new_paths = []
+                for file in custom_images:
+                    file_path = get_memory_game_image_path(None, file.name)
+                    saved_path = default_storage.save(file_path, file)
+                    new_paths.append(saved_path)
+                game_to_update.custom_image_paths = new_paths
+
+        game_to_update.save()
+        return JsonResponse({'status': 'success', 'message': f'Игра "{name}" успешно обновлена!'})
+    except UserMemoryGame.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
+    except Exception as e:
+        print(f"Ошибка при обновлении 'Поиска пар' (ID: {game_id}): {e}")
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при обновлении.'}, status=500)

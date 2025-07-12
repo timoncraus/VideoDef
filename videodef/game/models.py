@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.templatetags.static import static
+from django.core.files.storage import default_storage 
 import os
 import random
 import string
@@ -167,3 +168,70 @@ class UserPuzzle(models.Model):
     class Meta:
         verbose_name = "Данные о пазле"
         verbose_name_plural = "Данные о пазлах"
+
+# --- Функция для генерации пути сохранения загружаемых изображений для поиска пар ---
+def get_memory_game_image_path(instance, filename):
+    _, ext = os.path.splitext(filename)
+    random_filename = f"{uuid.uuid4().hex}{ext}"
+    return os.path.join("memory_game_images", random_filename)
+
+
+class UserMemoryGame(models.Model):
+    game = models.OneToOneField(
+        UserGame,
+        on_delete=models.CASCADE,
+        related_name='memory_game_details',
+        primary_key=True
+    )
+    name = models.CharField(
+        max_length=100,
+        blank=False,
+        verbose_name="Название игры 'Поиск пар'",
+        help_text="Название, которое пользователь дает созданному экземпляру поиска пар"
+    )
+    pair_count = models.PositiveSmallIntegerField(
+        verbose_name="Количество пар",
+        help_text="Количество пар изображений, которые нужно найти для победы в игре"
+    )
+    card_layout = models.JSONField(
+        verbose_name="Расположение карточек",
+        help_text="JSON-массив индексов уникальных изображений (от 0 до pair_count-1)"
+    )
+    preset_name = models.CharField(
+        max_length=50,
+        blank=True, null=True,
+        verbose_name="Название пресета",
+        help_text="Название стандартного набора изображений (если используется)"
+    )
+    custom_image_paths = models.JSONField(
+        blank=True, null=True,
+        verbose_name="Пути к пользовательским изображениям",
+        help_text="JSON-массив путей к файлам в медиа-хранилище"
+    )
+
+    def clean(self):
+        super().clean()
+        if not self.name:
+            raise ValidationError({'name': "Название не может быть пустым."})
+        if self.pair_count < 2:
+            raise ValidationError({'pair_count': "Количество пар должно быть не меньше 2."})
+        
+        if self.preset_name and self.custom_image_paths:
+            raise ValidationError("Нельзя одновременно указать и пресет, и пользовательские изображения.")
+        if not self.preset_name and not self.custom_image_paths:
+            raise ValidationError("Необходимо указать либо пресет, либо пользовательские изображения.")
+
+    def __str__(self):
+        return f"Данные игры '{self.name}' ({self.pair_count} пар) для {self.pk}"
+
+    def delete_custom_images(self):
+        """Метод для удаления связанных файлов с диска."""
+        if self.custom_image_paths:
+            for path in self.custom_image_paths:
+                if default_storage.exists(path):
+                    default_storage.delete(path)
+            print(f"Удалены пользовательские изображения для игры {self.pk}")
+
+    class Meta:
+        verbose_name = "Данные об игре 'Поиск пар'"
+        verbose_name_plural = "Данные об играх жанра 'Поиск пар'"

@@ -1289,6 +1289,8 @@ function updateGameSettings(gameName) {
                 
                 <div class="settings-buttons">
                     <button id="start-memory-game">Перемешать</button> <!-- На доске кнопка может выполнять роль "перемешать" -->
+                    <button id="save-memory-game-btn">Сохранить</button>
+                    <button id="load-memory-game-btn">Загрузить</button>
                 </div>
             </div>
         `;
