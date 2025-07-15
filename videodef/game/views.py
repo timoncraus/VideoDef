@@ -161,6 +161,7 @@ def save_puzzle_view(request):
 
     name = ""
     grid_size = 0
+    puzzle = None 
 
     # --- Получение жанра "Пазл" ---
     try:
@@ -242,6 +243,9 @@ def save_puzzle_view(request):
         print(f"Ошибка валидации при сохранении пазла: {e.message_dict}")
         return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
     except InternalError as e:
+        if puzzle and puzzle.user_image and puzzle.user_image.name:
+            if default_storage.exists(puzzle.user_image.name):
+                puzzle.user_image.delete(save=False)
         db_error_message = str(e).lower()
         # Проверяем, содержит ли сообщение текст из RAISE EXCEPTION триггера
         trigger_error_text_part1 = 'пазл с названием'
@@ -260,6 +264,9 @@ def save_puzzle_view(request):
                 'message': 'Произошла ошибка базы данных при сохранении пазла. Попробуйте позже.'
             }, status=500)
     except Exception as e:
+        if puzzle and puzzle.user_image and puzzle.user_image.name:
+            if default_storage.exists(puzzle.user_image.name):
+                puzzle.user_image.delete(save=False)
         print(f"Непредвиденная ошибка при сохранении пазла ({request.user.username}): {e.__class__.__name__}: {e}")
         traceback.print_exc()
         return JsonResponse({
@@ -315,14 +322,21 @@ def load_puzzles_view(request):
 
 @login_required
 @require_http_methods(["PUT"])
-@transaction.atomic
 def update_puzzle_view(request, game_id):
     """
     Обрабатывает PUT-запрос для обновления существующего пазла.
     Данные ожидает в FormData.
     """
+    uploaded_image_file = None
+    old_puzzle_file_to_delete = None
+    name = ""
+    grid_size = 0
+
     try:
         user_puzzle = get_object_or_404(UserPuzzle, game_id=game_id, game__user=request.user)
+        # Сохраняем ссылку на старый файл, чтобы удалить его после успешной транзакции
+        if user_puzzle.user_image:
+            old_puzzle_file_to_delete = user_puzzle.user_image
        
         # --- Парсинг FormData для PUT запросов ---
         # Настраиваем стандартные обработчики загрузки файлов для request.
@@ -369,40 +383,54 @@ def update_puzzle_view(request, game_id):
         current_has_preset = bool(user_puzzle.preset_image_path)
         current_has_user_image = bool(user_puzzle.user_image)
 
-        # --- Обновление полей UserPuzzle ---
-        user_puzzle.name = name
-        user_puzzle.grid_size = grid_size
-        user_puzzle.piece_positions = piece_positions
+        with transaction.atomic():
+            # --- Обновление полей UserPuzzle ---
+            user_puzzle.name = name
+            user_puzzle.grid_size = grid_size
+            user_puzzle.piece_positions = piece_positions
 
-        # Логика обновления изображения
-        if preset_path: # Пользователь выбрал/оставил пресет
-            if user_puzzle.user_image:
-                user_puzzle.user_image.delete(save=False)
+            # Логика обновления изображения
+            if preset_path: # Пользователь выбрал/оставил пресет
                 user_puzzle.user_image = None
-            user_puzzle.preset_image_path = preset_path
-        elif uploaded_image_file: # Пользователь загрузил новый файл
-            if user_puzzle.user_image:
-                user_puzzle.user_image.delete(save=False)
-            user_puzzle.user_image = uploaded_image_file
-            user_puzzle.preset_image_path = None
-        else:
-              if not current_has_preset and not current_has_user_image:
-                  return JsonResponse({'status': 'error', 'message': 'Ошибка: изображение не было предоставлено для обновления.'}, status=400)
+                user_puzzle.preset_image_path = preset_path
+            elif uploaded_image_file: # Пользователь загрузил новый файл
+                user_puzzle.user_image = uploaded_image_file
+                user_puzzle.preset_image_path = None
+            else:
+                if not current_has_preset and not current_has_user_image:
+                    return JsonResponse({'status': 'error', 'message': 'Ошибка: изображение не было предоставлено для обновления.'}, status=400)
+            
+            # Валидация модели и сохранение
+            user_puzzle.full_clean()
+            user_puzzle.save()
 
-        # Валидация модели и сохранение
-        user_puzzle.full_clean()
-        user_puzzle.save()
+        if old_puzzle_file_to_delete and (preset_path or uploaded_image_file):
+            if default_storage.exists(old_puzzle_file_to_delete.name):
+                old_puzzle_file_to_delete.delete(save=False)
 
         return JsonResponse({'status': 'success', 'message': f'Пазл "{name}" успешно обновлен!'})
 
     # Обработка возможных ошибок
-    except UserPuzzle.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Пазл для обновления не найден или у вас нет прав на его изменение.'}, status=404)
-    except ValidationError as e:
-        error_message = '; '.join([f"{k}: {v[0]}" for k, v in e.message_dict.items()])
-        print(f"Ошибка валидации при обновлении пазла: {e.message_dict}")
-        return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
-    except Exception as e:
+    except (UserPuzzle.DoesNotExist, ValidationError, InternalError, Exception) as e:
+        if uploaded_image_file and hasattr(uploaded_image_file, 'name') and uploaded_image_file.name:
+            if default_storage.exists(uploaded_image_file.name):
+                print(f"Ошибка при обновлении, удаляю временный файл: {uploaded_image_file.name}")
+                default_storage.delete(uploaded_image_file.name)
+
+        if isinstance(e, UserPuzzle.DoesNotExist):
+            return JsonResponse({'status': 'error', 'message': 'Пазл для обновления не найден или у вас нет прав на его изменение.'}, status=404)
+        
+        if isinstance(e, ValidationError):
+            error_message = '; '.join([f"{k}: {v[0]}" for k, v in e.message_dict.items()])
+            print(f"Ошибка валидации при обновлении пазла: {e.message_dict}")
+            return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
+        
+        if isinstance(e, InternalError):
+            db_error_message = str(e).lower()
+            if 'пазл с названием' in db_error_message:
+                error_detail = f'Пазл с названием "{name}" и размером сетки {grid_size}x{grid_size} уже существует.'
+                return JsonResponse({'status': 'error', 'message': error_detail}, status=400)
+
         print(f"Непредвиденная ошибка при обновлении пазла (ID: {game_id}, User: {request.user.username}): {e.__class__.__name__}: {e}")
         traceback.print_exc()
         return JsonResponse({
@@ -413,67 +441,89 @@ def update_puzzle_view(request, game_id):
 
 @login_required
 @require_POST
-@transaction.atomic
 def save_memory_game_view(request):
     """
     Обрабатывает POST-запрос для сохранения состояния игры 'Поиск пар' для текущего пользователя.
     Ожидает данные в формате FormData (из request.POST и request.FILES).
     Создает записи в UserGame и UserMemoryGame.
     """
+    name = ""
+    pair_count = 0
+    custom_image_paths = []
+
     try:
         memory_genre = Genre.objects.get(code='MEM')
     except Genre.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Ошибка конфигурации: Жанр "Поиск пар" не найден.'}, status=500)
 
     try:
-        data = request.POST
-        files = request.FILES
+        with transaction.atomic():
+            data = request.POST
+            files = request.FILES
 
-        name = data.get('name', '').strip()
-        pair_count = int(data.get('pairCount', 0))
-        card_layout = json.loads(data.get('cardLayout', '[]'))
-        preset_name = data.get('presetName') or None
-        custom_images = files.getlist('customImages[]')
+            name = data.get('name', '').strip()
+            pair_count = int(data.get('pairCount', 0))
+            card_layout = json.loads(data.get('cardLayout', '[]'))
+            preset_name = data.get('presetName') or None
+            custom_images = files.getlist('customImages[]')
 
-        # --- Валидация ---
-        if not name: 
-            return JsonResponse({'status': 'error', 'message': 'Название не может быть пустым.'}, status=400)
-        if not (2 <= pair_count <= 50): 
-            return JsonResponse({'status': 'error', 'message': 'Неверное количество пар.'}, status=400)
-        if not (isinstance(card_layout, list) and len(card_layout) == pair_count * 2 and all(isinstance(i, int) for i in card_layout)):
-            return JsonResponse({'status': 'error', 'message': 'Некорректные данные о расположении карточек.'}, status=400)
+            # --- Валидация ---
+            if not name: 
+                return JsonResponse({'status': 'error', 'message': 'Название не может быть пустым.'}, status=400)
+            if not (2 <= pair_count <= 50): 
+                return JsonResponse({'status': 'error', 'message': 'Неверное количество пар.'}, status=400)
+            if not (isinstance(card_layout, list) and len(card_layout) == pair_count * 2 and all(isinstance(i, int) for i in card_layout)):
+                return JsonResponse({'status': 'error', 'message': 'Некорректные данные о расположении карточек.'}, status=400)
 
-        # --- Логика определения типа набора ---
-        is_custom_set = bool(custom_images)
-        if not preset_name and not is_custom_set:
-            return JsonResponse({'status': 'error', 'message': 'Необходимо выбрать пресет или загрузить изображения.'}, status=400)
-
-        custom_image_paths = []
-        if is_custom_set:
-            if len(custom_images) < pair_count:
-                return JsonResponse({'status': 'error', 'message': f'Недостаточно пользовательских изображений. Загружено {len(custom_images)}, требуется {pair_count}.'}, status=400)
+            # --- Логика определения типа набора ---
+            is_custom_set = bool(custom_images)
+            if not preset_name and not is_custom_set:
+                return JsonResponse({'status': 'error', 'message': 'Необходимо выбрать пресет или загрузить изображения.'}, status=400)
             
-            for file in custom_images:
-                file_path = get_memory_game_image_path(None, file.name)
-                saved_path = default_storage.save(file_path, file)
-                custom_image_paths.append(saved_path)
-        
-        new_game = UserGame.objects.create(user=request.user, genre=memory_genre)
-        
-        UserMemoryGame.objects.create(
-            game=new_game,
-            name=name,
-            pair_count=pair_count,
-            card_layout=card_layout,
-            preset_name=preset_name,
-            custom_image_paths=custom_image_paths if custom_image_paths else None
-        )
+            if is_custom_set:
+                if len(custom_images) < pair_count:
+                    return JsonResponse({'status': 'error', 'message': f'Недостаточно пользовательских изображений. Загружено {len(custom_images)}, требуется {pair_count}.'}, status=400)
+                for file in custom_images:
+                    file_path = get_memory_game_image_path(None, file.name)
+                    saved_path = default_storage.save(file_path, file)
+                    custom_image_paths.append(saved_path)
+            
+            new_game = UserGame.objects.create(user=request.user, genre=memory_genre)
+            UserMemoryGame.objects.create(
+                game=new_game,
+                name=name,
+                pair_count=pair_count,
+                card_layout=card_layout,
+                preset_name=preset_name,
+                custom_image_paths=custom_image_paths if custom_image_paths else None
+            )
 
         return JsonResponse({'status': 'success', 'message': f'Игра "{name}" успешно сохранена!', 'id': new_game.pk})
+    
+    except InternalError as e:
+        for path in custom_image_paths:
+            if default_storage.exists(path):
+                default_storage.delete(path)
+        db_error_message = str(e).lower()
+        # Проверяем, содержит ли сообщение текст из RAISE EXCEPTION триггера
+        trigger_error_text_part1 = 'игра "поиск пар" с названием'
+        trigger_error_text_part2 = 'уже существует'
+        if trigger_error_text_part1 in db_error_message and trigger_error_text_part2 in db_error_message:
+            # Формируем сообщение на основе данных, которые пытались сохранить
+            error_detail = f'"Поиск пар" с названием "{name}" и количеством пар {pair_count} уже существует.'
+            print(f"Ошибка уникальности 'Поиска пар': {error_detail} | Оригинальная ошибка: {e}")
+            return JsonResponse({'status': 'error', 'message': error_detail}, status=400)
+        else:
+            print(f"Непредвиденная ошибка целостности БД при сохранении 'Поиска пар' ({request.user.username}): {e.__class__.__name__}: {e}")
+            traceback.print_exc()
+            return JsonResponse({'status': 'error', 'message': 'Произошла ошибка базы данных при сохранении "Поиска пар". Попробуйте позже.'}, status=500)
     except Exception as e:
+        for path in custom_image_paths:
+            if default_storage.exists(path):
+                default_storage.delete(path)
         print(f"Ошибка при сохранении 'Поиска пар': {e}")
         traceback.print_exc()
-        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при сохранении.'}, status=500)
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка.'}, status=500)
 
 
 @login_required
@@ -510,55 +560,96 @@ def load_memory_games_view(request):
 
 @login_required
 @require_http_methods(["PUT"])
-@transaction.atomic
 def update_memory_game_view(request, game_id):
     """
     Обрабатывает PUT-запрос для обновления существующей игры 'Поиск пар'.
     Данные ожидает в FormData.
     """
+    new_paths = []
+    old_paths_to_delete = []
+    name = "" 
+    pair_count = 0 
+
     try:
         game_to_update = get_object_or_404(UserMemoryGame, pk=game_id, game__user=request.user)
-        
+        # Сохраняем копию списка старых путей, чтобы удалить их после успешной транзакции
+        if game_to_update.custom_image_paths:
+            old_paths_to_delete = list(game_to_update.custom_image_paths)
+
+        # --- Парсинг FormData ---
         parser = MultiPartParser(request.META, BytesIO(request.body), request.upload_handlers)
         post_data, files_data = parser.parse()
         
         name = post_data.get('name', '').strip()
         pair_count = int(post_data.get('pairCount', 0))
-        card_layout = json.loads(post_data.get('cardLayout', '[]'))
+        card_layout_str = post_data.get('cardLayout', '[]')
         preset_name = post_data.get('presetName') or None
         custom_images = files_data.getlist('customImages[]')
 
+        # --- Валидация входных данных ---
         if not name: return JsonResponse({'status': 'error', 'message': 'Название не может быть пустым.'}, status=400)
         if not (2 <= pair_count <= 50): return JsonResponse({'status': 'error', 'message': 'Неверное количество пар.'}, status=400)
+        
+        card_layout = json.loads(card_layout_str)
         if not (isinstance(card_layout, list) and len(card_layout) == pair_count * 2 and all(isinstance(i, int) for i in card_layout)):
             return JsonResponse({'status': 'error', 'message': 'Некорректные данные о расположении карточек.'}, status=400)
 
-        # Обновляем основные поля
-        game_to_update.name = name
-        game_to_update.pair_count = pair_count
-        game_to_update.card_layout = card_layout
-        
-        # Логика обновления изображений
-        if preset_name: # Пользователь переключился на пресет
-            game_to_update.delete_custom_images()
-            game_to_update.custom_image_paths = None
-            game_to_update.preset_name = preset_name
-        else: # Пользователь остался на пользовательском наборе
-            game_to_update.preset_name = None
-            if custom_images:
-                game_to_update.delete_custom_images()
-                new_paths = []
-                for file in custom_images:
-                    file_path = get_memory_game_image_path(None, file.name)
-                    saved_path = default_storage.save(file_path, file)
-                    new_paths.append(saved_path)
-                game_to_update.custom_image_paths = new_paths
+        if not preset_name and custom_images:
+            if len(custom_images) < pair_count:
+                raise ValueError(f'Недостаточно пользовательских изображений. Загружено {len(custom_images)}, требуется {pair_count}.')
+            for file in custom_images:
+                file_path = get_memory_game_image_path(None, file.name)
+                saved_path = default_storage.save(file_path, file)
+                new_paths.append(saved_path)
 
-        game_to_update.save()
+        with transaction.atomic():
+            # Обновляем основные поля
+            game_to_update.name = name
+            game_to_update.pair_count = pair_count
+            game_to_update.card_layout = card_layout
+            
+            # Логика обновления изображений
+            if preset_name: # Пользователь переключился на пресет
+                game_to_update.custom_image_paths = None
+                game_to_update.preset_name = preset_name
+            else: # Пользователь остался на пользовательском наборе или загрузил новые
+                game_to_update.preset_name = None
+                if new_paths:
+                    game_to_update.custom_image_paths = new_paths
+            
+            game_to_update.save()
+
+        if old_paths_to_delete and (preset_name or new_paths):
+            for path in old_paths_to_delete:
+                if default_storage.exists(path):
+                    default_storage.delete(path)
+
         return JsonResponse({'status': 'success', 'message': f'Игра "{name}" успешно обновлена!'})
-    except UserMemoryGame.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
-    except Exception as e:
+
+    # Обработка возможных ошибок
+    except (UserMemoryGame.DoesNotExist, InternalError, ValueError, Exception) as e:
+        for path in new_paths:
+            if default_storage.exists(path):
+                print(f"Ошибка при обновлении 'Поиска пар', удаляю временный файл: {path}")
+                default_storage.delete(path)
+
+        if isinstance(e, UserMemoryGame.DoesNotExist):
+            return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
+        
+        if isinstance(e, ValueError):
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+        if isinstance(e, InternalError):
+            db_error_message = str(e).lower()
+            if 'игра "поиск пар"' in db_error_message:
+                error_detail = f'"Поиск пар" с названием "{name}" и количеством пар {pair_count} уже существует.'
+                print(f"Ошибка уникальности 'Поиска пар': {error_detail} | Оригинальная ошибка: {e}")
+                return JsonResponse({'status': 'error', 'message': error_detail}, status=400)
+            else:
+                print(f"Непредвиденная ошибка целостности БД при обновлении 'Поиска пар' ({request.user.username}): {e}")
+                traceback.print_exc()
+                return JsonResponse({'status': 'error', 'message': 'Произошла ошибка базы данных при обновлении.'}, status=500)
+        
         print(f"Ошибка при обновлении 'Поиска пар' (ID: {game_id}): {e}")
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при обновлении.'}, status=500)

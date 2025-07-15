@@ -64,13 +64,14 @@ function initSaveLoadFeatures(getGameState, applyLoadedState, controls, gameIdPr
         saveButton.disabled = true;
         try {
             const response = await fetch(url, { method: method, headers: { 'X-CSRFToken': csrfToken }, body: formData });
+            
+            const result = await response.json();
 
+            // Проверяем статус ответа
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || `Ошибка сервера: ${response.status}`);
+                throw new Error(result.message || `Ошибка сервера: ${response.status}`);
             }
 
-            const result = await response.json();
             alert(result.message || 'Успех!');
 
             if (response.ok) {
@@ -242,7 +243,7 @@ export function createMemoryGameSeparately() {
         if (saveButton) saveButton.textContent = 'Обновить';
 
         if (showStartMessage) {
-            alert(`Игра "${localGameParams.name}" загружена. Нажмите "Начать игру", чтобы играть с сохраненным расположением карточек.`);
+            alert(`Игра "${localGameParams.name}" загружена. Нажмите "Начать игру" для запуска.`);
             gameWrapper.innerHTML = '<p class="initial-message">Игра загружена. Нажмите "Начать игру".</p>';
         }
     };
