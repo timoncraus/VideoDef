@@ -39,6 +39,45 @@ class PuzzleOnBoardConsumer(AsyncWebsocketConsumer):
         message = event['message']
         await self.send(text_data=message)
 
+class MemoryGameOnBoardConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.board_room_name = self.scope['url_route']['kwargs']['board_room_name']
+        self.game_id = self.scope['url_route']['kwargs']['game_id']
+
+        # Уникальное имя группы для каждого экземпляра игры "Поиск пар" на доске
+        self.memory_game_instance_group_name = f'memory_game_on_board_{self.board_room_name}_{self.game_id}'
+
+        await self.channel_layer.group_add(
+            self.memory_game_instance_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        print(f"MemoryGameOnBoardConsumer: User {self.channel_name} connected to memory game {self.game_id} on board {self.board_room_name}")
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'memory_game_instance_group_name'):
+            await self.channel_layer.group_discard(
+                self.memory_game_instance_group_name,
+                self.channel_name
+            )
+            print(f"MemoryGameOnBoardConsumer: User {self.channel_name} disconnected from memory game {self.game_id} on board {self.board_room_name}")
+
+    async def receive(self, text_data):
+        if hasattr(self, 'memory_game_instance_group_name'):
+            await self.channel_layer.group_send(
+                self.memory_game_instance_group_name,
+                {
+                    'type': 'memory_game_event',
+                    'message': text_data,
+                    'sender_channel_name': self.channel_name
+                }
+            )
+
+    async def memory_game_event(self, event):
+        message = event['message']
+        await self.send(text_data=message)
+
+
 class WhiteboardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']

@@ -1,12 +1,42 @@
 import { getGameParts, initializeBoard, stopTimer, getFullPresetImageUrls, PRESET_IMAGE_SETS_CONFIG, applyRemoteCardClick } from './memory-game-logic.js';
 
 /**
+ * Конвертирует строку Data URL в объект Blob.
+ * Необходимо для отправки пользовательских изображений на сервер через FormData.
+ * @param {string} dataURL - Строка Data URL
+ * @returns {Blob|null} - Объект Blob или null в случае ошибки.
+ */
+function dataURLtoBlob(dataURL) {
+    try {
+        // Разделяем строку на метаданные (MIME-тип) и данные Base64
+        const parts = dataURL.split(';base64,');
+        const contentType = parts[0].split(':')[1];
+        // Декодируем Base64 строку в бинарную строку
+        const raw = window.atob(parts[1]);
+        const rawLength = raw.length;
+        // Создаем массив 8-битных беззнаковых целых чисел
+        const uInt8Array = new Uint8Array(rawLength);
+        for (let i = 0; i < rawLength; ++i) {
+            uInt8Array[i] = raw.charCodeAt(i);
+        }
+        // Создаем и возвращаем Blob с указанным MIME-типом
+        return new Blob([uInt8Array], { type: contentType });
+    } catch (error) {
+        console.error("Ошибка конвертации Data URL в Blob:", error);
+        return null;
+    }
+}
+
+/**
  * Отображает список сохраненных игр "Поиск пар".
  * @param {HTMLElement} container - DOM-элемент для списка.
  * @param {Array<object>} games - Массив объектов игр с сервера.
  */
 function displayMemoryGameList(container, games) {
-    if (!games || games.length === 0) { container.innerHTML = '<p>У вас пока нет сохраненных игр этого типа.</p>'; return; }
+    if (!games || games.length === 0) {
+        container.innerHTML = '<p>У вас пока нет сохраненных игр этого типа.</p>';
+        return;
+    }
     const ul = document.createElement('ul');
     games.forEach(game => {
         const li = document.createElement('li');
@@ -22,11 +52,10 @@ function displayMemoryGameList(container, games) {
 
 /**
  * Инициализирует общую логику сохранения и загрузки.
- * Самостоятельно управляет обработчиками событий, удаляя старые перед добавлением новых.
  * @param {function} getGameState - Функция, возвращающая объект состояния игры для сохранения.
  * @param {function} applyLoadedState - Функция, применяющая загруженное состояние.
  * @param {object} controls - Объект с DOM-элементами управления.
- * @param {string} gameIdPrefix - Префикс URL для API (например, 'memory_game').
+ * @param {string} gameIdPrefix - Префикс URL для API.
  */
 function initSaveLoadFeatures(getGameState, applyLoadedState, controls, gameIdPrefix) {
     const { saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn } = controls;
@@ -39,7 +68,11 @@ function initSaveLoadFeatures(getGameState, applyLoadedState, controls, gameIdPr
 
     // --- Функции-обработчики ---
     const saveHandler = async () => {
-        if (!isAuthenticated) { alert("Для сохранения игры необходимо войти в аккаунт."); window.location.href = loginUrl; return; }
+        if (!isAuthenticated) {
+            alert("Для сохранения игры необходимо войти в аккаунт.");
+            window.location.href = loginUrl;
+            return;
+        }
 
         const gameState = getGameState();
         if (!gameState) return;
@@ -88,7 +121,11 @@ function initSaveLoadFeatures(getGameState, applyLoadedState, controls, gameIdPr
     };
 
     const loadHandler = async () => {
-        if (typeof isAuthenticated === 'undefined' || !isAuthenticated) { alert("Для загрузки игры необходимо войти в аккаунт."); window.location.href = loginUrl; return; }
+        if (typeof isAuthenticated === 'undefined' || !isAuthenticated) {
+            alert("Для загрузки игры необходимо войти в аккаунт.");
+            window.location.href = loginUrl;
+            return;
+        }
 
         loadListContainer.innerHTML = '<p>Загрузка...</p>';
         loadConfirmBtn.disabled = true;
@@ -118,8 +155,15 @@ function initSaveLoadFeatures(getGameState, applyLoadedState, controls, gameIdPr
         }
     };
 
-    const confirmHandler = () => { if (selectedGameToLoad) { applyLoadedState(selectedGameToLoad, true); loadModal.style.display = 'none'; } };
-    const cancelHandler = () => { loadModal.style.display = 'none'; };
+    const confirmHandler = () => {
+        if (selectedGameToLoad) {
+            applyLoadedState(selectedGameToLoad, true);
+            loadModal.style.display = 'none';
+        }
+    };
+    const cancelHandler = () => {
+        loadModal.style.display = 'none';
+    };
 
     // --- Прямое назначение обработчиков с предварительной очисткой ---
     saveButton.removeEventListener('click', saveButton.clickHandler);
@@ -146,7 +190,6 @@ function initSaveLoadFeatures(getGameState, applyLoadedState, controls, gameIdPr
 
 /**
  * Инициализирует интерфейс и логику для отдельной страницы игры "Поиск пар".
- * Находит все необходимые DOM-элементы и назначает им обработчики событий.
  */
 export function createMemoryGameSeparately() {
     const gameWrapper = document.getElementById('memory-game-wrapper');
@@ -184,8 +227,14 @@ export function createMemoryGameSeparately() {
     const getGameState = (skipAlerts = false) => {
         const gameNameInput = settingsPanel.querySelector('#game-name');
         localGameParams.name = gameNameInput.value.trim();
-        if (!skipAlerts && !localGameParams.name) { alert("Введите название для сохранения."); return null; }
-        if (!skipAlerts && (!localGameParams.card_layout || localGameParams.card_layout.length === 0)) { alert("Сначала начните игру."); return null; }
+        if (!skipAlerts && !localGameParams.name) {
+            alert("Введите название для сохранения.");
+            return null;
+        }
+        if (!skipAlerts && (!localGameParams.card_layout || localGameParams.card_layout.length === 0)) {
+            alert("Сначала начните игру.");
+            return null;
+        }
 
         const gameState = {
             id: localGameParams.id,
@@ -201,9 +250,9 @@ export function createMemoryGameSeparately() {
                     return null;
                 }
                 gameState.customImages = localGameParams.customImageObjects
-                   .slice(0, localGameParams.pairCount)
-                   .map(imgObj => imgObj.file)
-                   .filter(Boolean);
+                    .slice(0, localGameParams.pairCount)
+                    .map(imgObj => imgObj.file)
+                    .filter(Boolean);
             }
         } else {
             const presetName = findPresetNameByUrl(localGameParams.selectedImageSet[0]);
@@ -287,21 +336,43 @@ export function createMemoryGameOnBoard(gameWrapper, boardRoomName, gameInstance
         localGameParams.ws = memoryGameWs;
         gameWrapper.memoryGameWebSocket = memoryGameWs;
 
-        memoryGameWs.onopen = () => console.log(`[MemoryGame INSTANCE: ${gameInstanceId}] WebSocket connected.`);
+        memoryGameWs.onopen = () => {
+            console.log(`[MemoryGame] WS Open. Синхронизируем начальные настройки для ${gameInstanceId}`);
+            const stateToSend = {
+                id: null,
+                name: localGameParams.name,
+                pairCount: localGameParams.pairCount,
+                selectedImageSet: localGameParams.selectedImageSet,
+                isCustomSet: false,
+                card_layout: [],
+                attempts: 0
+            };
+            memoryGameWs.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
+        };
+
         memoryGameWs.onclose = (e) => console.log(`[MemoryGame INSTANCE: ${gameInstanceId}] WebSocket disconnected.`, e.reason);
         memoryGameWs.onerror = (e) => console.error(`[MemoryGame INSTANCE: ${gameInstanceId}] WebSocket error.`, e);
 
         memoryGameWs.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            console.log(`[MemoryGame INSTANCE: ${gameInstanceId}] WS Received:`, data);
 
             if (data.type === 'game_state_change') {
-                Object.assign(gameWrapper.memoryGameParams, data.gameState);
+                const receivedState = data.gameState;
 
-                if (gameWrapper.classList.contains('active-game')) {
+                Object.assign(gameWrapper.memoryGameParams, receivedState);
+
+                if (receivedState.isCustomSet) {
+                    gameWrapper.memoryGameParams.customImageObjects = (receivedState.selectedImageSet || []).map(url => {
+                        return { url: url, file: null };
+                    });
+                }
+
+                const useExistingLayout = receivedState.card_layout && receivedState.card_layout.length > 0;
+                initializeBoard(gameWrapper.gameContainer, gameWrapper.memoryGameParams, useExistingLayout);
+
+                const activeGameWrapper = document.querySelector('.paste-game-wrapper.active-game');
+                if (activeGameWrapper === gameWrapper) {
                     setupWhiteboardMemoryGame(gameWrapper);
-                } else {
-                    initializeBoard(gameWrapper.gameContainer, gameWrapper.memoryGameParams, true);
                 }
             } else if (data.type === 'card_click') {
                 applyRemoteCardClick(gameWrapper.gameContainer, gameWrapper.memoryGameParams, data.cardDomIndex);
@@ -321,16 +392,17 @@ export function createMemoryGameOnBoard(gameWrapper, boardRoomName, gameInstance
  * @param {HTMLElement} activeGameWrapper - Активный игровой контейнер.
  */
 export function setupWhiteboardMemoryGame(activeGameWrapper) {
-    console.log("Настройка UI для активной игры 'Поиск пар':", activeGameWrapper?.dataset?.id);
-
-    if (!activeGameWrapper || !activeGameWrapper.memoryGameParams || !activeGameWrapper.gameContainer) {
-        console.warn("Активная игра 'Поиск пар' не найдена или не инициализирована. Настройка UI пропущена.");
+    if (!activeGameWrapper || !activeGameWrapper.memoryGameParams) {
+        console.warn("Активная игра 'Поиск пар' не найдена или не инициализирована.");
         return;
     }
 
     const activeGameParams = activeGameWrapper.memoryGameParams;
     const settingsPanel = document.querySelector('.settings-panel');
-    if (!settingsPanel) { console.error("Панель настроек не найдена."); return; }
+    if (!settingsPanel) {
+        console.error("Панель настроек не найдена.");
+        return;
+    }
 
     const startButton = settingsPanel.querySelector('#start-memory-game');
     const saveButton = settingsPanel.querySelector('#save-memory-game-btn');
@@ -345,40 +417,92 @@ export function setupWhiteboardMemoryGame(activeGameWrapper) {
         return;
     }
 
-    const handleGameStateChangeForBoard = (isLayoutChange = false) => {
+    const handleGameStateChangeForBoard = () => {
         if (activeGameParams.onWhiteboard && activeGameParams.ws && activeGameParams.ws.readyState === WebSocket.OPEN) {
+            activeGameParams.card_layout = [];
+            activeGameParams.attempts = 0;
+            const imageSetToSend = activeGameParams.isCustomSet ? activeGameParams.customImageObjects.map(obj => obj.url) : activeGameParams.selectedImageSet;
             const stateToSend = {
-                id: activeGameParams.id, name: activeGameParams.name,
-                pairCount: activeGameParams.pairCount, selectedImageSet: activeGameParams.selectedImageSet,
-                isCustomSet: activeGameParams.isCustomSet, card_layout: isLayoutChange ? activeGameParams.card_layout : [],
+                id: activeGameParams.id,
+                name: activeGameParams.name,
+                pairCount: activeGameParams.pairCount,
+                selectedImageSet: imageSetToSend,
+                isCustomSet: activeGameParams.isCustomSet,
+                card_layout: [],
+                attempts: 0,
             };
             activeGameParams.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
         }
     };
 
-    const updateAndSyncGame = (useExistingLayout = false) => {
-        initializeBoard(activeGameWrapper.gameContainer, activeGameParams, useExistingLayout);
-        handleGameStateChangeForBoard(!useExistingLayout);
+    setupGameControls(settingsPanel, activeGameParams, handleGameStateChangeForBoard);
+
+    const startButtonClickHandler = () => {
+        const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
+        
+        if (currentActiveWrapper && currentActiveWrapper === activeGameWrapper && currentActiveWrapper.memoryGameParams) {
+            initializeBoard(currentActiveWrapper.gameContainer, currentActiveWrapper.memoryGameParams, false);
+        } else {
+            console.warn("Активная игра изменилась, действие 'Перемешать' отменено.");
+        }
     };
+    startButton.removeEventListener('click', startButton.clickHandler);
+    startButton.addEventListener('click', startButtonClickHandler);
+    startButton.clickHandler = startButtonClickHandler;
 
     const getGameStateForWhiteboard = (skipAlerts = false) => {
         const gameNameInput = settingsPanel.querySelector('#game-name');
         activeGameParams.name = gameNameInput.value.trim();
-        if (!skipAlerts && !activeGameParams.name) { alert("Введите название для сохранения."); gameNameInput.focus(); return null; }
+        if (!skipAlerts && !activeGameParams.name) {
+            alert("Введите название для сохранения.");
+            gameNameInput.focus();
+            return null;
+        }
 
         if (!activeGameParams.card_layout || activeGameParams.card_layout.length === 0) {
             initializeBoard(activeGameWrapper.gameContainer, activeGameParams, false);
         }
 
         const gameState = {
-            id: activeGameParams.id, name: activeGameParams.name,
-            pairCount: activeGameParams.pairCount, cardLayout: activeGameParams.card_layout,
+            id: activeGameParams.id,
+            name: activeGameParams.name,
+            pairCount: activeGameParams.pairCount,
+            cardLayout: activeGameParams.card_layout,
         };
 
         if (activeGameParams.isCustomSet) {
-            if (activeGameParams.customImageObjects?.some(obj => obj.file)) {
-                if (!skipAlerts && activeGameParams.customImageObjects.length < activeGameParams.pairCount) { alert("Недостаточно изображений для сохранения."); return null; }
-                gameState.customImages = activeGameParams.customImageObjects.slice(0, activeGameParams.pairCount).map(imgObj => imgObj.file).filter(Boolean);
+            const imageObjects = activeGameParams.customImageObjects || [];
+            if (!skipAlerts && imageObjects.length < activeGameParams.pairCount) {
+                alert(`Недостаточно изображений для сохранения. Требуется ${activeGameParams.pairCount}, а загружено ${imageObjects.length}.`);
+                return null;
+            }
+
+            const hasNewFiles = imageObjects.some(obj => obj.file);
+            
+            if (!activeGameParams.id || hasNewFiles) {
+                gameState.customImages = [];
+                for (let i = 0; i < activeGameParams.pairCount; i++) {
+                    const imgObj = imageObjects[i];
+                    if (imgObj.file) {
+                        // Если есть исходный файл, используем его
+                        gameState.customImages.push(imgObj.file);
+                    } else if (imgObj.url && imgObj.url.startsWith('data:image')) {
+                        // Если файла нет, но есть data:URL, конвертируем его в Blob
+                        const blob = dataURLtoBlob(imgObj.url);
+                        if (blob) {
+                            const filename = `upload_${i}.${blob.type.split('/')[1] || 'png'}`;
+                            gameState.customImages.push(new File([blob], filename, { type: blob.type }));
+                        } else {
+                            if (!skipAlerts) alert(`Ошибка обработки изображения №${i + 1}. Сохранение прервано.`);
+                            return null;
+                        }
+                    }
+                }
+                
+                if (!skipAlerts && gameState.customImages.length < activeGameParams.pairCount) {
+                    alert(`Не удалось подготовить все изображения для сохранения. Требуется ${activeGameParams.pairCount}, готово ${gameState.customImages.length}.`);
+                    return null;
+                }
             }
         } else {
             const presetName = findPresetNameByUrl(activeGameParams.selectedImageSet[0]);
@@ -394,7 +518,10 @@ export function setupWhiteboardMemoryGame(activeGameWrapper) {
 
     const applyLoadedStateForWhiteboard = (loadedData, startNewGame = true) => {
         const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
-        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper) { alert("Активная игра изменилась. Загрузка отменена."); return; }
+        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper) {
+            alert("Активная игра изменилась. Загрузка отменена.");
+            return;
+        }
 
         const isUpdateConfirmation = Object.keys(loadedData).length === 1 && loadedData.id && !startNewGame;
         if (isUpdateConfirmation) {
@@ -402,7 +529,7 @@ export function setupWhiteboardMemoryGame(activeGameWrapper) {
             return; 
         }
 
-        const mappedLoadedData = { ...loadedData, pairCount: loadedData.pair_count };
+        const mappedLoadedData = { ...loadedData, pairCount: loadedData.pair_count, attempts: loadedData.attempts || 0 };
         delete mappedLoadedData.pair_count;
 
         Object.assign(activeGameParams, mappedLoadedData);
@@ -410,16 +537,37 @@ export function setupWhiteboardMemoryGame(activeGameWrapper) {
 
         if (activeGameParams.isCustomSet) {
             activeGameParams.selectedImageSet = loadedData.custom_image_urls;
-            activeGameParams.customImageObjects = loadedData.custom_image_urls.map(url => ({ url, file: null }));
+            activeGameParams.customImageObjects = loadedData.custom_image_urls.map(url => ({ url: url, file: null }));
         } else {
             activeGameParams.selectedImageSet = getFullPresetImageUrls(loadedData.preset_name);
+            activeGameParams.customImageObjects = [];
         }
 
-        setupGameControls(settingsPanel, activeGameParams, () => updateAndSyncGame(false));
+        setupGameControls(settingsPanel, activeGameParams, handleGameStateChangeForBoard);
         saveButton.textContent = 'Обновить';
 
-        if(startNewGame) {
-            updateAndSyncGame(true);
+        if (startNewGame) {
+            // Отрисовываем поле у загружающего.
+            const useExistingLayout = loadedData.card_layout && loadedData.card_layout.length > 0;
+            initializeBoard(activeGameWrapper.gameContainer, activeGameParams, useExistingLayout);
+            
+            // отправляем новое, загруженное из БД, состояние всем остальным.
+            if (activeGameParams.onWhiteboard && activeGameParams.ws && activeGameParams.ws.readyState === WebSocket.OPEN) {
+                console.log(`[APPLY LOADED] Отправка загруженного состояния игры ${activeGameParams.gameId}`);
+                
+                const stateToSend = {
+                    id: activeGameParams.id,
+                    name: activeGameParams.name,
+                    pairCount: activeGameParams.pairCount,
+                    selectedImageSet: activeGameParams.selectedImageSet, // Уже содержит либо пресеты, либо data:URL
+                    isCustomSet: activeGameParams.isCustomSet,
+                    card_layout: activeGameParams.card_layout || [],
+                    attempts: activeGameParams.attempts || 0
+                };
+                
+                activeGameParams.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
+            }
+            
             alert(`Игра "${loadedData.name}" загружена в активный контейнер.`);
         }
     };
@@ -432,28 +580,12 @@ export function setupWhiteboardMemoryGame(activeGameWrapper) {
         'memory_game'
     );
 
-    const onSettingsChange = () => {
-        activeGameParams.id = null;
-        activeGameParams.card_layout = [];
-        saveButton.textContent = 'Сохранить';
-        updateAndSyncGame(false);
-    };
-
-    setupGameControls(settingsPanel, activeGameParams, onSettingsChange);
-    
-    const startButtonClickHandler = () => {
-        activeGameParams.card_layout = [];
-        updateAndSyncGame(false);
-    };
-    startButton.removeEventListener('click', startButton.clickHandler);
-    startButton.addEventListener('click', startButtonClickHandler);
-    startButton.clickHandler = startButtonClickHandler;
+    const gameNameInput = settingsPanel.querySelector('#game-name');
+    const pairCountSelect = settingsPanel.querySelector('#pair-count-select');
+    if (gameNameInput) gameNameInput.value = activeGameParams.name || '';
+    if (pairCountSelect) pairCountSelect.value = activeGameParams.pairCount;
 
     saveButton.textContent = activeGameParams.id ? 'Обновить' : 'Сохранить';
-
-    if (!activeGameParams.card_layout || activeGameParams.card_layout.length === 0) {
-        updateAndSyncGame(false);
-    }
 }
 
 /**
@@ -528,7 +660,10 @@ function setupGameControls(settingsContainer, gameParams, onSettingsChange) {
             presetSetElements.forEach(el => el.classList.remove('selected'));
             let loadedCount = 0; const totalFiles = files.length;
             Array.from(files).forEach(file => {
-                if (!file.type.startsWith('image/')) { if (++loadedCount === totalFiles && onSettingsChange) onSettingsChange(); return; }
+                if (!file.type.startsWith('image/')) {
+                    if (++loadedCount === totalFiles && onSettingsChange) onSettingsChange();
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     gameParams.customImageObjects.push({ url: e.target.result, file });
@@ -537,16 +672,16 @@ function setupGameControls(settingsContainer, gameParams, onSettingsChange) {
                         if (onSettingsChange) onSettingsChange();
                     }
                 };
-                reader.onerror = () => { if (++loadedCount === totalFiles && onSettingsChange) onSettingsChange(); };
+                reader.onerror = () => {
+                    if (++loadedCount === totalFiles && onSettingsChange) onSettingsChange();
+                };
                 reader.readAsDataURL(file);
             });
         } else {
             gameParams.isCustomSet = false;
             const selectedPreset = settingsContainer.querySelector('.preset-set.selected') || presetSetElements[0];
-            if (selectedPreset) {
-                // Имитируем клик, чтобы сработала вся логика выбора пресета
-                const clickHandler = selectedPreset.clickHandler || (() => {});
-                clickHandler();
+            if (selectedPreset && typeof selectedPreset.clickHandler === 'function') {
+                selectedPreset.clickHandler();
             }
         }
     };
@@ -592,7 +727,6 @@ function findPresetNameByUrl(imageUrl) {
     return PRESET_IMAGE_SETS_CONFIG.hasOwnProperty(setName) ? setName : null;
 }
 
-// Экспорт для глобального доступа из whiteboard.js и HTML
 window.MemoryGameModule = {
     createMemoryGameSeparately,
     createMemoryGameOnBoard,

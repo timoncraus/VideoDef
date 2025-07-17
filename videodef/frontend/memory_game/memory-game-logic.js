@@ -1,3 +1,4 @@
+// Изображения для пресетов пока в процессе поиска
 export const PRESET_IMAGE_SETS_CONFIG = {
     fruits: [
         'fruits/apple.png', 'fruits/banana.png', 'fruits/cherry.png', 'fruits/grapes.png', 
@@ -158,7 +159,7 @@ export function initializeBoard(boardWrapper, gameParams, useExistingLayout = fa
     // Обновляем/сбрасываем игровые параметры
     gameParams.totalMatches = gameParams.pairCount;
     gameParams.matchesFound = 0;
-    gameParams.attempts = 0;
+    gameParams.attempts = useExistingLayout ? (gameParams.attempts || 0) : 0;
     gameParams.firstSelectedCard = null;
     gameParams.secondSelectedCard = null;
     gameParams.lockBoard = false;
@@ -175,7 +176,7 @@ export function initializeBoard(boardWrapper, gameParams, useExistingLayout = fa
         }
         uniqueImageUrls = sourceUrls.slice(0, gameParams.pairCount);
     } else {
-        if (gameParams.selectedImageSet.length < gameParams.pairCount) {
+        if (!gameParams.selectedImageSet || gameParams.selectedImageSet.length < gameParams.pairCount) {
              boardWrapper.innerHTML = `<p class="initial-message">Ошибка: Недостаточно изображений в пресете.</p>`;
              return;
         }
@@ -183,11 +184,25 @@ export function initializeBoard(boardWrapper, gameParams, useExistingLayout = fa
     }
     
     if (!useExistingLayout || !gameParams.card_layout || gameParams.card_layout.length !== gameParams.pairCount * 2) {
+        console.log(`[MemoryGame] Генерация нового layout для ${gameParams.gameId}`);
         const indices = Array.from({ length: gameParams.pairCount }, (_, i) => i);
         gameParams.card_layout = shuffle([...indices, ...indices]);
+
+        if (gameParams.onWhiteboard && gameParams.ws && gameParams.ws.readyState === WebSocket.OPEN) {
+             console.log(`[MemoryGame-LOGIC] Отправка нового состояния (с card_layout) для игры ${gameParams.gameId}`);
+             
+             const imageSetToSend = gameParams.isCustomSet ? gameParams.customImageObjects.map(obj => obj.url) : gameParams.selectedImageSet;
+             const stateToSend = {
+                id: gameParams.id, name: gameParams.name, pairCount: gameParams.pairCount,
+                selectedImageSet: imageSetToSend, isCustomSet: gameParams.isCustomSet,
+                card_layout: gameParams.card_layout, attempts: 0
+             };
+             gameParams.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
+        }
+    } else {
+        console.log(`[MemoryGame] Использование существующего layout для ${gameParams.gameId}`);
     }
 
-    // Настраиваем CSS Grid для контейнера карточек
     const totalCards = gameParams.pairCount * 2;
     gameParams.gridSize = calculateGridDimensions(totalCards);
     cardsGridContainer.style.gridTemplateColumns = `repeat(${gameParams.gridSize.cols}, 1fr)`;
@@ -254,7 +269,7 @@ function handleCardClick(clickedCard, gameParams) {
             cardDomIndex: parseInt(clickedCard.dataset.cardDomIndex, 10)
         }));
     }
-    flipAndCheck(clickedCard, gameParams, true);
+    flipAndCheck(clickedCard, gameParams);
 }
 
 /**
@@ -266,8 +281,7 @@ function handleCardClick(clickedCard, gameParams) {
 export function applyRemoteCardClick(boardWrapper, gameParams, cardDomIndex) {
     const cardToClick = boardWrapper.querySelector(`.memory-card[data-card-dom-index="${cardDomIndex}"]`);
     if (cardToClick) {
-        console.log(`Применение удаленного клика по карточке с индексом ${cardDomIndex}`);
-        flipAndCheck(cardToClick, gameParams, false);
+        flipAndCheck(cardToClick, gameParams);
     } else {
         console.warn(`[REMOTE] Карточка с индексом ${cardDomIndex} не найдена.`);
     }
@@ -277,9 +291,8 @@ export function applyRemoteCardClick(boardWrapper, gameParams, cardDomIndex) {
  * Общая логика переворота карточки и проверки совпадения.
  * @param {HTMLElement} clickedCard - Карточка для взаимодействия.
  * @param {object} gameParams - Параметры игры.
- * @param {boolean} isInitiator - true, если это локальный клик, инициирующий ход.
  */
-function flipAndCheck(clickedCard, gameParams, isInitiator) {
+function flipAndCheck(clickedCard, gameParams) {
     if (clickedCard.classList.contains('flipped') || clickedCard.classList.contains('matched') || gameParams.lockBoard) return;
     
     clickedCard.classList.add('flipped');
@@ -291,11 +304,8 @@ function flipAndCheck(clickedCard, gameParams, isInitiator) {
     gameParams.secondSelectedCard = clickedCard;
     gameParams.lockBoard = true;
     
-    if (isInitiator) { // Счетчик ходов увеличивается только у того, кто начал ход.
-        gameParams.attempts++;
-        updateUIDetails(gameParams);
-    }
-
+    gameParams.attempts++;
+    updateUIDetails(gameParams);
     checkForMatch(gameParams);
 }
 
