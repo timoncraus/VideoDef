@@ -7,42 +7,78 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0014_remove_profile_violations_alter_profile_role_and_more'),
+        ("account", "0014_remove_profile_violations_alter_profile_role_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Gender',
+            name="Gender",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(max_length=1, unique=True, verbose_name='Код пола')),
-                ('name', models.CharField(max_length=20, verbose_name='Название пола')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "code",
+                    models.CharField(
+                        max_length=1, unique=True, verbose_name="Код пола"
+                    ),
+                ),
+                ("name", models.CharField(max_length=20, verbose_name="Название пола")),
             ],
             options={
-                'verbose_name': 'Пол',
-                'verbose_name_plural': 'Пол',
+                "verbose_name": "Пол",
+                "verbose_name_plural": "Пол",
             },
         ),
         migrations.CreateModel(
-            name='Role',
+            name="Role",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(max_length=2, unique=True, verbose_name='Код роли')),
-                ('name', models.CharField(max_length=50, verbose_name='Название роли')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "code",
+                    models.CharField(
+                        max_length=2, unique=True, verbose_name="Код роли"
+                    ),
+                ),
+                ("name", models.CharField(max_length=50, verbose_name="Название роли")),
             ],
             options={
-                'verbose_name': 'Роль',
-                'verbose_name_plural': 'Роли',
+                "verbose_name": "Роль",
+                "verbose_name_plural": "Роли",
             },
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='gender',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='account.gender', verbose_name='Пол'),
+            model_name="profile",
+            name="gender",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="account.gender",
+                verbose_name="Пол",
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='role',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='account.role', verbose_name='Роль'),
+            model_name="profile",
+            name="role",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="account.role",
+                verbose_name="Роль",
+            ),
         ),
     ]

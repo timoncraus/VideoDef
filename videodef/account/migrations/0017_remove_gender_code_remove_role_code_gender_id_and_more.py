@@ -6,28 +6,32 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0016_remove_gender_id_remove_role_id_alter_gender_code_and_more'),
+        ("account", "0016_remove_gender_id_remove_role_id_alter_gender_code_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='gender',
-            name='code',
+            model_name="gender",
+            name="code",
         ),
         migrations.RemoveField(
-            model_name='role',
-            name='code',
+            model_name="role",
+            name="code",
         ),
         migrations.AddField(
-            model_name='gender',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="gender",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='role',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="role",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
             preserve_default=False,
         ),
     ]

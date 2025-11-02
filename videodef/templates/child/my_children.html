@@ -1,8 +1,8 @@
 {% extends "base.html" %}
+{% block page_name %}Информация о моих детях{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto py-8">
-    <h1 class="text-3xl font-bold mb-6">Информация о моих детях</h1>
-    <a href="{% url 'create_my_child' %}" class="bg-blue-500   py-2 px-4 rounded">Добавить новую информацию о ребенке</a>
+    <a href="{% url 'child:create_my_child' %}" class="bg-blue-500   py-2 px-4 rounded">Добавить новую информацию о ребенке</a>
     <div class="mt-6 space-y-4">
         {% for child in children %}
             <div class="p-4 border rounded shadow-sm flex justify-between items-center">
@@ -11,8 +11,8 @@
                     <p class="text-gray-500">{{ child.ver_status }}</p>
                 </div>
                 <div class="flex space-x-2">
-                    <a href="{% url 'edit_my_child' child.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
-                    <a href="{% url 'child_confirm_delete' child.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
+                    <a href="{% url 'child:edit_my_child' child.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
+                    <a href="{% url 'child:child_confirm_delete' child.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
                 </div>
             </div>
         {% empty %}

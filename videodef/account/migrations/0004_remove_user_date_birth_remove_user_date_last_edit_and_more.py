@@ -8,66 +8,99 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0003_alter_user_photo'),
+        ("account", "0003_alter_user_photo"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='date_birth',
+            model_name="user",
+            name="date_birth",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='date_last_edit',
+            model_name="user",
+            name="date_last_edit",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='first_name',
+            model_name="user",
+            name="first_name",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='is_active',
+            model_name="user",
+            name="is_active",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='is_staff',
+            model_name="user",
+            name="is_staff",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='last_name',
+            model_name="user",
+            name="last_name",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='patronymic',
+            model_name="user",
+            name="patronymic",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='photo',
+            model_name="user",
+            name="photo",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='role',
+            model_name="user",
+            name="role",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='violations',
+            model_name="user",
+            name="violations",
         ),
         migrations.CreateModel(
-            name='Profile',
+            name="Profile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('photo', models.ImageField(blank=True, upload_to=account.models.get_avatar_path, verbose_name='Фото')),
-                ('first_name', models.CharField(max_length=40, verbose_name='Имя')),
-                ('last_name', models.CharField(max_length=40, verbose_name='Фамилия')),
-                ('patronymic', models.CharField(blank=True, max_length=40, verbose_name='Отчество')),
-                ('role', models.CharField(choices=[('T', 'Учитель'), ('S', 'Ученик')], max_length=2, verbose_name='Роль')),
-                ('date_birth', models.DateField(verbose_name='Дата рождения')),
-                ('violations', models.ManyToManyField(to='account.violationtype')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "photo",
+                    models.ImageField(
+                        blank=True,
+                        upload_to=account.models.get_avatar_path,
+                        verbose_name="Фото",
+                    ),
+                ),
+                ("first_name", models.CharField(max_length=40, verbose_name="Имя")),
+                ("last_name", models.CharField(max_length=40, verbose_name="Фамилия")),
+                (
+                    "patronymic",
+                    models.CharField(
+                        blank=True, max_length=40, verbose_name="Отчество"
+                    ),
+                ),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[("T", "Учитель"), ("S", "Ученик")],
+                        max_length=2,
+                        verbose_name="Роль",
+                    ),
+                ),
+                ("date_birth", models.DateField(verbose_name="Дата рождения")),
+                ("violations", models.ManyToManyField(to="account.violationtype")),
             ],
         ),
         migrations.AddField(
-            model_name='user',
-            name='profile',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='account.profile', verbose_name='Профиль'),
+            model_name="user",
+            name="profile",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="account.profile",
+                verbose_name="Профиль",
+            ),
         ),
     ]

@@ -1,50 +1,52 @@
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
-from django.contrib.auth import authenticate
 from django.conf import settings
-from .models import User, Profile, Role, Gender
 from django import forms
-from .auth_backends import CustomAuthBackend
+
+from .models import User, Profile, Role, Gender
+
 
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(max_length=40, required=True, label="Имя")
     last_name = forms.CharField(max_length=40, required=True, label="Фамилия")
     patronymic = forms.CharField(max_length=40, required=False, label="Отчество")
-    date_birth = forms.DateField(required=True, label="Дата рождения", 
-        widget=forms.DateInput(attrs={'type': 'date'}))
+    date_birth = forms.DateField(
+        required=True,
+        label="Дата рождения",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
     role = forms.ModelChoiceField(
         queryset=Role.objects.all(),
         required=True,
         label="Роль",
-        empty_label="Выберите роль"
+        empty_label="Выберите роль",
     )
-
     gender = forms.ModelChoiceField(
         queryset=Gender.objects.all(),
         required=True,
         label="Пол",
-        empty_label="Выберите пол"
+        empty_label="Выберите пол",
     )
     photo = forms.ImageField(required=False, label="Фото")
-    
+
     class Meta:
         model = User
-        fields = ['username', 'email', 'phone_number', 'password1', 'password2']
+        fields = ["username", "email", "phone_number", "password1", "password2"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['phone_number'].validators = [RegexValidator(r'^\+?1?\d{9,15}$')]
+        self.fields["phone_number"].validators = [RegexValidator(r"^\+?1?\d{9,15}$")]
 
     def save(self, commit=True):
         user = super().save(commit=False)
         profile = Profile.objects.create(
-            first_name=self.cleaned_data['first_name'],
-            last_name=self.cleaned_data['last_name'],
-            patronymic=self.cleaned_data['patronymic'],
-            date_birth=self.cleaned_data['date_birth'],
-            role=self.cleaned_data['role'],
-            gender=self.cleaned_data['gender'],
-            photo=self.cleaned_data.get('photo', None)
+            first_name=self.cleaned_data["first_name"],
+            last_name=self.cleaned_data["last_name"],
+            patronymic=self.cleaned_data["patronymic"],
+            date_birth=self.cleaned_data["date_birth"],
+            role=self.cleaned_data["role"],
+            gender=self.cleaned_data["gender"],
+            photo=self.cleaned_data.get("photo", None),
         )
         user.profile = profile
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -56,7 +58,9 @@ class RegisterForm(UserCreationForm):
 
 class LoginForm(forms.Form):
     identifier = forms.CharField(label="Логин, E-mail, ID или Телефон", required=True)
-    password = forms.CharField(label="Пароль", widget=forms.PasswordInput, required=True)
+    password = forms.CharField(
+        label="Пароль", widget=forms.PasswordInput, required=True
+    )
 
     def clean(self):
         identifier = self.cleaned_data.get("identifier")
@@ -64,7 +68,9 @@ class LoginForm(forms.Form):
 
         if identifier and password:
             try:
-                user = User.objects.authenticate_user(identifier, password)  # Используем метод из UserManager
+                user = User.objects.authenticate_user(
+                    identifier, password
+                )  # Используем метод из UserManager
             except Exception as e:
                 raise forms.ValidationError(str(e))
 
@@ -81,15 +87,25 @@ class UserEditForm(forms.ModelForm):
     def __init__(self, *args, auth_user, **kwargs):
         auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
+
     class Meta:
         model = User
-        fields = ['username', 'email', 'phone_number']
+        fields = ["username", "email", "phone_number"]
 
 
 class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, auth_user, **kwargs):
         auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
+
     class Meta:
         model = Profile
-        fields = ['photo', 'first_name', 'last_name', 'patronymic', 'date_birth', 'role', 'gender']
+        fields = [
+            "photo",
+            "first_name",
+            "last_name",
+            "patronymic",
+            "date_birth",
+            "role",
+            "gender",
+        ]

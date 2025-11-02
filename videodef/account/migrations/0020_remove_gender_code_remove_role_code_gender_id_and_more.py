@@ -7,38 +7,52 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('account', '0019_alter_profile_gender_alter_profile_role'),
+        ("account", "0019_alter_profile_gender_alter_profile_role"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='gender',
-            name='code',
+            model_name="gender",
+            name="code",
         ),
         migrations.RemoveField(
-            model_name='role',
-            name='code',
+            model_name="role",
+            name="code",
         ),
         migrations.AddField(
-            model_name='gender',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="gender",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='role',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="role",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='gender',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='account.gender', verbose_name='Пол'),
+            model_name="profile",
+            name="gender",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="account.gender",
+                verbose_name="Пол",
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='role',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='account.role', verbose_name='Роль'),
+            model_name="profile",
+            name="role",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="account.role",
+                verbose_name="Роль",
+            ),
         ),
     ]

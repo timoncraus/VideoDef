@@ -8,33 +8,56 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='DocumentVerificationStatus',
+            name="DocumentVerificationStatus",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.TextField(verbose_name='Название статуса')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.TextField(verbose_name="Название статуса")),
             ],
             options={
-                'verbose_name': 'Статус проверки',
-                'verbose_name_plural': 'Статусы проверки',
+                "verbose_name": "Статус проверки",
+                "verbose_name_plural": "Статусы проверки",
             },
         ),
         migrations.CreateModel(
-            name='Document',
+            name="Document",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('photo', models.ImageField(upload_to='documents/')),
-                ('name', models.TextField(verbose_name='Название')),
-                ('info', models.TextField(verbose_name='Информация')),
-                ('ver_status', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='document.documentverificationstatus', verbose_name='Статус проверки')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("photo", models.ImageField(upload_to="documents/")),
+                ("name", models.TextField(verbose_name="Название")),
+                ("info", models.TextField(verbose_name="Информация")),
+                (
+                    "ver_status",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="document.documentverificationstatus",
+                        verbose_name="Статус проверки",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Документ',
-                'verbose_name_plural': 'Документы',
+                "verbose_name": "Документ",
+                "verbose_name_plural": "Документы",
             },
         ),
     ]

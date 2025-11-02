@@ -16,46 +16,154 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Genre',
+            name="Genre",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text="Полное название жанра игры (например, 'Пазл', 'Поиск пар')", max_length=50, unique=True, verbose_name='Название жанра')),
-                ('code', models.CharField(help_text="Короткий уникальный код для использования в ID игры (например, 'PZL')", max_length=5, unique=True, verbose_name='Код жанра')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        help_text="Полное название жанра игры (например, 'Пазл', 'Поиск пар')",
+                        max_length=50,
+                        unique=True,
+                        verbose_name="Название жанра",
+                    ),
+                ),
+                (
+                    "code",
+                    models.CharField(
+                        help_text="Короткий уникальный код для использования в ID игры (например, 'PZL')",
+                        max_length=5,
+                        unique=True,
+                        verbose_name="Код жанра",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Жанр игры',
-                'verbose_name_plural': 'Жанры игр',
-                'ordering': ['name'],
+                "verbose_name": "Жанр игры",
+                "verbose_name_plural": "Жанры игр",
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='UserGame',
+            name="UserGame",
             fields=[
-                ('game_id', models.CharField(editable=False, help_text='Уникальный идентификатор игры формата ЖАНР-КОД', max_length=20, primary_key=True, serialize=False, verbose_name='Уникальный ID игры')),
-                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата создания игры')),
-                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Дата последнего обновления')),
-                ('genre', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='user_games', to='game.genre', verbose_name='Жанр игры')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_games', to=settings.AUTH_USER_MODEL, verbose_name='Пользователь')),
+                (
+                    "game_id",
+                    models.CharField(
+                        editable=False,
+                        help_text="Уникальный идентификатор игры формата ЖАНР-КОД",
+                        max_length=20,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="Уникальный ID игры",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        auto_now_add=True,
+                        db_index=True,
+                        verbose_name="Дата создания игры",
+                    ),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(
+                        auto_now=True, verbose_name="Дата последнего обновления"
+                    ),
+                ),
+                (
+                    "genre",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="user_games",
+                        to="game.genre",
+                        verbose_name="Жанр игры",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="user_games",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Пользователь",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Пользовательская игра',
-                'verbose_name_plural': 'Пользовательские игры',
-                'ordering': ['-created_at'],
+                "verbose_name": "Пользовательская игра",
+                "verbose_name_plural": "Пользовательские игры",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='UserPuzzle',
+            name="UserPuzzle",
             fields=[
-                ('game', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='puzzle_details', serialize=False, to='game.usergame')),
-                ('name', models.CharField(help_text='Название, которое пользователь дает созданному пазлу', max_length=100, verbose_name='Название пазла')),
-                ('grid_size', models.PositiveSmallIntegerField(help_text='Размер для сетки N x N', verbose_name='Размер сетки (N)')),
-                ('piece_positions', models.JSONField(help_text='JSON-массив текущего расположения элементов пазла', verbose_name='Позиции элементов пазла')),
-                ('preset_image_path', models.CharField(blank=True, help_text='Путь к изображению из стандартного набора (если используется)', max_length=255, null=True, verbose_name='Путь к пресету изображения')),
-                ('user_image', models.ImageField(blank=True, help_text='Изображение для пазла, загруженное пользователем', null=True, upload_to=game.models.get_puzzle_image_path, verbose_name='Пользовательское изображение')),
+                (
+                    "game",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        primary_key=True,
+                        related_name="puzzle_details",
+                        serialize=False,
+                        to="game.usergame",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        help_text="Название, которое пользователь дает созданному пазлу",
+                        max_length=100,
+                        verbose_name="Название пазла",
+                    ),
+                ),
+                (
+                    "grid_size",
+                    models.PositiveSmallIntegerField(
+                        help_text="Размер для сетки N x N",
+                        verbose_name="Размер сетки (N)",
+                    ),
+                ),
+                (
+                    "piece_positions",
+                    models.JSONField(
+                        help_text="JSON-массив текущего расположения элементов пазла",
+                        verbose_name="Позиции элементов пазла",
+                    ),
+                ),
+                (
+                    "preset_image_path",
+                    models.CharField(
+                        blank=True,
+                        help_text="Путь к изображению из стандартного набора (если используется)",
+                        max_length=255,
+                        null=True,
+                        verbose_name="Путь к пресету изображения",
+                    ),
+                ),
+                (
+                    "user_image",
+                    models.ImageField(
+                        blank=True,
+                        help_text="Изображение для пазла, загруженное пользователем",
+                        null=True,
+                        upload_to=game.models.get_puzzle_image_path,
+                        verbose_name="Пользовательское изображение",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Детали пазла',
-                'verbose_name_plural': 'Детали пазлов',
+                "verbose_name": "Детали пазла",
+                "verbose_name_plural": "Детали пазлов",
             },
         ),
     ]

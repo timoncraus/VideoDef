@@ -4,7 +4,6 @@ module.exports = {
     entry: {
         whiteboard: './whiteboard.js',
         puzzle: './puzzle/index.js',
-        memory_game: './memory_game/index.js',
         my_games: './my-games.js'
     },
     output: {

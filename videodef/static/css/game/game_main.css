@@ -1,86 +1,55 @@
 .games-container {
-    max-width: 1200px;
-    margin: 40px auto;
-    padding: 30px;
-    background-color: #ffffff;
-    border: 3px solid #007bff;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    max-width: 90%;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #00bfff;
+    border: 5px solid #005f7f;
+    border-radius: 15px;
+    overflow: auto;
 }
 
-/* --- Сетка игр --- */
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
-    gap: 30px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
 }
 
-/* --- Ссылка-карточка --- */
 .game-card-link {
     text-decoration: none;
-    color: inherit;
     display: block;
-    border-radius: 10px;
-    transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+    color: black;
 }
 
-.game-card-link:hover,
-.game-card-link:focus { /* Добавляем стили для фокуса */
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-}
-.game-card-link:focus {
-    outline: 2px solid #007bff; /* Яркая рамка для фокуса с клавиатуры */
-    outline-offset: 3px;
-}
-
-.game-card-link:active .game-card { /* Эффект при нажатии на саму карточку */
-    transform: scale(0.98);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-/* --- Карточка игры --- */
 .game-card {
-    background: #ffffff;
-    padding: 0;
+    background: white;
+    padding: 15px;
     border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
-    text-align: left;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
 }
 
 .game-card img {
-    width: 100%;
-    height: 270px;
-    object-fit: cover;
-    border-radius: 0;
-    border-bottom: 1px solid #eee;
-}
-
-/* Контейнер для текстового контента карточки */
-.game-card-content {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+    width: 50%;
+    height: auto;
+    border-radius: 10px;
 }
 
 .game-card h2 {
-    font-size: 1.35em;
-    margin: 0 0 10px 0;
-    color: #2c3e50;
-    font-weight: 600;
+    font-size: 1.2em;
+    margin: 10px 0;
 }
 
 .game-card p {
-    text-align: left;
-    font-size: 0.9em;
-    color: #555;
-    line-height: 1.5;
-    flex-grow: 1;
-    margin-bottom: 15px;
+    text-align: justify;
+    font-size: 12px;
+}
+
+.game-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.game-card:active {
+    transform: scale(0.95);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }

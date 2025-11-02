@@ -9,7 +9,7 @@
         {% csrf_token %}
 
         {% if object %}
-            <p><a href="{% url 'public_document_detail' object.id %}">Посмотреть на мой документ со стороны</a></p>
+            <p><a href="{% url 'document:public_document_detail' object.id %}">Посмотреть на мой документ со стороны</a></p>
         {% endif %}
 
         {% include "field/default_field.html" with field=form.name %}
