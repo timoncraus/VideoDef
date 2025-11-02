@@ -168,4 +168,54 @@ CHANNEL_LAYERS = {
     },
 }
 
-X_FRAME_OPTIONS = 'ALLOWALL'
+X_FRAME_OPTIONS = "ALLOWALL"
+
+LOG_LEVEL = "DEBUG" if DEBUG else "INFO"
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    
+    "formatters": {
+        "verbose": {
+            "format": "{name} {levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "colored_console": {
+            "()": "main.logging_formatters.ColoredFormatter",
+            "format": "[{asctime}] {name} {levelname} - {message}",
+            "style": "{",
+        },
+    },
+    
+    "handlers": {
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "general.log", 
+            "level": "DEBUG",
+            "formatter": "verbose",
+        },
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": LOG_LEVEL,
+            "formatter": "colored_console",
+        },
+    },
+    
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+    
+    "root": {
+        "handlers": ["file", "console"],
+        "level": LOG_LEVEL,
+    },
+}

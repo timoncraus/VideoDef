@@ -4,6 +4,16 @@ from .models import Child
 from .forms import ChildForm, ChildImageFormSet, ChildInitialImageFormSet
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info("Hiiiiii!!!1  infoo")
+logger.critical("Hiiiiii!!!2   criticaaal")
+logger.error("Hiiiiii!!!3 errrorrrrr")
+logger.debug("Hiiiiii!!!4  debuuug")
+logger.warning("Hiiiiii!!!5 warniiing")
+
 # Для родителя: список детей
 class ChildListView(LoginRequiredMixin, ListView):
     model = Child
