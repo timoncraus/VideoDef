@@ -76,17 +76,17 @@
 {% block scripts %}
 <script>
     const isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
-    const loginUrl = "{% url 'login' %}?next=" + window.location.pathname;
+    const loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
     
     const images = "{% static 'images' %}";
-    const savePuzzleUrl = "{% url 'save_puzzle' %}";
-    const updatePuzzleBaseUrl = "{% url 'update_puzzle' game_id="0" %}".replace('/0/', '/'); 
-    const loadPuzzlesUrl = "{% url 'load_puzzles' %}";
+    const savePuzzleUrl = "{% url 'game:save_puzzle' %}";
+    const updatePuzzleBaseUrl = "{% url 'game:update_puzzle' game_id="0" %}".replace('/0/', '/'); 
+    const loadPuzzlesUrl = "{% url 'game:load_puzzles' %}";
 
     const presetImagesBasePath = "{% static 'images/memory_game_presets/' %}";
-    const saveMemoryGameUrl = "{% url 'save_memory_game' %}";
-    const loadMemoryGamesUrl = "{% url 'load_memory_games' %}";
-    const updateMemoryGameBaseUrl = "{% url 'update_memory_game' game_id=0 %}"; 
+    const saveMemoryGameUrl = "{% url 'game:save_memory_game' %}";
+    const loadMemoryGamesUrl = "{% url 'game:load_memory_games' %}";
+    const updateMemoryGameBaseUrl = "{% url 'game:update_memory_game' game_id=0 %}"; 
 
     const csrfToken = "{{ csrf_token }}";
 </script>

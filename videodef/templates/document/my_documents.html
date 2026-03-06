@@ -1,8 +1,8 @@
 {% extends "base.html" %}
+{% block page_name %}Мои документы{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto py-8">
-    <h1 class="text-3xl font-bold mb-6">Мои документы</h1>
-    <a href="{% url 'create_my_document' %}" class="bg-blue-500   py-2 px-4 rounded">Добавить новый документ</a>
+    <a href="{% url 'document:create_my_document' %}" class="bg-blue-500   py-2 px-4 rounded">Добавить новый документ</a>
     <div class="mt-6 space-y-4">
         {% for document in documents %}
             <div class="p-4 border rounded shadow-sm flex justify-between items-center">
@@ -11,8 +11,8 @@
                     <p class="text-gray-500">{{ document.ver_status }}</p>
                 </div>
                 <div class="flex space-x-2">
-                    <a href="{% url 'edit_my_document' document.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
-                    <a href="{% url 'document_confirm_delete' document.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
+                    <a href="{% url 'document:edit_my_document' document.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
+                    <a href="{% url 'document:document_confirm_delete' document.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
                 </div>
             </div>
         {% empty %}

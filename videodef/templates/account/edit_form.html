@@ -5,7 +5,7 @@
     <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
         {% csrf_token %}
 
-        <p><a href="{% url 'view_other_user' unique_id %}">Посмотреть на мою страничку со стороны</a></p>
+        <p><a href="{% url 'account:view_other_user' unique_id %}">Посмотреть на мою страничку со стороны</a></p>
         {% if forms.profile_form.instance.photo %}
             <img src="{{ forms.profile_form.instance.photo.url }}" style="width:150px;height:150px;">
         {% else %}
@@ -43,7 +43,7 @@
         <button type="submit" class="btn btn-primary mb-3 mt-3">Отправить изменения</button>
     </form>
     <div class="mb-3 mt-3">
-        <p><a href="{% url 'logout' %}">Выйти</a></p>
+        <p><a href="{% url 'account:logout' %}">Выйти</a></p>
     </div>
 
     
