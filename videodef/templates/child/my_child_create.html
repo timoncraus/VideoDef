@@ -9,7 +9,7 @@
         {% csrf_token %}
 
         {% if object %}
-            <p><a href="{% url 'account:view_other_user' object.user.unique_id %}">Посмотреть на мою страничку с информацией о ребенке со стороны</a></p>
+            <p><a href="{% url 'view_other_user' object.user.unique_id %}">Посмотреть на мою страничку с информацией о ребенке со стороны</a></p>
         {% endif %}
 
         {% include "field/default_field.html" with field=form.name %}

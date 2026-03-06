@@ -31,7 +31,7 @@
                     {% endif %}
                     <p class="text-gray-500 mb-2">{{ resume.user.profile }}</p>
                     <h2 class="text-xl font-semibold mb-2">{{ resume.short_info }}</h2>
-                    <a href="{% url 'resume:public_resume_detail' resume.pk %}" class="text-blue-600 mt-2 inline-block">Подробнее</a>
+                    <a href="{% url 'public_resume_detail' resume.pk %}" class="text-blue-600 mt-2 inline-block">Подробнее</a>
                 </div>
             {% empty %}
                 <p>Нет подходящих резюме.</p>

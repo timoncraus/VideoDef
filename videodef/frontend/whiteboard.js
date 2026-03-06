@@ -1,4 +1,5 @@
 import { createPuzzleOnBoard, setupWhiteboardPuzzleSaveLoad } from './puzzle/index.js';
+import { createMemoryGameOnBoard, setupWhiteboardMemoryGame } from './memory_game/index.js';
 
 // Получение элементов в случае если мы на странице видеозвонка
 const videosElement = document.getElementById('videos');
@@ -167,10 +168,13 @@ if (isWebSocketActive) {
         else if (data.type === 'add_game_element') { // Добавление игры на доску
             if (!gameElements[data.id]) {
                 const gameWrapper = createGameElementLocally(data.id, data.gameName, data.x, data.y, data.width, data.height);
-                if (gameWrapper && data.gameName === "puzzles") {
-                    if (!gameWrapper.dataset.puzzleInitialized) {
+                if (gameWrapper) {
+                    if (data.gameName === "puzzles" && !gameWrapper.dataset.puzzleInitialized) {
                         createPuzzleOnBoard(gameWrapper, roomName, data.id);
                         gameWrapper.dataset.puzzleInitialized = "true";
+                    } else if (data.gameName === "memory-game" && !gameWrapper.dataset.memoryGameInitialized) {
+                        createMemoryGameOnBoard(gameWrapper, roomName, data.id);
+                        gameWrapper.dataset.memoryGameInitialized = "true";
                     }
                 }
             }
@@ -225,6 +229,8 @@ if (isWebSocketActive) {
 
                 if (gameWrapper.dataset.gameName === "puzzles") {
                     setupWhiteboardPuzzleSaveLoad(gameWrapper);
+                } else if (gameWrapper.dataset.gameName === "memory-game") {
+                    setupWhiteboardMemoryGame(gameWrapper);
                 }
             }
         } else if (data.type === 'game_element_blur') { // Удаление выделения
@@ -261,10 +267,13 @@ if (isWebSocketActive) {
             if (data.type === 'add_game_element') {
                 if (!gameElements[data.id]) {
                     const gameWrapper = createGameElementLocally(data.id, data.gameName, data.x, data.y, data.width, data.height);
-                    if (gameWrapper && data.gameName === "puzzles") {
-                        if (!gameWrapper.dataset.puzzleInitialized) {
-                            createPuzzleOnBoard(gameWrapper);
+                    if (gameWrapper) {
+                        if (data.gameName === "puzzles" && !gameWrapper.dataset.puzzleInitialized) {
+                            createPuzzleOnBoard(gameWrapper, roomName, data.id);
                             gameWrapper.dataset.puzzleInitialized = "true";
+                        } else if (data.gameName === "memory-game" && !gameWrapper.dataset.memoryGameInitialized) {
+                            createMemoryGameOnBoard(gameWrapper, roomName, data.id);
+                            gameWrapper.dataset.memoryGameInitialized = "true";
                         }
                     }
                 }
@@ -300,6 +309,8 @@ if (isWebSocketActive) {
                     gameWrapper.dataset.settingsUpdated = 'true';
                     if (gameWrapper.dataset.gameName === "puzzles") {
                         setupWhiteboardPuzzleSaveLoad(gameWrapper);
+                    } else if (gameWrapper.dataset.gameName === "memory-game") {
+                        setupWhiteboardMemoryGame(gameWrapper);
                     }
                  }
             } else if (data.type === 'game_element_blur') {
@@ -902,6 +913,8 @@ function createGameElementLocally(id, gameName, x, y, width, height) {
                 gameWrapper.dataset.settingsUpdated = 'true';
                 if (gameWrapper.dataset.gameName === "puzzles") {
                     setupWhiteboardPuzzleSaveLoad();
+                } else if (gameWrapper.dataset.gameName === "memory-game") {
+                    setupWhiteboardMemoryGame(gameWrapper);
                 }
             }
         } else {
@@ -945,11 +958,13 @@ document.querySelectorAll(".game-option").forEach(option => {
             ws.send(JSON.stringify(gameData));
         } else if (!isWebSocketActive) { // Локальный режим для доски
             const localGameWrapper = createGameElementLocally(gameId, gameName, initialX, initialY, initialWidth, initialHeight);
-            if (localGameWrapper && gameName === "puzzles") {
-                if (!localGameWrapper.dataset.puzzleInitialized) {
-                    // В локальном режиме roomName будет null, gameId будет сгенерирован.
+            if (localGameWrapper) {
+                if (gameName === "puzzles" && !localGameWrapper.dataset.puzzleInitialized) {
                     createPuzzleOnBoard(localGameWrapper, null, gameId);
                     localGameWrapper.dataset.puzzleInitialized = "true";
+                } else if (gameName === "memory-game" && !localGameWrapper.dataset.memoryGameInitialized) {
+                    createMemoryGameOnBoard(localGameWrapper, null, gameId);
+                    localGameWrapper.dataset.memoryGameInitialized = "true";
                 }
             }
             if (ws.send && typeof ws.send === 'function') {
@@ -1156,10 +1171,6 @@ function clearDynamicSettings() {
     if (!settingsPanel) return;
     const dynamicElements = settingsPanel.querySelectorAll('.dynamic-setting');
     dynamicElements.forEach(el => el.remove());
-    const puzzleSettingsContainer = settingsPanel.querySelector('.puzzle-settings-container');
-    if (puzzleSettingsContainer) {
-        puzzleSettingsContainer.remove();
-    }
 }
 
 /**
@@ -1197,26 +1208,29 @@ function updateGameSettings(gameName) {
         const content = `
             <div class="modal-content">
                 <h2>Настройки пазла</h2>
+                <!-- Имя для сохранения -->
                 <label for="puzzle-name">Название для сохранения:</label>
-                <input type="text" id="puzzle-name" placeholder="Название пазла" style="width: 80%; padding: 8px; margin-bottom: 15px;">
+                <input type="text" id="puzzle-name" placeholder="Название пазла">
 
-                <h2>Выберите изображение для пазла</h2>
+                <h3>Выберите изображение для пазла</h3>
 
-                <div class="preset-images">
+                <div class="presets-container">
                     <img src="${imagesPath}/british-cat.jpg" class="preset" data-src="${imagesPath}/british-cat.jpg" alt="Британский кот">
                     <img src="${imagesPath}/tree.png" class="preset" data-src="${imagesPath}/tree.png" alt="Дерево">
                 </div>
 
+                <!-- Загрузка пользовательского изображения -->
                 <label class="upload-label">
                     Загрузить своё:
-                    <input type="file" id="custom-image" accept="image/*">
                 </label>
-
-                <div id="image-preview-container" class="image-preview-container" style="display: none; margin-top: 10px; text-align: center;">
-                    <img id="image-preview" src="#" alt="Предпросмотр" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; margin-bottom: 5px;">
-                    <p id="image-preview-text" style="font-size: 0.9em; color: #555;">Используется загруженное изображение.</p>
+                <input type="file" id="custom-image" accept="image/*">
+                
+                <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                    <img id="image-preview" src="#" alt="Предпросмотр">
+                    <p id="image-preview-text">Используется загруженное изображение.</p>
                 </div>
 
+                <!-- Выбор сложности пазла -->
                 <label for="difficulty">Выберите сложность:</label>
                 <select id="difficulty">
                     <option value="2" selected>2x2</option>
@@ -1224,11 +1238,12 @@ function updateGameSettings(gameName) {
                     <option value="4">4x4</option>
                 </select>
 
+                <!-- Кнопки управления -->
                 <div class="settings-buttons">
-                    <button id="start-game">Начать игру</button> <!-- Эта кнопка будет скрыта JS -->
+                    <button id="start-game">Начать игру</button>
                     <button id="save-puzzle-btn">Сохранить</button>
                     <button id="load-puzzle-btn">Загрузить</button>
-                </div>
+            </div>
             </div>
         `;
 
@@ -1237,5 +1252,51 @@ function updateGameSettings(gameName) {
 
         // Добавляем в панель настроек
         settingsPanel.appendChild(settingsContainer);
-    } else if (gameName === "another-game") {}
+    } else if (gameName === "memory-game") {
+        const settingsContainer = document.createElement('div');
+        settingsContainer.className = "dynamic-setting memory-game-settings-container";
+        
+        const content = `
+            <div class="settings-content-inner">
+                <h2>Настройки "Поиск пар"</h2>
+                <label for="game-name">Название игры:</label>
+                <input type="text" id="game-name" placeholder="Моя игра в пары">
+
+                <h3>Выберите набор карточек:</h3>
+                <div class="presets-container">
+                    <div class="preset-set" data-set-name="fruits">Фрукты 🍓</div>
+                    <div class="preset-set" data-set-name="animals">Животные 🐼</div>
+                </div>
+
+                <label for="custom-images-input" class="upload-label">
+                    ИЛИ Загрузите свои изображения:
+                </label>
+                <input type="file" id="custom-images-input" accept="image/*" multiple>
+                
+                <div id="custom-images-preview" class="image-preview-container" style="display: none;">
+                    <p id="custom-images-info-text">Загружено изображений: <span id="custom-images-count">0</span></p>
+                    <div class="preview-grid"></div>
+                </div>
+
+                <label for="pair-count-select">Количество пар:</label>
+                <select id="pair-count-select">
+                    <option value="2">2 пары</option>
+                    <option value="3">3 пары</option>
+                    <option value="4" selected>4 пары</option>
+                    <option value="5">5 пары</option>
+                    <option value="6">6 пар</option> 
+                </select>
+                
+                <div class="settings-buttons">
+                    <button id="start-memory-game">Перемешать</button> <!-- На доске кнопка может выполнять роль "перемешать" -->
+                    <button id="save-memory-game-btn">Сохранить</button>
+                    <button id="load-memory-game-btn">Загрузить</button>
+                </div>
+            </div>
+        `;
+
+        settingsContainer.innerHTML = content;
+        
+        settingsPanel.appendChild(settingsContainer);   
+    }
 }

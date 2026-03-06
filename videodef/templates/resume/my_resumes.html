@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block page_name %}Мои резюме{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto py-8">
-    <a href="{% url 'resume:create_my_resume' %}" class="bg-blue-500   py-2 px-4 rounded">Добавить новое резюме</a>
+    <h1 class="text-3xl font-bold mb-6">Мои резюме</h1>
+    <a href="{% url 'create_my_resume' %}" class="bg-blue-500   py-2 px-4 rounded">Добавить новое резюме</a>
     <div class="mt-6 space-y-4">
         {% for resume in resumes %}
             <div class="p-4 border rounded shadow-sm flex justify-between items-center">
@@ -11,8 +11,8 @@
                     <p class="text-gray-500">{{ resume.get_status_display }}</p>
                 </div>
                 <div class="flex space-x-2">
-                    <a href="{% url 'resume:edit_my_resume' resume.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
-                    <a href="{% url 'resume:resume_confirm_delete' resume.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
+                    <a href="{% url 'edit_my_resume' resume.pk %}" class="bg-green-500   py-1 px-2 rounded">Редактировать</a>
+                    <a href="{% url 'resume_confirm_delete' resume.pk %}" class="bg-red-500   py-1 px-2 rounded">Удалить</a>
                 </div>
             </div>
         {% empty %}
