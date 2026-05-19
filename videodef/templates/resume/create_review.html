@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block page_name %}Отзыв о преподавателе{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto;">
+    <div style="background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 2px 16px rgba(0,0,0,0.08);">
+        <h2 style="color: #2E7D32; margin-bottom: 0.5rem;">
+            Отзыв о {{ teacher.profile }}
+        </h2>
+        
+        {% if existing_review %}
+            <p style="background: #FFF3CD; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem;">
+                ⚠️ Вы уже оставляли отзыв. Новый отзыв заменит предыдущий.
+            </p>
+        {% endif %}
+        
+        <form method="post" style="margin-top: 1.5rem;">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                    {{ form.rating.label }}
+                </label>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    {% for radio in form.rating %}
+                        <label style="cursor: pointer; padding: 8px 12px; border: 2px solid #E0E0E0; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                            {{ radio.tag }}
+                            {{ radio.choice_label }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                    {{ form.comment.label }}
+                </label>
+                {{ form.comment }}
+            </div>
+            
+            <button type="submit" style="
+                width: 100%; padding: 14px; 
+                background: linear-gradient(135deg, #4CAF50, #2E7D32);
+                color: white; border: none; border-radius: 12px;
+                font-size: 1rem; font-weight: 700; cursor: pointer;">
+                💬 Отправить отзыв
+            </button>
+        </form>
+    </div>
+    
+    {% if reviews %}
+        <div style="margin-top: 2rem;">
+            <h3>Проверенные отзывы ({{ reviews|length }})</h3>
+            {% for review in reviews %}
+                <div style="background: white; border-radius: 12px; padding: 1rem; margin-top: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                    <div style="font-weight: 600;">{{ review.parent.profile }}</div>
+                    <div style="color: #FF9800;">{{ review.rating }} ★</div>
+                    <p style="color: #555; margin: 8px 0 0;">{{ review.comment }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

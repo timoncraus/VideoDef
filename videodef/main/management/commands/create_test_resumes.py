@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.files import File
 from django.db import transaction
 import os
+import random
 
 from account.models import User
 from resume.models import Resume, ResumeImage, ViolationType
@@ -43,18 +44,34 @@ class Command(BaseCommand):
                     "Помогаю детям успешно пройти подготовку к школе и адаптироваться в коллективе."
                 ),
                 "status": Resume.ACTIVE,
+                "price_min": 1000,
+                "price_max": 2500,
+                "experience_years": 12,
+                "education_level": 8,
+                "rating": 4.7,
+                "location_lat": 55.7558,
+                "location_lon": 37.6173,
+                "location_address": "г. Москва, ул. Тверская, д. 15",
                 "image_file": "photos/Мария_резюме.jpg",
             },
             {
                 "username": "user3",
                 "short_info": "Дефектолог по работе с детьми с РАС и ЗПР",
                 "detailed_info": (
-                    "Специализируюсь на обучении и сопровождении детей с расстройствами аутистического спектра \
-                        и задержкой психического развития. "
+                    "Специализируюсь на обучении и сопровождении детей с расстройствами аутистического спектра "
+                    "и задержкой психического развития. "
                     "Провожу коррекционные занятия, использую методы ABA, TEACCH, альтернативную коммуникацию (PECS). "
                     "Опыт работы в инклюзивных и коррекционных учреждениях более 8 лет."
                 ),
                 "status": Resume.ACTIVE,
+                "price_min": 1500,
+                "price_max": 3000,
+                "experience_years": 8,
+                "education_level": 9,
+                "rating": 4.5,
+                "location_lat": 55.7512,
+                "location_lon": 37.6184,
+                "location_address": "г. Москва, ул. Арбат, д. 20",
                 "image_file": "photos/Алексей_резюме.jpg",
             },
         ]
@@ -75,10 +92,20 @@ class Command(BaseCommand):
                     short_info=resume_entry["short_info"],
                     detailed_info=resume_entry["detailed_info"],
                     status=resume_entry["status"],
+                    # Новые поля
+                    price_min=resume_entry["price_min"],
+                    price_max=resume_entry["price_max"],
+                    experience_years=resume_entry["experience_years"],
+                    education_level=resume_entry["education_level"],
+                    rating=resume_entry["rating"],
+                    location_lat=resume_entry["location_lat"],
+                    location_lon=resume_entry["location_lon"],
+                    location_address=resume_entry["location_address"],
                 )
 
                 document = documents_by_username.get(username)
-                resume.documents.add(document)
+                if document:
+                    resume.documents.add(document)
 
                 if violation_types:
                     resume.violation_types.set(violation_types[:3])

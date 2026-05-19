@@ -1,42 +1,1141 @@
-{% extends "base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск преподавателей - Видео дефектолог</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}"/>
+    <style>
+        /* Дополнительные стили для поиска */
+        .search-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 24px;
+            margin: 30px 0;
+            min-height: calc(100vh - 300px);
+        }
 
-{% block content %}
-<div class="container-resume-box">
+        .filters-sidebar {
+            position: sticky;
+            top: 24px;
+            height: fit-content;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+        }
 
-        <div class="resume-box">
-            <div class="search-teacher-box md:w-1/4 px-6">
-                <h1 class="text-3xl font-bold mb-6">Найти преподавателя</h1>
-                <form method="get" class="mb-6">
-                    <div>
-                        <h2 for="id_violation_types" class="block font-medium mb-2">Виды нарушений:</h2>
-                        <div class="space-y-2">
-                            {% for field in filter.form.violation_types %}
-                                <div class="violation-box">
-                                    {{ field.tag }}
-                                    <label for="{{ field.id_for_label }}" class="text-sm">{{ field.choice_label }}</label>
+        .filters-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .filters-header {
+            background: linear-gradient(135deg, #4D8CF2, #3b6fc0);
+            color: white;
+            padding: 20px 24px;
+        }
+
+        .filters-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filters-header .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .filters-body {
+            padding: 24px;
+        }
+
+        .filter-section {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+
+        .filter-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .filter-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .filter-label .icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #E8F5E9;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .child-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .child-select:focus {
+            border-color: #4D8CF2;
+            outline: none;
+        }
+
+        .violation-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .violation-tag {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .violation-tag input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .violation-tag .tag-content {
+            display: inline-block;
+            padding: 6px 14px;
+            border: 2px solid #E0E0E0;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #757575;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .violation-tag input:checked + .tag-content {
+            background: #E8F5E9;
+            border-color: #4CAF50;
+            color: #2E7D32;
+            font-weight: 500;
+        }
+
+        .noUi-target {
+            height: 6px;
+            border: none;
+            background: #E0E0E0;
+            border-radius: 3px;
+            box-shadow: none;
+        }
+
+        .noUi-connect {
+            background: #4CAF50;
+        }
+
+        .noUi-handle {
+            width: 24px !important;
+            height: 24px !important;
+            border: 3px solid #4CAF50 !important;
+            background: white !important;
+            border-radius: 50% !important;
+            right: -12px !important;
+            top: -9px !important;
+        }
+
+        .noUi-handle:before,
+        .noUi-handle:after {
+            display: none !important;
+        }
+
+        .slider-value-display {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: 600;
+            color: #2E7D32;
+            font-size: 0.9rem;
+        }
+
+        .btn-search {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 24px;
+        }
+
+        .btn-search:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46,125,50,0.3);
+        }
+
+        .btn-reset {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            color: #757575;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .btn-reset:hover {
+            border-color: #757575;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .results-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .results-count {
+            font-size: 0.9rem;
+            color: #757575;
+            background: #F5F5F5;
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+
+        .sort-select {
+            padding: 8px 14px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .teacher-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .teacher-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .teacher-card.best-match {
+            border: 2px solid #4CAF50;
+        }
+
+        .teacher-card.best-match::before {
+            content: '🏆 Лучшее совпадение';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #FFD54F, #FFB300);
+            color: #5D4037;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .teacher-card-top {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .teacher-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #E8F5E9;
+        }
+
+        .teacher-avatar-placeholder {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #E8F5E9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #2E7D32;
+        }
+
+        .teacher-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .teacher-brief {
+            color: #757575;
+            font-size: 0.9rem;
+            margin: 0 0 8px 0;
+        }
+
+        .teacher-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85rem;
+            color: #757575;
+        }
+
+        .meta-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .match-section {
+            background: #F5F5F5;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .match-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .match-value.excellent { color: #2E7D32; }
+        .match-value.good { color: #388E3C; }
+        .match-value.average { color: #FF9800; }
+        .match-value.poor { color: #F44336; }
+
+        .match-bar {
+            height: 8px;
+            background: #E0E0E0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .match-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .match-bar-fill.excellent { background: linear-gradient(90deg, #4CAF50, #66BB6A); }
+        .match-bar-fill.good { background: linear-gradient(90deg, #66BB6A, #81C784); }
+        .match-bar-fill.average { background: linear-gradient(90deg, #FF9800, #FFB74D); }
+        .match-bar-fill.poor { background: linear-gradient(90deg, #F44336, #EF5350); }
+
+        .satisfaction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .satisfaction-badge.level-a { background: #E8F5E9; color: #2E7D32; }
+        .satisfaction-badge.level-b { background: #F1F8E9; color: #558B2F; }
+        .satisfaction-badge.level-c { background: #FFF3E0; color: #E65100; }
+        .satisfaction-badge.level-d { background: #FFF8E1; color: #F57F17; }
+        .satisfaction-badge.level-e { background: #FFEBEE; color: #C62828; }
+        .satisfaction-badge.level-f { background: #ECEFF1; color: #455A64; }
+
+        .teacher-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-detail {
+            padding: 8px 16px;
+            border: 2px solid #4CAF50;
+            background: transparent;
+            color: #4CAF50;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-detail:hover {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-analysis {
+            padding: 8px 16px;
+            border: 2px solid #1976D2;
+            background: transparent;
+            color: #1976D2;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-analysis:hover {
+            background: #1976D2;
+            color: white;
+        }
+
+        .fuzzy-details {
+            display: none;
+            margin-top: 14px;
+            padding: 16px;
+            background: #FAFAFA;
+            border-radius: 8px;
+            border: 1px solid #E0E0E0;
+        }
+
+        .fuzzy-details.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 500px; }
+        }
+
+        .criterion-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .criterion-name {
+            width: 180px;
+            font-size: 0.8rem;
+            color: #757575;
+        }
+
+        .criterion-bar-wrap {
+            flex: 1;
+            height: 6px;
+            background: #E0E0E0;
+            border-radius: 3px;
+            margin: 0 12px;
+            overflow: hidden;
+        }
+
+        .criterion-bar-fill {
+            height: 100%;
+            background: #4CAF50;
+            border-radius: 3px;
+            transition: width 1s ease;
+        }
+
+        .criterion-value {
+            width: 50px;
+            text-align: right;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2E7D32;
+        }
+
+        .linguistic-eval {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ling-tag {
+            display: inline-block;
+            padding: 2px 10px;
+            background: #E3F2FD;
+            color: #1565C0;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .search-layout {
+                grid-template-columns: 1fr;
+            }
+            .filters-sidebar {
+                position: static;
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .teacher-card-top {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .teacher-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="{% static 'images/favicon.png' %}" style="width:130px;height:130px;" class="circle-img">
+        <h1 class="circle-text">Видео дефектолог</h1>
+    </header>
+
+    <div id="user-data" data-user-id="{{ user_id }}"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand small-circle-text" href="/">ГЛАВНАЯ</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account:about' %}"><i class="bi bi-info-circle"></i> О проекте</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'game:games' %}"><i class="bi bi-controller"></i> Игры</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'chat:chats' %}"><i class="bi bi-chat-left-text"></i> Переписки</a>
+                    </li>
+
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'game:my_games' %}"><i class="bi bi-person-circle"></i> Мои игры</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="bi bi-calendar-event"></i> Расписание</a>
+                        </li>
+
+                        {% if request.user.profile.role.name == 'Преподаватель' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'document:my_documents' %}"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'resume:my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
+                            </li>
+                        {% endif %}
+
+                        {% if request.user.profile.role.name == 'Родитель' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'child:my_children' %}"><i class="bi bi-person-lines-fill"></i> Мои дети</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="{% url 'resume:public_resume_list' %}"><i class="bi bi-search"></i> Найти преподавателя</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account:account' %}"><i class="bi bi-person-circle"></i> Личный кабинет</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="horizontal-container">
+        <div class="container">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <h2 class="display-4 text-center mb-4 page-name">Поиск преподавателей</h2>
+
+            <div class="search-layout">
+                <!-- Боковая панель фильтров -->
+                <aside class="filters-sidebar">
+                    <div class="filters-card">
+                        <div class="filters-header">
+                            <h2>
+                                🔍 Поиск преподавателя
+                                <span class="badge">Беллман-Заде</span>
+                            </h2>
+                        </div>
+                        
+                        <div class="filters-body">
+                            <form method="get" id="search-form" action="{% url 'resume:public_resume_list' %}">
+                                
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">👶</span>
+                                        Выбрать ребенка
+                                    </div>
+                                    <select name="child" id="child-select" class="child-select">
+                                        <option value="">-- Выберите ребенка --</option>
+                                        {% for child in user_children %}
+                                            <option value="{{ child.id }}" 
+                                                {% if selected_child_id == child.id %}selected{% endif %}>
+                                                {{ child.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                            {% endfor %}
-        
+
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">📋</span>
+                                        Виды нарушений
+                                    </div>
+                                    <div class="violation-tags" id="violation-container">
+                                        {% for violation in all_violations %}
+                                            <label class="violation-tag">
+                                                <input type="checkbox" name="violation_types" 
+                                                       value="{{ violation.id }}"
+                                                       {% if violation.id in selected_violations %}checked{% endif %}>
+                                                <span class="tag-content">{{ violation.name }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- ЦЕНА -->
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">💰</span>
+                                        Цена занятия (₽)
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <div id="price-slider"></div>
+                                        <div class="slider-value-display" id="price-display">
+                                            {{ price_min|default:0 }} — {{ price_max|default:5000 }} ₽
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="price_min" id="price-min" value="{{ price_min|default:0 }}">
+                                    <input type="hidden" name="price_max" id="price-max" value="{{ price_max|default:5000 }}">
+                                    
+                                    <div style="margin-top: 12px;">
+                                        <div class="filter-label" style="margin-bottom: 8px;">
+                                            <span class="icon">🎯</span>
+                                            Желаемая цена
+                                        </div>
+                                        <select name="price_goal" class="goal-select">
+                                            <option value="low" {% if price_goal == 'low' %}selected{% endif %}>Низкая (чем меньше, тем лучше)</option>
+                                            <option value="medium" {% if price_goal == 'medium' %}selected{% endif %}>Средняя (оптимальная)</option>
+                                            <option value="high" {% if price_goal == 'high' %}selected{% endif %}>Высокая (чем больше, тем лучше)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- РАССТОЯНИЕ -->
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">📍</span>
+                                        Макс. расстояние
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <div id="distance-slider"></div>
+                                        <div class="slider-value-display" id="distance-display">
+                                            {{ max_distance|default:10 }} км
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="max_distance" id="distance-val" value="{{ max_distance|default:10 }}">
+                                    
+                                    <div style="margin-top: 12px;">
+                                        <div class="filter-label" style="margin-bottom: 8px;">
+                                            <span class="icon">🎯</span>
+                                            Желаемое расстояние
+                                        </div>
+                                        <select name="distance_goal" class="goal-select">
+                                            <option value="close" {% if distance_goal == 'close' %}selected{% endif %}>Близко (чем меньше, тем лучше)</option>
+                                            <option value="medium" {% if distance_goal == 'medium' %}selected{% endif %}>Средне</option>
+                                            <option value="far" {% if distance_goal == 'far' %}selected{% endif %}>Далеко (можно и далеко)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- ОПЫТ -->
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">⏳</span>
+                                        Мин. опыт работы
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <div id="experience-slider"></div>
+                                        <div class="slider-value-display" id="experience-display">
+                                            {{ min_experience|default:0 }} лет
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="min_experience" id="experience-val" value="{{ min_experience|default:0 }}">
+                                    
+                                    <div style="margin-top: 12px;">
+                                        <div class="filter-label" style="margin-bottom: 8px;">
+                                            <span class="icon">🎯</span>
+                                            Желаемый опыт
+                                        </div>
+                                        <select name="experience_goal" class="goal-select">
+                                            <option value="beginner" {% if experience_goal == 'beginner' %}selected{% endif %}>Начинающий (до 3 лет)</option>
+                                            <option value="intermediate" {% if experience_goal == 'intermediate' %}selected{% endif %}>Средний (3-7 лет)</option>
+                                            <option value="expert" {% if experience_goal == 'expert' %}selected{% endif %}>Опытный (более 7 лет)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- РЕЙТИНГ -->
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">⭐</span>
+                                        Мин. рейтинг
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <div id="rating-slider"></div>
+                                        <div class="slider-value-display" id="rating-display">
+                                            {{ min_rating|default:0 }} ★
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="min_rating" id="rating-val" value="{{ min_rating|default:0 }}">
+                                    
+                                    <div style="margin-top: 12px;">
+                                        <div class="filter-label" style="margin-bottom: 8px;">
+                                            <span class="icon">🎯</span>
+                                            Желаемый рейтинг
+                                        </div>
+                                        <select name="rating_goal" class="goal-select">
+                                            <option value="low" {% if rating_goal == 'low' %}selected{% endif %}>Низкий (1-2 звезды)</option>
+                                            <option value="medium" {% if rating_goal == 'medium' %}selected{% endif %}>Средний (2-4 звезды)</option>
+                                            <option value="high" {% if rating_goal == 'high' %}selected{% endif %}>Высокий (4-5 звезд)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- ОБРАЗОВАНИЕ (скрытое поле, но goal можно добавить) -->
+                                <input type="hidden" name="education_goal" value="{{ education_goal|default:'expert' }}">
+
+                                <button type="button" class="btn-search" onclick="submitSearch()">
+                                    🔍 Применить фильтры
+                                </button>
+                                <button type="button" class="btn-reset" onclick="resetFilters()">
+                                    ↺ Сбросить фильтры
+                                </button>
+                            </form>
                         </div>
                     </div>
-                    <button type="submit" class="bg-blue-500 py-2 px-4 rounded text-white mt-4 w-full">Применить фильтры</button>
-                </form>
-            </div>
-            {% for resume in resumes %}
-                <div class="public-resume-display p-4 border rounded shadow-lg hover:shadow-xl transition-shadow duration-300">
-                    {% if resume.user.profile.photo %}
-                        <img src="{{ resume.user.profile.photo.url }}" alt="Аватар" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
-                    {% else %}
-                        <img src="/static/images/default.png" class="resume-avatar h-12 object-cover rounded-t-md mb-4">
-                    {% endif %}
-                    <p class="text-gray-500 mb-2">{{ resume.user.profile }}</p>
-                    <h2 class="text-xl font-semibold mb-2">{{ resume.short_info }}</h2>
-                    <a href="{% url 'resume:public_resume_detail' resume.pk %}" class="text-blue-600 mt-2 inline-block">Подробнее</a>
-                </div>
-            {% empty %}
-                <p>Нет подходящих резюме.</p>
-            {% endfor %}
-        </div>
+                </aside>
 
-</div>
-{% endblock %}
+                <!-- Результаты поиска -->
+                <main class="results-area">
+                    <div class="results-header">
+                        <div class="results-title">
+                            📚 Результаты поиска
+                            <span class="results-count">
+                                {% if results %}
+                                    Найдено: {{ results|length }}
+                                {% else %}
+                                    Нет результатов
+                                {% endif %}
+                            </span>
+                        </div>
+                        <select class="sort-select" id="sort-select" onchange="sortResults()">
+                            <option value="rank">По релевантности</option>
+                            <option value="price_asc">Цена: по возрастанию</option>
+                            <option value="price_desc">Цена: по убыванию</option>
+                            <option value="rating_desc">Рейтинг: высокий</option>
+                            <option value="experience_desc">Опыт: большой</option>
+                        </select>
+                    </div>
+
+                    {% if results %}
+                        {% for result in results %}
+                            <article class="teacher-card {% if result.rank == 1 %}best-match{% endif %}"
+                                     data-rank="{{ result.rank }}"
+                                     data-price="{{ result.resume.get_average_price }}"
+                                     data-rating="{{ result.resume.rating }}"
+                                     data-experience="{{ result.resume.experience_years }}">
+                                
+                                <div class="teacher-card-top">
+                                    {% if result.resume.user.profile.photo %}
+                                        <img src="{{ result.resume.user.profile.photo.url }}" 
+                                             alt="Фото" 
+                                             class="teacher-avatar">
+                                    {% else %}
+                                        <div class="teacher-avatar-placeholder">👤</div>
+                                    {% endif %}
+                                    
+                                    <div class="teacher-info">
+                                        <h3 class="teacher-name">
+                                            {{ result.resume.user.profile.get_full_name|default:result.resume.user.profile }}
+                                        </h3>
+                                        <p class="teacher-brief">{{ result.resume.short_info }}</p>
+                                        <div class="teacher-meta">
+                                            <span class="meta-item">
+                                                <span class="dot"></span> 
+                                                {{ result.resume.price_min }}–{{ result.resume.price_max }} ₽
+                                            </span>
+                                            <span class="meta-item">
+                                                <span class="dot"></span> 
+                                                {{ result.distance|floatformat:1 }} км
+                                            </span>
+                                            <span class="meta-item">
+                                                <span class="dot"></span> 
+                                                {{ result.resume.experience_years }} лет
+                                            </span>
+                                            <span class="meta-item">
+                                                <span class="dot"></span> 
+                                                ⭐ {{ result.resume.rating|floatformat:1 }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="match-section">
+                                    <div class="match-header">
+                                        <span>Степень соответствия (μD)</span>
+                                        <span class="match-value 
+                                            {% if result.mu_aggregated >= 70 %}excellent
+                                            {% elif result.mu_aggregated >= 50 %}good
+                                            {% elif result.mu_aggregated >= 30 %}average
+                                            {% else %}poor{% endif %}">
+                                            {{ result.mu_aggregated|floatformat:1 }}%
+                                        </span>
+                                    </div>
+                                    <div class="match-bar">
+                                        <div class="match-bar-fill 
+                                            {% if result.mu_aggregated >= 70 %}excellent
+                                            {% elif result.mu_aggregated >= 50 %}good
+                                            {% elif result.mu_aggregated >= 30 %}average
+                                            {% else %}poor{% endif %}"
+                                            style="width: 0%"
+                                            data-width="{{ result.mu_aggregated|floatformat:1 }}%">
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                        <span class="satisfaction-badge level-{{ result.satisfaction_level.level|lower }}">
+                                            {{ result.satisfaction_level.level }} — {{ result.satisfaction_level.description }}
+                                        </span>
+                                        <span style="font-size: 0.8rem; color: #757575;">
+                                            Комбинированная: {{ result.mu_combined|floatformat:1 }}%
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="teacher-actions">
+                                    <a href="{% url 'resume:public_resume_detail' result.resume.pk %}" class="btn-detail">
+                                        👁 Подробнее
+                                    </a>
+                                    <button class="btn-analysis" onclick="toggleFuzzyDetails('details-{{ result.resume.pk }}')">
+                                        📊 Анализ Беллмана-Заде
+                                    </button>
+                                </div>
+
+                                <div class="fuzzy-details" id="details-{{ result.resume.pk }}">
+                                    <h4>📐 Детальный нечеткий анализ</h4>
+                                    
+                                    {% for criterion, mu in result.membership_values.items %}
+                                        <div class="criterion-row">
+                                            <span class="criterion-name">{{ criterion }}</span>
+                                            <div class="criterion-bar-wrap">
+                                                <div class="criterion-bar-fill" 
+                                                     style="width: 0%"
+                                                     data-width="{% widthratio mu 1 100 %}%">
+                                                </div>
+                                            </div>
+                                            <span class="criterion-value">{{ mu|floatformat:3 }}</span>
+                                        </div>
+                                    {% endfor %}
+                                    
+                                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd;">
+                                        <strong>μD (min-агрегирование):</strong> {{ result.mu_aggregated|floatformat:1 }}%<br>
+                                        <strong>μ weighted (взвешенное):</strong> {{ result.mu_weighted|floatformat:1 }}%<br>
+                                        <strong>μ combined (комбинированное):</strong> {{ result.mu_combined|floatformat:1 }}%
+                                    </div>
+                                    
+                                    {% if result.linguistic_evaluation %}
+                                        <div style="margin-top: 8px;">
+                                            <strong>Лингвистическая оценка:</strong>
+                                            <div class="linguistic-eval">
+                                                {% for var, label in result.linguistic_evaluation.items %}
+                                                    <span class="ling-tag">{{ var }}: {{ label }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="icon">🔍</div>
+                            <h3>Ничего не найдено</h3>
+                            <p>Попробуйте изменить параметры поиска или сбросить фильтры</p>
+                        </div>
+                    {% endif %}
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ru.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.js"></script>
+    <script src="{% static 'js/date.js' %}"></script>
+    <script>
+        const user_id = "{{ request.user.unique_id }}";
+    </script>
+    <script src="{% static 'js/videocall/notify.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initSliders();
+            initChildSelect();
+            animateBars();
+        });
+
+        function initSliders() {
+            var priceSlider = document.getElementById('price-slider');
+            if (priceSlider) {
+                noUiSlider.create(priceSlider, {
+                    start: [
+                        parseFloat(document.getElementById('price-min').value) || 0,
+                        parseFloat(document.getElementById('price-max').value) || 5000
+                    ],
+                    connect: true,
+                    range: { 'min': 0, 'max': 5000 },
+                    step: 100
+                });
+                priceSlider.noUiSlider.on('update', function(values) {
+                    var minVal = Math.round(parseFloat(values[0]));
+                    var maxVal = Math.round(parseFloat(values[1]));
+                    document.getElementById('price-min').value = minVal;
+                    document.getElementById('price-max').value = maxVal;
+                    document.getElementById('price-display').textContent = minVal + ' — ' + maxVal + ' ₽';
+                });
+            }
+
+            var distSlider = document.getElementById('distance-slider');
+            if (distSlider) {
+                noUiSlider.create(distSlider, {
+                    start: [parseFloat(document.getElementById('distance-val').value) || 10],
+                    connect: [true, false],
+                    range: { 'min': 0, 'max': 50 },
+                    step: 1
+                });
+                distSlider.noUiSlider.on('update', function(values) {
+                    var v = Math.round(parseFloat(values[0]));
+                    document.getElementById('distance-val').value = v;
+                    document.getElementById('distance-display').textContent = v + ' км';
+                });
+            }
+
+            var expSlider = document.getElementById('experience-slider');
+            if (expSlider) {
+                noUiSlider.create(expSlider, {
+                    start: [parseFloat(document.getElementById('experience-val').value) || 0],
+                    connect: [true, false],
+                    range: { 'min': 0, 'max': 30 },
+                    step: 1
+                });
+                expSlider.noUiSlider.on('update', function(values) {
+                    var v = Math.round(parseFloat(values[0]));
+                    document.getElementById('experience-val').value = v;
+                    document.getElementById('experience-display').textContent = v + ' лет';
+                });
+            }
+
+            var ratSlider = document.getElementById('rating-slider');
+            if (ratSlider) {
+                noUiSlider.create(ratSlider, {
+                    start: [parseFloat(document.getElementById('rating-val').value) || 0],
+                    connect: [true, false],
+                    range: { 'min': 0, 'max': 5 },
+                    step: 0.5
+                });
+                ratSlider.noUiSlider.on('update', function(values) {
+                    var v = parseFloat(values[0]).toFixed(1);
+                    document.getElementById('rating-val').value = v;
+                    document.getElementById('rating-display').textContent = v + ' ★';
+                });
+            }
+        }
+
+        function initChildSelect() {
+            var childSelect = document.getElementById('child-select');
+            if (childSelect) {
+                childSelect.addEventListener('change', function() {
+                    var childId = this.value;
+                    if (childId) {
+                        fetch('/resume/api/child-violations/?child_id=' + childId)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.violations) {
+                                    document.querySelectorAll('.violation-tag input').forEach(cb => {
+                                        cb.checked = false;
+                                    });
+                                    data.violations.forEach(violation => {
+                                        var cb = document.querySelector('.violation-tag input[value="' + violation.id + '"]');
+                                        if (cb) cb.checked = true;
+                                    });
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    }
+                });
+            }
+        }
+
+        function toggleFuzzyDetails(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('active');
+                if (el.classList.contains('active')) {
+                    el.querySelectorAll('.criterion-bar-fill').forEach(bar => {
+                        if (bar.dataset.width) {
+                            bar.style.width = bar.dataset.width;
+                        }
+                    });
+                }
+            }
+        }
+
+        function animateBars() {
+            setTimeout(function() {
+                document.querySelectorAll('.match-bar-fill[data-width]').forEach(bar => {
+                    if (bar.dataset.width) {
+                        bar.style.width = bar.dataset.width;
+                    }
+                });
+            }, 200);
+        }
+
+        function resetFilters() {
+            document.querySelectorAll('.violation-tag input').forEach(cb => cb.checked = false);
+            var childSelect = document.getElementById('child-select');
+            if (childSelect) childSelect.value = '';
+            window.location.href = window.location.pathname;
+        }
+
+        function sortResults() {
+            var sortBy = document.getElementById('sort-select').value;
+            var cards = Array.from(document.querySelectorAll('.teacher-card'));
+            
+            cards.sort(function(a, b) {
+                if (sortBy === 'rank') {
+                    return (parseInt(a.dataset.rank) || 999) - (parseInt(b.dataset.rank) || 999);
+                }
+                if (sortBy === 'price_asc') {
+                    return (parseFloat(a.dataset.price) || 0) - (parseFloat(b.dataset.price) || 0);
+                }
+                if (sortBy === 'price_desc') {
+                    return (parseFloat(b.dataset.price) || 0) - (parseFloat(a.dataset.price) || 0);
+                }
+                if (sortBy === 'rating_desc') {
+                    return (parseFloat(b.dataset.rating) || 0) - (parseFloat(a.dataset.rating) || 0);
+                }
+                if (sortBy === 'experience_desc') {
+                    return (parseFloat(b.dataset.experience) || 0) - (parseFloat(a.dataset.experience) || 0);
+                }
+                return 0;
+            });
+            
+            var parent = cards[0] ? cards[0].parentNode : null;
+            if (parent) {
+                cards.forEach(function(card) {
+                    parent.appendChild(card);
+                });
+            }
+        }
+
+        function submitSearch() {
+            var form = document.getElementById('search-form');
+            if (form) {
+                var priceMin = document.getElementById('price-min');
+                var priceMax = document.getElementById('price-max');
+                var distanceVal = document.getElementById('distance-val');
+                var experienceVal = document.getElementById('experience-val');
+                var ratingVal = document.getElementById('rating-val');
+                
+                if (priceMin && priceMin.value) priceMin.value = String(priceMin.value).replace(',', '.');
+                if (priceMax && priceMax.value) priceMax.value = String(priceMax.value).replace(',', '.');
+                if (distanceVal && distanceVal.value) distanceVal.value = String(distanceVal.value).replace(',', '.');
+                if (experienceVal && experienceVal.value) experienceVal.value = String(experienceVal.value).replace(',', '.');
+                if (ratingVal && ratingVal.value) ratingVal.value = String(ratingVal.value).replace(',', '.');
+                
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>

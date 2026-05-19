@@ -13,6 +13,7 @@ class Command(BaseCommand):
 
         call_command("create_test_documents")
         call_command("create_test_resumes")
+        call_command("create_test_reviews")
 
         call_command("create_test_chats")
         call_command("create_test_messages")

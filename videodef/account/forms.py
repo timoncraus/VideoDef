@@ -97,6 +97,9 @@ class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, auth_user, **kwargs):
         auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
+        # Блокируем поле role
+        self.fields['role'].disabled = True
+        self.fields['role'].help_text = "Роль нельзя изменить самостоятельно. Обратитесь к администратору."
 
     class Meta:
         model = Profile

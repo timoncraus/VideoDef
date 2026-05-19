@@ -17,4 +17,7 @@ urlpatterns = [
     path(
         "view/<int:pk>/", views.ResumeDetailView.as_view(), name="public_resume_detail"
     ),
+    path('review/<str:teacher_id>/', views.create_review, name='create_review'),
+    path('api/child-violations/', views.get_child_violations, name='get_child_violations'),
+    path('api/create-document/', views.ajax_create_document, name='ajax_create_document'),
 ]

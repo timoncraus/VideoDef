@@ -1,41 +1,609 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+    .resume-create-box {
+        max-width: 700px;
+        margin: 2rem auto;
+    }
+
+    .form-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+        padding: 2.5rem;
+    }
+
+    .form-card h2 {
+        color: #2E7D32;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #E0E0E0;
+    }
+
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-section-title .icon {
+        width: 28px;
+        height: 28px;
+        background: #E8F5E9;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+    }
+
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 2px solid #E0E0E0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        background: #FAFAFA;
+    }
+
+    .form-input:focus, .form-textarea:focus {
+        border-color: #4CAF50;
+        background: #fff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(76,175,80,0.1);
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 2px solid #E0E0E0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        background: #FAFAFA;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23757575'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+    }
+
+    .price-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .price-item {
+        position: relative;
+    }
+
+    .price-item .currency {
+        position: absolute;
+        right: 14px;
+        top: 38px;
+        color: #757575;
+        font-weight: 600;
+    }
+
+    .price-item input {
+        padding-right: 30px;
+    }
+
+    /* Чекбоксы для нарушений */
+    .checkbox-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 2px solid #E0E0E0;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .checkbox-item:hover {
+        border-color: #4CAF50;
+        background: #F1F8E9;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+        accent-color: #4CAF50;
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Блок документов */
+    .documents-block {
+        border: 2px dashed #E0E0E0;
+        border-radius: 12px;
+        padding: 16px;
+        background: #FAFAFA;
+    }
+
+    .documents-list {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 12px;
+    }
+
+    .documents-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        cursor: pointer;
+    }
+
+    .btn-create-doc {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-create-doc:hover {
+        background: #388E3C;
+    }
+
+    /* Изображения */
+    .images-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+    }
+
+    .image-upload-box {
+        border: 2px dashed #E0E0E0;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        background: #FAFAFA;
+        transition: all 0.2s;
+    }
+
+    .image-upload-box:hover {
+        border-color: #4CAF50;
+    }
+
+    .image-upload-box img {
+        max-width: 100%;
+        max-height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    .image-upload-box input[type="file"] {
+        font-size: 0.8rem;
+    }
+
+    /* Кнопки */
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 2rem;
+    }
+
+    .btn-save {
+        flex: 1;
+        padding: 14px;
+        background: linear-gradient(135deg, #4CAF50, #2E7D32);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(46,125,50,0.3);
+    }
+
+    .btn-preview {
+        padding: 14px 24px;
+        background: white;
+        color: #4CAF50;
+        border: 2px solid #4CAF50;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-preview:hover {
+        background: #E8F5E9;
+    }
+
+    .info-text {
+        font-size: 0.85rem;
+        color: #757575;
+        margin-top: 4px;
+    }
+
+    /* Модальное окно */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-dialog {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-dialog h3 {
+        margin: 0 0 1.5rem 0;
+        color: #333;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+    }
+
+    .btn-cancel {
+        padding: 10px 20px;
+        background: #F5F5F5;
+        color: #333;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .btn-submit {
+        padding: 10px 20px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+        .form-card { padding: 1.5rem; }
+        .price-row { grid-template-columns: 1fr; }
+        .checkbox-grid { grid-template-columns: 1fr; }
+        .images-section { grid-template-columns: 1fr; }
+        .form-actions { flex-direction: column; }
+    }
+</style>
+{% endblock %}
 
 {% block page_name %}
-    {% if object %}Редактировать резюме № {{ object.id }}{% else %}Создать резюме{% endif %}
+    {% if object %}Редактирование резюме №{{ object.id }}{% else %}Создание резюме{% endif %}
 {% endblock %}
+
 {% block content %}
-<div class="max-w-2xl mx-auto py-8 resume-create-box">
-    <form method="post" enctype="multipart/form-data" class="space-y-4">
-        {% csrf_token %}
+<div class="resume-create-box">
+    <div class="form-card">
+        <h2>{% if object %}✏️ Редактировать резюме{% else %}📝 Новое резюме{% endif %}</h2>
 
-        {% if object %}
-            <p><a href="{% url 'resume:public_resume_detail' object.id %}">Посмотреть на мое резюме со стороны</a></p>
-        {% endif %}
+        <form method="post" enctype="multipart/form-data" id="resume-form">
+            {% csrf_token %}
 
-        {% include "field/default_field.html" with field=form.short_info %}
-        {% include "field/default_field.html" with field=form.detailed_info %}
-        {% include "field/default_field.html" with field=form.status %}
-        <p>Прикрепить документы:</p>
-        {{ form.documents }}
-        <p>Указать виды нарушений:</p>
-        {{ form.violation_types }}
-
-        {{ images_formset.management_form }}
-        {% for form in images_formset.forms %}
             {% if object %}
-                <h3 class="form-label">- {{ form.instance }}</h3>
+                <p style="margin-bottom: 1.5rem;">
+                    <a href="{% url 'resume:public_resume_detail' object.id %}" class="btn-preview">
+                        👁 Посмотреть со стороны
+                    </a>
+                </p>
             {% endif %}
-            {% if form.instance.image %}
-                <img src="{{ form.instance.image.url }}" style="max-width:60%;">
+
+            <!-- Основная информация -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <span class="icon">📋</span> Основная информация
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">{{ form.short_info.label }}</label>
+                    {{ form.short_info }}
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">{{ form.detailed_info.label }}</label>
+                    {{ form.detailed_info }}
+                </div>
+
+                <div>
+                    <label class="form-label">{{ form.status.label }}</label>
+                    {{ form.status }}
+                    <p class="info-text">Черновик виден только вам. Активное резюме видят все родители.</p>
+                </div>
+            </div>
+
+            <!-- Цена и опыт -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <span class="icon">💰</span> Стоимость и опыт
+                </div>
+
+                <div class="price-row">
+                    <div class="price-item">
+                        <label class="form-label">{{ form.price_min.label }}</label>
+                        {{ form.price_min }}
+                        <span class="currency">₽</span>
+                    </div>
+                    <div class="price-item">
+                        <label class="form-label">{{ form.price_max.label }}</label>
+                        {{ form.price_max }}
+                        <span class="currency">₽</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 1rem;">
+                    <div>
+                        <label class="form-label">{{ form.experience_years.label }}</label>
+                        {{ form.experience_years }}
+                        <p class="info-text">{{ form.experience_years.help_text }}</p>
+                    </div>
+                    <div>
+                        <label class="form-label">{{ form.education_level.label }}</label>
+                        {{ form.education_level }}
+                        <p class="info-text">{{ form.education_level.help_text }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Адрес -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <span class="icon">📍</span> Местоположение
+                </div>
+                <div>
+                    <label class="form-label">{{ form.location_address.label }}</label>
+                    {{ form.location_address }}
+                    <p class="info-text">Укажите город и район, где вы работаете. Это поможет родителям найти вас.</p>
+                </div>
+            </div>
+
+            <!-- Виды нарушений -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <span class="icon">🏥</span> Виды нарушений
+                </div>
+                <p class="info-text" style="margin-bottom: 12px;">Выберите, с какими нарушениями вы работаете:</p>
+                <div class="checkbox-grid">
+                    {{ form.violation_types }}
+                </div>
+            </div>
+
+            <!-- Документы -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <span class="icon">📎</span> Документы
+                </div>
+                <div class="documents-block">
+                    <div class="documents-list">
+                        {% for doc in form.documents %}
+                            <label>
+                                {{ doc.tag }}
+                                {{ doc.choice_label }}
+                            </label>
+                        {% empty %}
+                            <p style="color: #757575; text-align: center; padding: 20px;">
+                                У вас пока нет документов.
+                            </p>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn-create-doc" onclick="openDocumentModal()">
+                        ➕ Создать новый документ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Изображения -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <span class="icon">🖼</span> Изображения (до 3)
+                </div>
+
+                {{ images_formset.management_form }}
+                <div class="images-section">
+                    {% for form in images_formset.forms %}
+                        <div class="image-upload-box">
+                            {% if form.instance.image %}
+                                <img src="{{ form.instance.image.url }}" alt="Изображение {{ forloop.counter }}">
+                                <p style="font-size: 0.8rem; color: #757575; margin: 4px 0;">
+                                    {{ form.instance }}
+                                </p>
+                            {% else %}
+                                <div style="font-size: 2rem; color: #BDBDBD; margin-bottom: 8px;">📷</div>
+                                <p style="font-size: 0.8rem; color: #757575;">Изображение {{ forloop.counter }}</p>
+                            {% endif %}
+                            {{ form.image }}
+                            {% if form.instance.pk %}
+                                <label style="font-size: 0.8rem; color: #F44336; cursor: pointer; margin-top: 4px; display: block;">
+                                    {{ form.DELETE }} Удалить
+                                </label>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Мета-информация -->
+            {% if object %}
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon">ℹ️</span> Информация
+                    </div>
+                    <p style="font-size: 0.9rem; color: #757575;">
+                        📅 Создано: {{ object.created_at }} по мск
+                    </p>
+                    <p style="font-size: 0.9rem; color: #757575;">
+                        🔄 Обновлено: {{ object.updated_at }} по мск
+                    </p>
+                </div>
             {% endif %}
-            {{ form.as_p }}
-        {% endfor %}
-        
-        {% if object %}
-            <p><strong>Дата создания:</strong> {{ object.created_at }} по мск</p>
-            <p><strong>Дата последнего обновления:</strong> {{ object.updated_at }} по мск</p>
-        {% endif %}
-        <button type="submit" class="bg-blue-500   py-2 px-4 rounded">Сохранить</button>
-    </form>
+
+            <!-- Кнопки -->
+            <div class="form-actions">
+                <button type="submit" class="btn-save">
+                    💾 Сохранить резюме
+                </button>
+                {% if object %}
+                    <a href="{% url 'resume:public_resume_detail' object.id %}" class="btn-preview">
+                        👁 Просмотр
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
 </div>
+
+<!-- Модальное окно создания документа -->
+<div class="modal-overlay" id="document-modal">
+    <div class="modal-dialog">
+        <h3>📄 Создать новый документ</h3>
+        <form id="quick-document-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div style="margin-bottom: 1rem;">
+                <label class="form-label" for="doc-name">Название документа</label>
+                <input type="text" id="doc-name" name="name" class="form-input" 
+                       placeholder="Диплом, сертификат, справка..." required>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label class="form-label" for="doc-info">Описание</label>
+                <textarea id="doc-info" name="info" class="form-textarea" rows="3" 
+                          placeholder="Кратко опишите документ..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeDocumentModal()">Отмена</button>
+                <button type="submit" class="btn-submit">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openDocumentModal() {
+    document.getElementById('document-modal').classList.add('active');
+}
+
+function closeDocumentModal() {
+    document.getElementById('document-modal').classList.remove('active');
+}
+
+document.getElementById('quick-document-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var formData = new FormData(this);
+    
+    fetch('{% url "resume:ajax_create_document" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Добавляем новый чекбокс в список документов
+            var container = document.querySelector('.documents-list');
+            if (container.querySelector('p')) {
+                container.innerHTML = '';
+            }
+            var label = document.createElement('label');
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'documents';
+            checkbox.value = data.document.id;
+            checkbox.checked = true;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' ' + data.document.name));
+            container.appendChild(label);
+            
+            closeDocumentModal();
+            document.getElementById('doc-name').value = '';
+            document.getElementById('doc-info').value = '';
+        } else {
+            alert('Ошибка: ' + JSON.stringify(data.errors));
+        }
+    })
+    .catch(function() {
+        alert('Произошла ошибка при создании документа');
+    });
+});
+
+// Закрытие модального окна по клику вне его
+document.getElementById('document-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDocumentModal();
+    }
+});
+</script>
 {% endblock %}
