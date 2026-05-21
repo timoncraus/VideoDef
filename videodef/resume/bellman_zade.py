@@ -361,8 +361,8 @@ class BellmanZadeMCDA:
         result = {criterion: weights[i] for i, criterion in enumerate(self.criteria)}
         print(f"Criteria weights result: {result}")
         return result
-    
-    def build_fuzzy_sets(self):
+
+    def build_fuzzy_sets(self, skip_weights_calculation: bool = False):
         """
         Построение нечетких множеств для каждого критерия
         """
@@ -387,15 +387,16 @@ class BellmanZadeMCDA:
         
         print(f"Total fuzzy sets built: {len(self.criterion_fuzzy_sets)}")
         
-        # Расчет весов критериев (если есть матрица)
-        self.calculate_criteria_weights()
+        # Расчет весов критериев (если есть матрица И не запрещено)
+        if not skip_weights_calculation:
+            self.calculate_criteria_weights()
         
         # Если веса не установлены, используем равные
         if self.criteria_weights is None:
             n = len(self.criteria)
             self.criteria_weights = np.ones(n) / n
             print(f"Using equal weights: {self.criteria_weights}")
-    
+
     def calculate_solution(self, use_weights: bool = True) -> Dict[str, float]:
         """
         Расчет нечеткого решения D по формуле (2.34) или (2.35)

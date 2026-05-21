@@ -54,9 +54,6 @@ class Resume(models.Model):
         default=0, verbose_name="Уровень образования (0-10)",
         help_text="0 - без образования, 10 - высшее профильное + учёная степень"
     )
-    rating = models.FloatField(
-        default=0, verbose_name="Рейтинг (0-5)"
-    )
     location_lat = models.FloatField(null=True, blank=True, verbose_name="Широта")
     location_lon = models.FloatField(null=True, blank=True, verbose_name="Долгота")
     location_address = models.CharField(
@@ -75,6 +72,14 @@ class Resume(models.Model):
 
     def get_average_price(self):
         return (float(self.price_min) + float(self.price_max)) / 2
+    
+    def get_rating(self):
+        """Вычисление среднего рейтинга из отзывов"""
+        from .models import TeacherReview
+        reviews = TeacherReview.objects.filter(teacher=self.user)
+        if reviews.exists():
+            return reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0.0
+        return 0.0
 
 
 class ResumeImage(models.Model):
@@ -128,10 +133,6 @@ class TeacherReview(models.Model):
         max_length=1000, verbose_name="Комментарий",
         help_text="Ваш отзыв о работе преподавателя"
     )
-    is_approved = models.BooleanField(
-        default=False, verbose_name="Проверен",
-        help_text="Отзыв проверен администратором"
-    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отзыва")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлен")
     
@@ -145,19 +146,6 @@ class TeacherReview(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Обновляем рейтинг преподавателя
-        self._update_teacher_rating()
-    
-    def _update_teacher_rating(self):
-        """Обновление среднего рейтинга преподавателя"""
-        reviews = TeacherReview.objects.filter(
-            teacher=self.teacher, 
-            is_approved=True
-        )
-        if reviews.exists():
-            avg_rating = reviews.aggregate(models.Avg('rating'))['rating__avg']
-            # Обновляем рейтинг в резюме преподавателя
-            Resume.objects.filter(user=self.teacher).update(rating=avg_rating)
 
 
 class FuzzyComparisonSettings(models.Model):
@@ -204,3 +192,35 @@ class FuzzyComparisonSettings(models.Model):
     
     def __str__(self):
         return f"Настройки Беллмана-Заде от {self.updated_at.strftime('%d.%m.%Y %H:%M')}"
+
+
+class UserCriteriaWeights(models.Model):
+    """Пользовательские веса критериев для метода Беллмана-Заде"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='criteria_weights',
+        verbose_name="Пользователь"
+    )
+    weights = models.JSONField(
+        verbose_name="Веса критериев",
+        help_text="JSON с весами критериев (α-коэффициенты)",
+        null=True,  # Разрешаем NULL
+        blank=True
+    )
+    pairwise_comparisons = models.JSONField(
+        verbose_name="Парные сравнения",
+        help_text="JSON с парными сравнениями критериев по шкале Саати",
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Пользовательские веса критериев"
+        verbose_name_plural = "Пользовательские веса критериев"
+        unique_together = ['user']
+    
+    def __str__(self):
+        return f"Веса пользователя {self.user.username} от {self.updated_at}"

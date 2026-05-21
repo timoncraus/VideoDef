@@ -913,7 +913,33 @@
 
                                 <!-- ОБРАЗОВАНИЕ (скрытое поле) -->
                                 <input type="hidden" name="education_goal" value="{{ education_goal|default:'expert' }}">
-
+                                <div class="filter-section">
+                                    <div class="filter-label">
+                                        <span class="icon">⚖️</span>
+                                        Веса критериев
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input type="radio" name="weight_mode" id="weight_expert" class="form-check-input" 
+                                                value="expert" {% if weight_mode != 'custom' %}checked{% endif %}
+                                                onchange="changeWeightMode('expert')">
+                                            <label class="form-check-label" for="weight_expert">
+                                                Использовать веса экспертов
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="radio" name="weight_mode" id="weight_custom" class="form-check-input" 
+                                                value="custom" {% if weight_mode == 'custom' %}checked{% endif %}
+                                                onchange="changeWeightMode('custom')">
+                                            <label class="form-check-label" for="weight_custom">
+                                                Использовать мои веса
+                                            </label>
+                                        </div>
+                                        <a href="{% url 'resume:user_weights_settings' %}" class="btn btn-sm btn-outline-primary mt-2">
+                                            ⚙️ Настроить веса самостоятельно
+                                        </a>
+                                    </div>
+                                </div>
                                 <button type="button" class="btn-search" onclick="submitSearch()">
                                     🔍 Применить фильтры
                                 </button>
@@ -921,6 +947,7 @@
                                     ↺ Сбросить фильтры
                                 </button>
                             </form>
+                            <input type="hidden" name="ordering" id="ordering-input" value="{{ request.GET.ordering|default:'rank' }}">
                         </div>
                     </div>
                 </aside>
@@ -939,12 +966,12 @@
                             </span>
                         </div>
                         <div class="results-actions">
-                            <select class="sort-select" id="sort-select" onchange="sortResults()">
-                                <option value="rank">По релевантности (μD)</option>
-                                <option value="price_asc">Цена: по возрастанию</option>
-                                <option value="price_desc">Цена: по убыванию</option>
-                                <option value="rating_desc">Рейтинг: высокий</option>
-                                <option value="experience_desc">Опыт: большой</option>
+                            <select class="sort-select" id="sort-select" onchange="changeOrdering()">
+                                <option value="rank" {% if request.GET.ordering == 'rank' or not request.GET.ordering %}selected{% endif %}>По релевантности (μD)</option>
+                                <option value="price" {% if request.GET.ordering == 'price' %}selected{% endif %}>Цена: по возрастанию</option>
+                                <option value="-price" {% if request.GET.ordering == '-price' %}selected{% endif %}>Цена: по убыванию</option>
+                                <option value="-rating" {% if request.GET.ordering == '-rating' %}selected{% endif %}>Рейтинг: высокий</option>
+                                <option value="-experience" {% if request.GET.ordering == '-experience' %}selected{% endif %}>Опыт: большой</option>
                             </select>
                             {% if results %}
                                 <a href="{% url 'resume:what_if_analysis' %}" class="btn-what-if">
@@ -994,7 +1021,7 @@
                                             </span>
                                             <span class="meta-item">
                                                 <span class="dot"></span> 
-                                                ⭐ {{ result.resume.rating|floatformat:1 }}
+                                                ⭐ {{ result.rating|floatformat:1 }}
                                             </span>
                                         </div>
                                     </div>
@@ -1284,6 +1311,26 @@
                 
                 form.submit();
             }
+        }
+    </script>
+
+    <script>
+        function changeOrdering() {
+            const select = document.getElementById('sort-select');
+            const orderingInput = document.getElementById('ordering-input');
+            orderingInput.value = select.value;
+            document.getElementById('search-form').submit();
+        }
+    </script>
+
+    <script>
+        function changeWeightMode(mode) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'weight_mode';
+            input.value = mode;
+            document.getElementById('search-form').appendChild(input);
+            document.getElementById('search-form').submit();
         }
     </script>
 </body>

@@ -25,28 +25,25 @@ class Command(BaseCommand):
                 "parent": parent1,
                 "rating": 5,
                 "comment": "Замечательный логопед! Ребёнок стал говорить намного лучше уже через месяц занятий. Очень рекомендую!",
-                "is_approved": True,
             },
             {
                 "teacher": teacher2,
                 "parent": parent4,
                 "rating": 4,
                 "comment": "Хороший специалист. Индивидуальный подход к ребёнку, интересные методики. Немного дороговато, но результат стоит того.",
-                "is_approved": True,
             },
             {
                 "teacher": teacher3,
                 "parent": parent1,
                 "rating": 5,
                 "comment": "Алексей — прекрасный дефектолог. Помог нашему сыну с РАС адаптироваться и начать общаться. Огромная благодарность!",
-                "is_approved": True,
+
             },
             {
                 "teacher": teacher3,
                 "parent": parent4,
                 "rating": 4,
                 "comment": "Грамотный подход, использует современные методики. Ребёнку нравится заниматься.",
-                "is_approved": False,  # Ещё не проверен администратором
             },
         ]
 
@@ -57,7 +54,6 @@ class Command(BaseCommand):
                 defaults={
                     "rating": review_data["rating"],
                     "comment": review_data["comment"],
-                    "is_approved": review_data["is_approved"],
                 },
             )
             if created:

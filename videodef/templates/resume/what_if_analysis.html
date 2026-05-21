@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_name %}What-If анализ (Беллман-Заде){% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>🔬 What-If анализ</h1>
+    <p class="text-muted">Анализ чувствительности решения к изменениям парных сравнений</p>
+    
+    <div class="alert alert-info">
+        <strong>📊 Текущее решение:</strong>
+        <ul class="mb-0 mt-2">
+            <li>Лучшая альтернатива: <strong>{{ current_best.0 }}</strong> ({{ current_best.1|floatformat:1 }}%)</li>
+            <li>Коэффициенты важности: 
+                {% for criterion, weight in current_weights.items %}
+                    <span class="badge bg-secondary">{{ criterion }}: {{ weight|floatformat:3 }}</span>
+                {% endfor %}
+            </li>
+        </ul>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Изменить сравнение критериев</h5>
+                </div>
+                <div class="card-body">
+                    <form id="criterion-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label>Критерий A</label>
+                            <select name="criterion1" class="form-select">
+                                {% for criterion in criteria %}
+                                    <option value="{{ criterion }}">{{ criterion|upper }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Критерий B</label>
+                            <select name="criterion2" class="form-select">
+                                {% for criterion in criteria %}
+                                    <option value="{{ criterion }}">{{ criterion|upper }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Новое значение (шкала Саати 1/9 - 9)</label>
+                            <input type="number" name="new_value" class="form-control" step="0.1" value="1">
+                            <small class="text-muted">1 - равны, 3 - слабое преимущество, 5 - сильное, 7 - очень сильное, 9 - абсолютное</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Применить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Изменить сравнение альтернатив</h5>
+                </div>
+                <div class="card-body">
+                    <form id="alternative-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label>Критерий</label>
+                            <select name="criterion" class="form-select">
+                                {% for criterion in criteria %}
+                                    <option value="{{ criterion }}">{{ criterion|upper }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Альтернатива A</label>
+                            <select name="alt1" class="form-select">
+                                {% for alt in alternatives %}
+                                    <option value="{{ alt }}">{{ alt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Альтернатива B</label>
+                            <select name="alt2" class="form-select">
+                                {% for alt in alternatives %}
+                                    <option value="{{ alt }}">{{ alt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Новое значение (шкала Саати 1/9 - 9)</label>
+                            <input type="number" name="new_value" class="form-control" step="0.1" value="1">
+                        </div>
+                        <button type="submit" class="btn btn-success">Применить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Результат анализа</h5>
+        </div>
+        <div class="card-body" id="result-container">
+            <p class="text-muted">Измените параметры выше, чтобы увидеть результат</p>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{% url 'resume:public_resume_list' %}" class="btn btn-secondary">← Вернуться к поиску</a>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.getElementById('criterion-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.append('analysis_type', 'criterion');
+    
+    const response = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    });
+    
+    const data = await response.json();
+    displayResult(data);
+});
+
+document.getElementById('alternative-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.append('analysis_type', 'alternative');
+    
+    const response = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    });
+    
+    const data = await response.json();
+    displayResult(data);
+});
+
+function displayResult(data) {
+    const container = document.getElementById('result-container');
+    if (data.error) {
+        container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        return;
+    }
+    
+    let html = '<h6>Новое решение:</h6>';
+    html += '<table class="table table-sm">';
+    html += '<tr><th>Альтернатива</th><th>μD (%)</th><th>Изменение</th></tr>';
+    
+    for (const [alt, value] of Object.entries(data.new_solution || {})) {
+        const change = data.changes?.[alt]?.delta || 0;
+        const changeColor = change > 0 ? 'text-success' : (change < 0 ? 'text-danger' : '');
+        html += `<tr>
+            <td>${alt}</td>
+            <td>${(value * 100).toFixed(1)}%</td>
+            <td class="${changeColor}">${change > 0 ? '+' : ''}${(change * 100).toFixed(1)}%</td>
+        </tr>`;
+    }
+    html += '</table>';
+    
+    if (data.best_alternative) {
+        html += `<p><strong>Новая лучшая альтернатива:</strong> ${data.best_alternative[0]} (${(data.best_alternative[1] * 100).toFixed(1)}%)</p>`;
+    }
+    
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}

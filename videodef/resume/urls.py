@@ -24,4 +24,5 @@ urlpatterns = [
     path("search/", views.PublicResumeListView.as_view(), name="public_resume_list"),
     path("view/<int:pk>/", views.ResumeDetailView.as_view(), name="public_resume_detail"),
     path('review/<str:teacher_id>/', views.create_review, name='create_review'),
+    path('weights/settings/', views.user_weights_settings, name='user_weights_settings'),
 ]

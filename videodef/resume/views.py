@@ -234,9 +234,10 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
     def build_fuzzy_model(self, alternatives_data: List[Dict], teacher_ids: List[int]) -> BellmanZadeMCDA:
         """
         Построение модели Беллмана-Заде.
-        Веса критериев берутся из экспертных настроек (админка).
+        Веса критериев берутся из экспертных настроек (админка) или пользовательских.
         Сравнения альтернатив строятся автоматически на основе реальных данных.
         """
+        import numpy as np
         model = BellmanZadeMCDA()
         
         # Устанавливаем альтернативы
@@ -244,66 +245,48 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         model.set_alternatives(alternatives)
         print(f"=== build_fuzzy_model ===")
         print(f"Alternatives set: {alternatives}")
+        print(f"Number of alternatives: {len(alternatives)}")
         
         # Критерии
         criteria = ['price', 'distance', 'experience', 'rating', 'education']
         model.set_criteria(criteria)
         
-        # Загружаем экспертные настройки из админки
-        expert_data = self.get_expert_comparisons()
-        print(f"Expert data: use_expert_comparisons={expert_data['use_expert_comparisons']}")
-        
         # ============================================================
-        # 1. Загружаем ЭКСПЕРТНЫЕ ВЕСА КРИТЕРИЕВ из админки
+        # 1. Определяем режим использования весов
         # ============================================================
-        if expert_data['use_expert_comparisons'] and expert_data['criteria_comparisons']:
-            print("=" * 50)
-            print("Загружаем ЭКСПЕРТНЫЕ ВЕСА КРИТЕРИЕВ из админки")
-            print("=" * 50)
-            
-            # Загружаем сравнения критериев для расчета весов
-            for comp in expert_data['criteria_comparisons']:
-                if 'linguistic_value' in comp:
-                    print(f"  Criteria: {comp['criterion1']} vs {comp['criterion2']} = {comp['linguistic_value']}")
-                    model.add_criterion_comparison_linguistic(
-                        comp['criterion1'], 
-                        comp['criterion2'], 
-                        comp['linguistic_value']
-                    )
-                elif 'value' in comp:
-                    print(f"  Criteria: {comp['criterion1']} vs {comp['criterion2']} = {comp['value']}")
-                    model.add_criterion_comparison(
-                        comp['criterion1'], 
-                        comp['criterion2'], 
-                        float(comp['value'])
-                    )
-            
-            # ПРОВЕРЯЕМ, что матрица создалась
-            if model.criteria_comparison_matrix is None:
-                print("ОШИБКА: criteria_comparison_matrix не создалась!")
-            else:
-                print("criteria_comparison_matrix успешно создана")
-                print("Содержимое матрицы:")
-                for i, row in enumerate(model.criteria_comparison_matrix.matrix):
-                    print(f"  {criteria[i]}: {row}")
-            
-            # Пересчитываем веса
-            print("Пересчитываем веса критериев...")
-            model.calculate_criteria_weights()
-            
-        else:
-            print("=" * 50)
-            print("Экспертные веса критериев не найдены, используем равные веса")
-            print("=" * 50)
-            # Устанавливаем равные веса
-            n = len(criteria)
-            model.criteria_weights = np.ones(n) / n
+        weight_mode = self.request.GET.get('weight_mode', 'expert')
+        print(f"Weight mode from GET: {weight_mode}")
         
-        # Выводим веса критериев после загрузки
-        if model.criteria_weights is not None:
-            print("\nВеса критериев ПОСЛЕ загрузки из админки:")
-            for i, criterion in enumerate(criteria):
-                print(f"  {criterion.upper()}: {model.criteria_weights[i]:.4f} ({model.criteria_weights[i]*100:.1f}%)")
+        # Флаг, использованы ли пользовательские веса
+        user_weights_used = False
+        user_weights_values = None
+        
+        if weight_mode == 'custom':
+            # Используем пользовательские веса
+            user_weights = self.get_user_weights()
+            print(f"User weights from DB: {user_weights}")
+            
+            if user_weights:
+                print("=" * 50)
+                print("Используем ПОЛЬЗОВАТЕЛЬСКИЕ веса критериев")
+                print("=" * 50)
+                
+                # Получаем веса для каждого критерия
+                weight_values = []
+                for c in criteria:
+                    w = user_weights.get(c, 0.2)
+                    weight_values.append(w)
+                    print(f"  {c}: {w}")
+                
+                # Нормализуем веса (сумма = 1)
+                total = sum(weight_values)
+                if total > 0:
+                    user_weights_values = np.array([w / total for w in weight_values])
+                else:
+                    user_weights_values = np.ones(len(criteria)) / len(criteria)
+                
+                print(f"Normalized user weights: {dict(zip(criteria, user_weights_values))}")
+                user_weights_used = True
         
         # ============================================================
         # 2. АВТОМАТИЧЕСКОЕ построение матриц сравнения АЛЬТЕРНАТИВ
@@ -314,131 +297,69 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         self._build_auto_matrices(model, alternatives_data, teacher_ids)
         
         # ============================================================
-        # 3. Строим нечеткие множества и рассчитываем решение
+        # 3. Строим нечеткие множества (без пересчета весов)
         # ============================================================
         print("\nCalling build_fuzzy_sets...")
-        model.build_fuzzy_sets()
+        model.build_fuzzy_sets(skip_weights_calculation=True)  # <-- НЕ пересчитываем веса
+        
+        # ============================================================
+        # 4. Устанавливаем веса (пользовательские или экспертные)
+        # ============================================================
+        if user_weights_used and user_weights_values is not None:
+            # Используем пользовательские веса
+            model.criteria_weights = user_weights_values
+            print("\n" + "=" * 50)
+            print("Установлены ПОЛЬЗОВАТЕЛЬСКИЕ веса критериев:")
+            print("=" * 50)
+            for i, criterion in enumerate(criteria):
+                print(f"  {criterion.upper()}: {model.criteria_weights[i]:.4f} ({model.criteria_weights[i]*100:.1f}%)")
+        else:
+            # Используем экспертные веса из админки
+            expert_data = self.get_expert_comparisons()
+            print(f"Expert data: use_expert_comparisons={expert_data['use_expert_comparisons']}")
+            
+            if expert_data['use_expert_comparisons'] and expert_data['criteria_comparisons']:
+                print("=" * 50)
+                print("Загружаем ЭКСПЕРТНЫЕ ВЕСА КРИТЕРИЕВ из админки")
+                print("=" * 50)
+                
+                # Создаем временную матрицу для расчета весов
+                temp_matrix = ComparisonMatrix(criteria, "Критерии")
+                for comp in expert_data['criteria_comparisons']:
+                    if 'linguistic_value' in comp:
+                        i = criteria.index(comp['criterion1'])
+                        j = criteria.index(comp['criterion2'])
+                        if '/' in comp['linguistic_value']:
+                            num, den = comp['linguistic_value'].split('/')
+                            value = float(num) / float(den)
+                        else:
+                            value = float(comp['linguistic_value'])
+                        temp_matrix.set_comparison(i, j, value)
+                    elif 'value' in comp:
+                        i = criteria.index(comp['criterion1'])
+                        j = criteria.index(comp['criterion2'])
+                        temp_matrix.set_comparison(i, j, float(comp['value']))
+                
+                model.criteria_weights = temp_matrix.calculate_weights()
+                print(f"Expert weights calculated: {model.criteria_weights}")
+            else:
+                print("=" * 50)
+                print("Экспертные веса критериев не найдены, используем равные веса")
+                print("=" * 50)
+                model.criteria_weights = np.ones(len(criteria)) / len(criteria)
+        
+        # Выводим итоговые веса
+        if model.criteria_weights is not None:
+            print("\n" + "=" * 50)
+            print("ИТОГОВЫЕ ВЕСА КРИТЕРИЕВ:")
+            print("=" * 50)
+            for i, criterion in enumerate(criteria):
+                print(f"  {criterion.upper()}: {model.criteria_weights[i]:.4f} ({model.criteria_weights[i]*100:.1f}%)")
         
         print("Calling calculate_solution...")
         model.calculate_solution(use_weights=True)
         
         return model
-
-    def _build_auto_matrices(self, model: BellmanZadeMCDA, alternatives_data: List[Dict], teacher_ids: List[int]):
-        """
-        Автоматическое построение матриц парных сравнений на основе данных.
-        """
-        n = len(teacher_ids)
-        print(f"Building auto matrices for {n} teachers")  # Отладка
-        
-        for criterion in model.criteria:
-            print(f"Processing criterion: {criterion}")  # Отладка
-            
-            # Собираем значения по критерию
-            values = []
-            for data in alternatives_data:
-                if criterion == 'price':
-                    val = data.get('price', 5000)
-                    # Инвертируем: чем меньше цена, тем лучше
-                    # Нормализуем от 1 до 10
-                    normalized = max(1, min(10, 10 - (val / 10000) * 9))
-                    values.append(normalized)
-                    print(f"  Price: {val} -> {normalized}")
-                elif criterion == 'distance':
-                    val = data.get('distance', 50)
-                    normalized = max(1, min(10, 10 - (val / 50) * 9))
-                    values.append(normalized)
-                    print(f"  Distance: {val} -> {normalized}")
-                elif criterion == 'experience':
-                    val = data.get('experience', 0)
-                    normalized = max(1, min(10, 1 + (val / 30) * 9))
-                    values.append(normalized)
-                    print(f"  Experience: {val} -> {normalized}")
-                elif criterion == 'rating':
-                    val = data.get('rating', 0)
-                    normalized = max(1, min(10, 1 + (val / 5) * 9))
-                    values.append(normalized)
-                    print(f"  Rating: {val} -> {normalized}")
-                elif criterion == 'education':
-                    val = data.get('education', 0)
-                    normalized = max(1, min(10, 1 + (val / 10) * 9))
-                    values.append(normalized)
-                    print(f"  Education: {val} -> {normalized}")
-                else:
-                    values.append(5)
-            
-            # Строим матрицу парных сравнений
-            for i in range(n):
-                for j in range(i + 1, n):
-                    ratio = values[i] / values[j]
-                    
-                    # Преобразуем в шкалу Саати
-                    if ratio > 1:
-                        saaty_value = min(ratio, 9)
-                    else:
-                        saaty_value = max(1/ratio, 1/9)
-                    
-                    alt1 = f"T_{teacher_ids[i]}"
-                    alt2 = f"T_{teacher_ids[j]}"
-                    
-                    print(f"  Adding comparison: {alt1} vs {alt2} = {saaty_value:.3f} (ratio={ratio:.3f})")
-                    model.add_alternative_comparison(criterion, alt1, alt2, saaty_value)
-
-    def calculate_alternative_scores(self, model: BellmanZadeMCDA, 
-                                    alternatives_data: List[Dict],
-                                    teacher_ids: List[int]) -> List[Dict]:
-        """
-        Расчет итоговых оценок для каждой альтернативы
-        """
-        results = []
-        ranking = model.get_ranking()
-        
-        # Получаем веса критериев
-        criteria_weights = {}
-        if model.criteria_weights is not None:
-            for i, criterion in enumerate(model.criteria):
-                criteria_weights[criterion] = model.criteria_weights[i]
-        
-        for rank, (alt, mu) in enumerate(ranking, 1):
-            teacher_id = int(alt.split('_')[1])
-            
-            # Находим соответствующие данные
-            alt_data = None
-            for i, tid in enumerate(teacher_ids):
-                if tid == teacher_id:
-                    alt_data = alternatives_data[i]
-                    break
-            
-            if alt_data:
-                # Получаем степени принадлежности по каждому критерию
-                memberships = {}
-                for criterion in model.criteria:
-                    fuzzy_set = model.criterion_fuzzy_sets.get(criterion)
-                    if fuzzy_set:
-                        membership = fuzzy_set.get_membership(alt)
-                        # Убедимся, что значение не None
-                        if membership is None:
-                            membership = 0.0
-                        memberships[criterion] = membership
-                    else:
-                        memberships[criterion] = 0.0
-                
-                # DEBUG: выводим в консоль
-                print(f"=== Teacher {teacher_id} ===")
-                print(f"Memberships: {memberships}")
-                print(f"mu: {mu}")
-                
-                results.append({
-                    'teacher_id': teacher_id,
-                    'mu': mu,
-                    'rank': rank,
-                    'is_best': rank == 1,
-                    'memberships': memberships,
-                    'criteria_weights': criteria_weights,
-                    'raw_data': alt_data
-                })
-        
-        return results
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -451,6 +372,8 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         min_rating = self.safe_float('min_rating', 0)
         selected_child_id = self.request.GET.get('child')
         selected_violations = self.request.GET.getlist('violation_types')
+        ordering = self.request.GET.get('ordering', 'rank')
+        weight_mode = self.request.GET.get('weight_mode', 'expert')
         
         # Получаем цели пользователя (для лингвистических переменных)
         price_goal = self.request.GET.get('price_goal', 'low')
@@ -507,9 +430,9 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
                 'price': avg_price,
                 'distance': distance,
                 'experience': float(resume.experience_years),
-                'rating': float(resume.rating),
+                'rating': resume.get_rating(),  # Используем метод get_rating()
                 'education': float(resume.education_level),
-                'reviews_count': TeacherReview.objects.filter(teacher=resume.user, is_approved=True).count()
+                'reviews_count': TeacherReview.objects.filter(teacher=resume.user).count()  # Убрали is_approved
             })
             teacher_ids.append(resume.id)
         
@@ -554,7 +477,20 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
             self.request.session['bz_model_json'] = json.dumps(model.to_dict(), default=str)
         
         # Сортируем результаты по рангу
-        results.sort(key=lambda x: x['rank'])
+        if results:
+            if ordering == 'price':
+                results.sort(key=lambda x: x['price'])
+            elif ordering == '-price':
+                results.sort(key=lambda x: x['price'], reverse=True)
+            elif ordering == '-rating':
+                results.sort(key=lambda x: x['rating'], reverse=True)
+            elif ordering == '-experience':
+                results.sort(key=lambda x: x['experience'], reverse=True)
+            else:  # rank
+                results.sort(key=lambda x: x['rank'])
+        
+        context['weight_mode'] = weight_mode
+        context['ordering'] = ordering
         
         # Добавляем в контекст
         context['results'] = results
@@ -587,7 +523,148 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         context['criteria_weights'] = criteria_weights
         
         return context
+        
+    def get_user_weights(self):
+        """Получение пользовательских весов из БД (приоритет - сессия)"""
+        from .models import UserCriteriaWeights
+        
+        # Сначала проверяем сессию (если пользователь выбрал "Использовать мои веса")
+        if self.request.session.get('use_custom_weights'):
+            weights = self.request.session.get('user_criteria_weights')
+            if weights:
+                print(f"User weights from session: {weights}")
+                return weights
+        
+        # Затем проверяем БД
+        try:
+            user_weights_obj = UserCriteriaWeights.objects.filter(user=self.request.user).first()
+            if user_weights_obj and user_weights_obj.weights:
+                print(f"User weights from DB: {user_weights_obj.weights}")
+                # Сохраняем в сессию для быстрого доступа
+                self.request.session['user_criteria_weights'] = user_weights_obj.weights
+                return user_weights_obj.weights
+        except Exception as e:
+            print(f"Error getting user weights: {e}")
+        
+        return None
 
+    def _build_auto_matrices(self, model: BellmanZadeMCDA, alternatives_data: List[Dict], teacher_ids: List[int]):
+        """
+        Автоматическое построение матриц парных сравнений на основе данных.
+        """
+        n = len(teacher_ids)
+        print(f"Building auto matrices for {n} teachers")
+        
+        for criterion in model.criteria:
+            print(f"Processing criterion: {criterion}")
+            
+            # Собираем значения по критерию
+            values = []
+            for data in alternatives_data:
+                if criterion == 'price':
+                    val = data.get('price', 5000)
+                    # Инвертируем: чем меньше цена, тем лучше
+                    # Нормализуем от 1 до 10
+                    normalized = max(1, min(10, 10 - (val / 10000) * 9))
+                    values.append(normalized)
+                    print(f"  Price: {val} -> {normalized}")
+                elif criterion == 'distance':
+                    val = data.get('distance', 50)
+                    normalized = max(1, min(10, 10 - (val / 50) * 9))
+                    values.append(normalized)
+                    print(f"  Distance: {val} km -> {normalized}")
+                elif criterion == 'experience':
+                    val = data.get('experience', 0)
+                    normalized = max(1, min(10, 1 + (val / 30) * 9))
+                    values.append(normalized)
+                    print(f"  Experience: {val} years -> {normalized}")
+                elif criterion == 'rating':
+                    val = data.get('rating', 0)
+                    normalized = max(0.1, min(10.0, 1.0 + (val / 5.0) * 9.0))
+                    values.append(normalized)
+                    print(f"  Rating: {val} -> {normalized}")
+                elif criterion == 'education':
+                    val = data.get('education', 0)
+                    normalized = max(1, min(10, 1 + (val / 10) * 9))
+                    values.append(normalized)
+                    print(f"  Education: {val} -> {normalized}")
+                else:
+                    values.append(5)
+            
+            # Строим матрицу парных сравнений
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if values[i] > 0 and values[j] > 0:
+                        ratio = values[i] / values[j]
+                    else:
+                        ratio = 1.0
+                    
+                    # Преобразуем в шкалу Саати
+                    if ratio > 1:
+                        saaty_value = min(ratio, 9)
+                    else:
+                        saaty_value = max(1/ratio, 1/9)
+                    
+                    alt1 = f"T_{teacher_ids[i]}"
+                    alt2 = f"T_{teacher_ids[j]}"
+                    
+                    print(f"  Adding comparison: {alt1} vs {alt2} = {saaty_value:.3f} (ratio={ratio:.3f})")
+                    model.add_alternative_comparison(criterion, alt1, alt2, saaty_value)
+
+
+    def calculate_alternative_scores(self, model: BellmanZadeMCDA, 
+                                    alternatives_data: List[Dict],
+                                    teacher_ids: List[int]) -> List[Dict]:
+        """
+        Расчет итоговых оценок для каждой альтернативы
+        """
+        results = []
+        ranking = model.get_ranking()
+        
+        # Получаем веса критериев
+        criteria_weights = {}
+        if model.criteria_weights is not None:
+            for i, criterion in enumerate(model.criteria):
+                criteria_weights[criterion] = model.criteria_weights[i]
+        
+        for rank, (alt, mu) in enumerate(ranking, 1):
+            teacher_id = int(alt.split('_')[1])
+            
+            # Находим соответствующие данные
+            alt_data = None
+            for i, tid in enumerate(teacher_ids):
+                if tid == teacher_id:
+                    alt_data = alternatives_data[i]
+                    break
+            
+            if alt_data:
+                # Получаем степени принадлежности по каждому критерию
+                memberships = {}
+                for criterion in model.criteria:
+                    fuzzy_set = model.criterion_fuzzy_sets.get(criterion)
+                    if fuzzy_set:
+                        membership = fuzzy_set.get_membership(alt)
+                        if membership is None:
+                            membership = 0.0
+                        memberships[criterion] = membership
+                    else:
+                        memberships[criterion] = 0.0
+                
+                print(f"=== Teacher {teacher_id} ===")
+                print(f"Memberships: {memberships}")
+                print(f"mu: {mu}")
+                
+                results.append({
+                    'teacher_id': teacher_id,
+                    'mu': mu,
+                    'rank': rank,
+                    'is_best': rank == 1,
+                    'memberships': memberships,
+                    'criteria_weights': criteria_weights,
+                    'raw_data': alt_data
+                })
+        
+        return results
 
 # Для родителя: подробная страничка резюме
 class ResumeDetailView(DetailView):
@@ -632,7 +709,6 @@ def is_parent(user):
 def is_teacher(user):
     return user.is_authenticated and user.profile.role and user.profile.role.name == 'Преподаватель'
 
-
 @login_required
 @user_passes_test(is_parent, login_url='account:home')
 def create_review(request, teacher_id):
@@ -655,14 +731,14 @@ def create_review(request, teacher_id):
             review = form.save(commit=False)
             review.teacher = teacher
             review.parent = request.user
-            review.is_approved = False
             review.save()
-            messages.success(request, "Отзыв отправлен на проверку!")
+            messages.success(request, "Отзыв успешно добавлен!")
             return redirect('account:view_other_user', user_id=teacher_id)
     else:
         form = TeacherReviewForm(instance=existing_review)
     
-    reviews = TeacherReview.objects.filter(teacher=teacher, is_approved=True)
+    # Получаем все отзывы
+    reviews = TeacherReview.objects.filter(teacher=teacher)
     
     return render(request, 'resume/create_review.html', {
         'form': form,
@@ -1099,45 +1175,62 @@ from django.contrib.admin.views.decorators import staff_member_required
 import json
 
 
-@staff_member_required
 @csrf_exempt
 def api_calculate_criteria_weights(request):
     """API для расчета весов критериев (для админ-панели)"""
     from .bellman_zade import ComparisonMatrix
     
+    print(f"=== API called ===")
+    print(f"Method: {request.method}")
+    print(f"User: {request.user}")
+    print(f"Is staff: {request.user.is_staff}")
+    
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             comparisons = data.get('comparisons', {})
+            print(f"Comparisons received: {comparisons}")
             
-            # Критерии в правильном порядке
             criteria = ['price', 'distance', 'experience', 'rating', 'education']
             matrix = ComparisonMatrix(criteria, "Критерии")
             
             for key, value in comparisons.items():
                 parts = key.split('_')
-                if len(parts) >= 4 and parts[0] == 'criteria' and parts[1] == 'comp':
+                if len(parts) >= 4:
                     crit1 = parts[2]
                     crit2 = parts[3]
                     if crit1 in criteria and crit2 in criteria:
                         i = criteria.index(crit1)
                         j = criteria.index(crit2)
-                        matrix.set_comparison(i, j, float(value))
+                        try:
+                            val = float(value)
+                        except:
+                            if '/' in str(value):
+                                num, den = str(value).split('/')
+                                val = float(num) / float(den)
+                            else:
+                                val = 1.0
+                        print(f"Setting matrix[{i}][{j}] = {val}")
+                        matrix.set_comparison(i, j, val)
             
             weights = matrix.calculate_weights()
             consistency = matrix.calculate_consistency_ratio()
             
-            return JsonResponse({
+            result = {
                 'weights': {c: float(weights[i]) for i, c in enumerate(criteria)},
                 'lambda_max': float(consistency['lambda_max']),
                 'ci': float(consistency['ci']),
                 'cr': float(consistency['cr']),
-                'is_consistent': consistency['is_consistent']
-            })
+                'is_consistent': bool(consistency['is_consistent'])
+            }
+            print(f"Result: {result}")
+            return JsonResponse(result)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
     
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 @staff_member_required
@@ -1234,3 +1327,47 @@ def api_check_consistency(request):
             return JsonResponse({'error': str(e)}, status=400)
     
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@login_required
+@user_passes_test(is_parent, login_url='account:home')
+def user_weights_settings(request):
+    """Страница настройки пользовательских весов критериев"""
+    from .models import UserCriteriaWeights
+    
+    if request.method == 'POST':
+        # Сохраняем пользовательские настройки
+        use_custom = request.POST.get('use_custom') == 'on'
+        
+        # Сохраняем в сессию
+        request.session['use_custom_weights'] = use_custom
+        
+        # Сохраняем парные сравнения и веса в БД
+        pairwise_comparisons = request.POST.get('pairwise_comparisons')
+        calculated_weights = request.POST.get('calculated_weights')
+        
+        obj, created = UserCriteriaWeights.objects.get_or_create(user=request.user)
+        if pairwise_comparisons:
+            obj.pairwise_comparisons = json.loads(pairwise_comparisons)
+        if calculated_weights:
+            obj.weights = json.loads(calculated_weights)
+            # Обновляем сессию
+            request.session['user_criteria_weights'] = obj.weights
+        obj.save()
+        
+        messages.success(request, 'Настройки весов сохранены')
+        return redirect('resume:user_weights_settings')
+    
+    # GET: загружаем текущие настройки
+    user_weights_obj = UserCriteriaWeights.objects.filter(user=request.user).first()
+    use_custom = request.session.get('use_custom_weights', False)
+    
+    # Если есть сохраненные веса в БД, но нет в сессии - загружаем
+    if user_weights_obj and user_weights_obj.weights and not request.session.get('user_criteria_weights'):
+        request.session['user_criteria_weights'] = user_weights_obj.weights
+    
+    context = {
+        'use_custom': use_custom
+    }
+    
+    return render(request, 'resume/user_weights_settings.html', context)
