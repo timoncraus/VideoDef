@@ -1,0 +1,110 @@
+.matrix-container {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.matrix-table th,
+.matrix-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.matrix-table th {
+    background: #4CAF50;
+    color: white;
+    font-weight: 600;
+}
+
+.matrix-table tr:hover {
+    background: #f5f5f5;
+}
+
+.saaty-scale {
+    background: #e3f2fd;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+.saaty-scale td {
+    padding: 5px 10px;
+}
+
+.saaty-select {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    min-width: 150px;
+}
+
+.button {
+    background: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.button:hover {
+    background: #45a049;
+}
+
+.calculation-result {
+    margin-top: 15px;
+    padding: 10px;
+    background: #fff3e0;
+    border-left: 4px solid #FF9800;
+    border-radius: 4px;
+}
+
+.weights-table {
+    width: 100%;
+    max-width: 400px;
+    margin: 15px 0;
+}
+
+.weights-table td {
+    padding: 8px;
+}
+
+.criterion-matrix {
+    margin-bottom: 30px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.criterion-matrix h3 {
+    margin-top: 0;
+    color: #1976D2;
+}
+
+.alternatives-matrices {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.consistency-info {
+    padding: 15px;
+    background: #e8f5e9;
+    border-radius: 8px;
+}
+
+.text-muted {
+    color: #6c757d;
+}
+
+.text-danger {
+    color: #dc3545;
+}

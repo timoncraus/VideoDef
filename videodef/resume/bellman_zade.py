@@ -1,461 +1,737 @@
 """
-Полноценная реализация метода нечеткого многокритериального анализа вариантов Беллмана-Заде.
+Полноценная реализация метода нечеткого многокритериального анализа 
+вариантов Беллмана-Заде с использованием парных сравнений по шкале Саати.
 """
 
 import math
-import numpy as np
-from typing import List, Dict, Any, Tuple
+import json
+from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass, field
 from enum import Enum
-
-
-class MembershipFunctionType(Enum):
-    TRIANGULAR = "triangular"
-    TRAPEZOIDAL = "trapezoidal"
-    GAUSSIAN = "gaussian"
-    BELL = "bell"
-    SIGMOID = "sigmoid"
-    Z_SHAPED = "z_shaped"
-    S_SHAPED = "s_shaped"
-    PI_SHAPED = "pi_shaped"
-
-
-@dataclass
-class FuzzySet:
-    name: str
-    type: MembershipFunctionType
-    params: Dict[str, float]
-    linguistic_label: str
-    
-    def membership(self, x: float) -> float:
-        if self.type == MembershipFunctionType.TRIANGULAR:
-            return self._triangular(x)
-        elif self.type == MembershipFunctionType.TRAPEZOIDAL:
-            return self._trapezoidal(x)
-        elif self.type == MembershipFunctionType.GAUSSIAN:
-            return self._gaussian(x)
-        elif self.type == MembershipFunctionType.BELL:
-            return self._bell(x)
-        elif self.type == MembershipFunctionType.SIGMOID:
-            return self._sigmoid(x)
-        elif self.type == MembershipFunctionType.Z_SHAPED:
-            return self._z_shaped(x)
-        elif self.type == MembershipFunctionType.S_SHAPED:
-            return self._s_shaped(x)
-        elif self.type == MembershipFunctionType.PI_SHAPED:
-            return self._pi_shaped(x)
-        return 0.0
-    
-    def _triangular(self, x: float) -> float:
-        a, b, c = self.params['a'], self.params['b'], self.params['c']
-        if x <= a or x >= c:
-            return 0.0
-        if a < x <= b:
-            return (x - a) / (b - a)
-        if b < x < c:
-            return (c - x) / (c - b)
-        return 1.0 if x == b else 0.0
-    
-    def _trapezoidal(self, x: float) -> float:
-        a, b, c, d = self.params['a'], self.params['b'], self.params['c'], self.params['d']
-        if x <= a or x >= d:
-            return 0.0
-        if a < x < b:
-            return (x - a) / (b - a)
-        if b <= x <= c:
-            return 1.0
-        if c < x < d:
-            return (d - x) / (d - c)
-        return 0.0
-    
-    def _gaussian(self, x: float) -> float:
-        c, sigma = self.params['c'], self.params['sigma']
-        return math.exp(-((x - c) ** 2) / (2 * sigma ** 2))
-    
-    def _bell(self, x: float) -> float:
-        a, b, c = self.params['a'], self.params['b'], self.params['c']
-        return 1.0 / (1.0 + abs((x - c) / a) ** (2 * b))
-    
-    def _sigmoid(self, x: float) -> float:
-        a, c = self.params['a'], self.params['c']
-        return 1.0 / (1.0 + math.exp(-a * (x - c)))
-    
-    def _z_shaped(self, x: float) -> float:
-        a, b = self.params['a'], self.params['b']
-        if x <= a:
-            return 1.0
-        if a < x <= (a + b) / 2:
-            return 1.0 - 2.0 * ((x - a) / (b - a)) ** 2
-        if (a + b) / 2 < x <= b:
-            return 2.0 * ((b - x) / (b - a)) ** 2
-        return 0.0
-    
-    def _s_shaped(self, x: float) -> float:
-        a, b = self.params['a'], self.params['b']
-        if x <= a:
-            return 0.0
-        if a < x <= (a + b) / 2:
-            return 2.0 * ((x - a) / (b - a)) ** 2
-        if (a + b) / 2 < x <= b:
-            return 1.0 - 2.0 * ((b - x) / (b - a)) ** 2
-        return 1.0
-    
-    def _pi_shaped(self, x: float) -> float:
-        a, b, c, d = self.params['a'], self.params['b'], self.params['c'], self.params['d']
-        if x <= a:
-            return 0.0
-        if a < x <= (a + b) / 2:
-            return 2.0 * ((x - a) / (b - a)) ** 2
-        if (a + b) / 2 < x <= b:
-            return 1.0 - 2.0 * ((b - x) / (b - a)) ** 2
-        if b < x <= c:
-            return 1.0
-        if c < x <= (c + d) / 2:
-            return 1.0 - 2.0 * ((x - c) / (d - c)) ** 2
-        if (c + d) / 2 < x <= d:
-            return 2.0 * ((d - x) / (d - c)) ** 2
-        return 0.0
-
-
-@dataclass
-class LinguisticVariable:
-    name: str
-    description: str
-    min_value: float
-    max_value: float
-    unit: str
-    fuzzy_sets: List[FuzzySet] = field(default_factory=list)
-    
-    def add_fuzzy_set(self, fuzzy_set: FuzzySet):
-        self.fuzzy_sets.append(fuzzy_set)
-    
-    def fuzzify(self, value: float) -> Dict[str, float]:
-        result = {}
-        for fs in self.fuzzy_sets:
-            result[fs.name] = fs.membership(value)
-        return result
-    
-    def get_best_label(self, value: float) -> str:
-        memberships = self.fuzzify(value)
-        best = max(memberships, key=memberships.get)
-        return self.fuzzy_sets[[fs.name for fs in self.fuzzy_sets].index(best)].linguistic_label
-
-
-class BellmanZadeModel:
-    def __init__(self):
-        self.linguistic_variables: Dict[str, LinguisticVariable] = {}
-        self.goals: List[Dict[str, Any]] = []
-        self.constraints: List[Dict[str, Any]] = []
-        self.alternatives: List[Dict[str, float]] = []
-        self.results: List[Dict[str, Any]] = []
-    
-    def add_linguistic_variable(self, variable: LinguisticVariable):
-        self.linguistic_variables[variable.name] = variable
-    
-    def add_goal(self, variable_name: str, fuzzy_set_name: str, importance: float = 1.0):
-        if variable_name not in self.linguistic_variables:
-            raise ValueError(f"Лингвистическая переменная '{variable_name}' не найдена")
-        
-        fuzzy_set = None
-        for fs in self.linguistic_variables[variable_name].fuzzy_sets:
-            if fs.name == fuzzy_set_name:
-                fuzzy_set = fs
-                break
-        
-        if fuzzy_set is None:
-            raise ValueError(f"Нечеткое множество '{fuzzy_set_name}' не найдено")
-        
-        self.goals.append({
-            'variable': variable_name,
-            'fuzzy_set': fuzzy_set,
-            'importance': importance
-        })
-    
-    def add_constraint(self, variable_name: str, constraint_type: str, params: Dict[str, float], importance: float = 1.0):
-        self.constraints.append({
-            'variable': variable_name,
-            'type': constraint_type,
-            'params': params,
-            'importance': importance
-        })
-    
-    def _evaluate_goal(self, alternative: Dict[str, float], goal: Dict) -> float:
-        variable_name = goal['variable']
-        fuzzy_set = goal['fuzzy_set']
-        value = alternative.get(variable_name)
-        if value is None:
-            return 0.0
-        return fuzzy_set.membership(value)
-    
-    def _evaluate_constraint(self, alternative: Dict[str, float], constraint: Dict) -> float:
-        variable_name = constraint['variable']
-        value = alternative.get(variable_name)
-        constraint_type = constraint['type']
-        params = constraint['params']
-        
-        if value is None:
-            return 0.0
-        
-        if constraint_type == 'less_than':
-            threshold = params['threshold']
-            tolerance = params.get('tolerance', max(100, threshold * 0.2))
-            return FuzzySet(
-                name='less_than',
-                type=MembershipFunctionType.Z_SHAPED,
-                params={'a': max(0, threshold - tolerance), 'b': threshold + tolerance},
-                linguistic_label=''
-            ).membership(value)
-            
-        elif constraint_type == 'greater_than':
-            threshold = params['threshold']
-            tolerance = params.get('tolerance', max(1, threshold * 0.2))
-            return FuzzySet(
-                name='greater_than',
-                type=MembershipFunctionType.S_SHAPED,
-                params={'a': max(0, threshold - tolerance), 'b': threshold + tolerance},
-                linguistic_label=''
-            ).membership(value)
-        
-        return 0.0
-    
-    def evaluate_alternative(self, alternative: Dict[str, float]) -> Dict[str, Any]:
-        membership_values = {}
-        
-        goals_mu_unweighted = []
-        goals_mu_weighted = []
-        
-        for goal in self.goals:
-            mu = self._evaluate_goal(alternative, goal)
-            goals_mu_unweighted.append(mu)
-            goals_mu_weighted.append(mu * goal['importance'])
-            membership_values[f"Цель: {goal['variable']}"] = mu
-        
-        constraints_mu_unweighted = []
-        constraints_mu_weighted = []
-        
-        for constraint in self.constraints:
-            mu = self._evaluate_constraint(alternative, constraint)
-            constraints_mu_unweighted.append(mu)
-            constraints_mu_weighted.append(mu * constraint['importance'])
-            membership_values[f"Ограничение: {constraint['variable']}"] = mu
-        
-        all_mu_unweighted = goals_mu_unweighted + constraints_mu_unweighted
-        mu_aggregated = min(all_mu_unweighted) if all_mu_unweighted else 0.0
-        
-        all_mu_weighted = goals_mu_weighted + constraints_mu_weighted
-        mu_weighted = np.mean(all_mu_weighted) if all_mu_weighted else 0.0
-        
-        mu_combined = (mu_aggregated + mu_weighted) / 2.0
-        
-        return {
-            'values': alternative,
-            'membership_values': membership_values,
-            'mu_aggregated': mu_aggregated,
-            'mu_weighted': mu_weighted,
-            'mu_combined': mu_combined,
-            'satisfaction_level': self._get_satisfaction_level(mu_combined),
-            'linguistic_evaluation': self._get_linguistic_evaluation(alternative)
-        }
-    
-    def _get_satisfaction_level(self, mu: float) -> Dict[str, str]:
-        if mu >= 0.9:
-            return {'level': 'A', 'description': 'Идеально подходит'}
-        elif mu >= 0.7:
-            return {'level': 'B', 'description': 'Отлично подходит'}
-        elif mu >= 0.5:
-            return {'level': 'C', 'description': 'Хорошо подходит'}
-        elif mu >= 0.3:
-            return {'level': 'D', 'description': 'Удовлетворительно'}
-        elif mu >= 0.1:
-            return {'level': 'E', 'description': 'Условно подходит'}
-        else:
-            return {'level': 'F', 'description': 'Не подходит'}
-    
-    def _get_linguistic_evaluation(self, alternative: Dict[str, float]) -> Dict[str, str]:
-        evaluation = {}
-        for var_name, variable in self.linguistic_variables.items():
-            if var_name in alternative:
-                evaluation[var_name] = variable.get_best_label(alternative[var_name])
-        return evaluation
-    
-    def rank_alternatives(self, alternatives: List[Dict[str, float]]) -> List[Dict[str, Any]]:
-        self.alternatives = alternatives
-        self.results = []
-        
-        for i, alt in enumerate(alternatives):
-            evaluation = self.evaluate_alternative(alt)
-            evaluation['alternative_id'] = i
-            evaluation['rank'] = 0
-            self.results.append(evaluation)
-        
-        self.results.sort(key=lambda x: (-x['mu_aggregated'], -x['mu_combined']))
-        
-        for rank, result in enumerate(self.results, 1):
-            result['rank'] = rank
-        
-        return self.results
-
-
-class TeacherSearchModel(BellmanZadeModel):
-    def __init__(self):
-        super().__init__()
-        self._initialize_variables()
-    
-    def _initialize_variables(self):
-        # 1. Цена занятия
-        price_var = LinguisticVariable(
-            name='price',
-            description='Стоимость одного занятия',
-            min_value=0,
-            max_value=5000,
-            unit='₽'
-        )
-        price_var.add_fuzzy_set(FuzzySet('low', MembershipFunctionType.Z_SHAPED,
-                                        {'a': 1000, 'b': 2500}, 'Низкая'))
-        price_var.add_fuzzy_set(FuzzySet('medium', MembershipFunctionType.TRIANGULAR,
-                                        {'a': 1500, 'b': 2500, 'c': 3500}, 'Средняя'))
-        price_var.add_fuzzy_set(FuzzySet('high', MembershipFunctionType.S_SHAPED,
-                                        {'a': 3000, 'b': 4500}, 'Высокая'))
-        self.add_linguistic_variable(price_var)
-        
-        # 2. Расстояние
-        distance_var = LinguisticVariable(
-            name='distance',
-            description='Расстояние до преподавателя',
-            min_value=0,
-            max_value=50,
-            unit='км'
-        )
-        distance_var.add_fuzzy_set(FuzzySet('close', MembershipFunctionType.Z_SHAPED,
-                                            {'a': 2, 'b': 10}, 'Близко'))
-        distance_var.add_fuzzy_set(FuzzySet('medium', MembershipFunctionType.TRIANGULAR,
-                                            {'a': 5, 'b': 15, 'c': 25}, 'Средне'))
-        distance_var.add_fuzzy_set(FuzzySet('far', MembershipFunctionType.S_SHAPED,
-                                            {'a': 15, 'b': 35}, 'Далеко'))
-        self.add_linguistic_variable(distance_var)
-        
-        # 3. Опыт работы
-        experience_var = LinguisticVariable(
-            name='experience',
-            description='Опыт работы преподавателем',
-            min_value=0,
-            max_value=30,
-            unit='лет'
-        )
-        experience_var.add_fuzzy_set(FuzzySet('beginner', MembershipFunctionType.Z_SHAPED,
-                                            {'a': 1, 'b': 3}, 'Начинающий'))
-        experience_var.add_fuzzy_set(FuzzySet('intermediate', MembershipFunctionType.TRIANGULAR,
-                                            {'a': 2, 'b': 5, 'c': 8}, 'Средний'))
-        experience_var.add_fuzzy_set(FuzzySet('expert', MembershipFunctionType.S_SHAPED,
-                                            {'a': 4, 'b': 10}, 'Опытный'))
-        self.add_linguistic_variable(experience_var)
-        
-        # 4. Рейтинг
-        rating_var = LinguisticVariable(
-            name='rating',
-            description='Рейтинг преподавателя',
-            min_value=0,
-            max_value=5,
-            unit='звезд'
-        )
-        rating_var.add_fuzzy_set(FuzzySet('low', MembershipFunctionType.Z_SHAPED,
-                                        {'a': 1, 'b': 2.5}, 'Низкий'))
-        rating_var.add_fuzzy_set(FuzzySet('medium', MembershipFunctionType.TRIANGULAR,
-                                        {'a': 2, 'b': 3.5, 'c': 4.5}, 'Средний'))
-        rating_var.add_fuzzy_set(FuzzySet('high', MembershipFunctionType.S_SHAPED,
-                                        {'a': 3, 'b': 4.5}, 'Высокий'))
-        self.add_linguistic_variable(rating_var)
-        
-        # 5. Образование
-        education_var = LinguisticVariable(
-            name='education',
-            description='Уровень образования',
-            min_value=0,
-            max_value=10,
-            unit='баллов'
-        )
-        education_var.add_fuzzy_set(FuzzySet('basic', MembershipFunctionType.Z_SHAPED,
-                                            {'a': 2, 'b': 4}, 'Базовое'))
-        education_var.add_fuzzy_set(FuzzySet('advanced', MembershipFunctionType.TRIANGULAR,
-                                            {'a': 3, 'b': 5, 'c': 7}, 'Продвинутое'))
-        education_var.add_fuzzy_set(FuzzySet('expert', MembershipFunctionType.S_SHAPED,
-                                            {'a': 5, 'b': 8}, 'Экспертное'))
-        self.add_linguistic_variable(education_var)
-    
-    def setup_user_preferences(self, preferences: Dict[str, Any]):
-        self.goals = []
-        self.constraints = []
-        
-        # Цена
-        if 'price' in preferences:
-            price_prefs = preferences['price']
-            price_min = price_prefs.get('min', 0)
-            price_max = price_prefs.get('max', 5000)
-            price_goal = price_prefs.get('goal', 'low')
-            
-            self.add_goal('price', price_goal, importance=0.8)
-            
-            if price_max < 5000:
-                self.add_constraint('price', 'less_than', 
-                                  {'threshold': price_max, 'tolerance': max(200, price_max * 0.2)})
-            if price_min > 0:
-                self.add_constraint('price', 'greater_than',
-                                  {'threshold': price_min, 'tolerance': max(100, price_min * 0.2)})
-        
-        # Расстояние
-        if 'distance' in preferences:
-            dist_prefs = preferences['distance']
-            max_distance = dist_prefs.get('max', 50)
-            distance_goal = dist_prefs.get('goal', 'close')
-            
-            self.add_goal('distance', distance_goal, importance=0.7)
-            
-            if max_distance < 50:
-                self.add_constraint('distance', 'less_than',
-                                  {'threshold': max_distance, 'tolerance': 2})
-        
-        # Опыт
-        if 'experience' in preferences:
-            exp_prefs = preferences['experience']
-            min_experience = exp_prefs.get('min', 0)
-            experience_goal = exp_prefs.get('goal', 'expert')
-            
-            self.add_goal('experience', experience_goal, importance=0.6)
-            
-            if min_experience > 0:
-                self.add_constraint('experience', 'greater_than',
-                                  {'threshold': min_experience, 'tolerance': 1})
-        
-        # Рейтинг
-        if 'rating' in preferences:
-            rat_prefs = preferences['rating']
-            min_rating = rat_prefs.get('min', 0)
-            rating_goal = rat_prefs.get('goal', 'high')
-            
-            self.add_goal('rating', rating_goal, importance=0.7)
-            
-            if min_rating > 0:
-                self.add_constraint('rating', 'greater_than',
-                                  {'threshold': min_rating, 'tolerance': 0.5})
-        
-        # Образование
-        if 'education' in preferences:
-            edu_prefs = preferences['education']
-            min_education = edu_prefs.get('min', 0)
-            education_goal = edu_prefs.get('goal', 'expert')
-            
-            self.add_goal('education', education_goal, importance=0.5)
-            
-            if min_education > 0:
-                self.add_constraint('education', 'greater_than',
-                                  {'threshold': min_education, 'tolerance': 1})
-
+import numpy as np
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6371
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    """
+    Расчет расстояния между двумя точками на сфере (в километрах)
+    по формуле гаверсинуса.
+    """
+    R = 6371  # Радиус Земли в километрах
+    
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    
+    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
     c = 2 * math.asin(math.sqrt(a))
+    
     return R * c
+
+
+class SaatyScale(Enum):
+    """Шкала относительной важности Саати"""
+    EQUAL = 1                    # Одинаковая важность
+    WEAK = 2                     # Слабое преимущество
+    WEAK_PLUS = 3                # Почти существенное
+    STRONG = 4                   # Существенное преимущество
+    STRONG_PLUS = 5              # Очень существенное
+    VERY_STRONG = 6              # Явное преимущество
+    VERY_STRONG_PLUS = 7         # Очень явное
+    ABSOLUTE = 8                 # Абсолютное преимущество
+    ABSOLUTE_PLUS = 9            # Полное превосходство
+    
+    @classmethod
+    def from_linguistic(cls, text: str) -> int:
+        """Преобразование лингвистической оценки в число шкалы Саати"""
+        linguistic_map = {
+            'отсутствует преимущество': 1,
+            'одинаковая важность': 1,
+            'почти слабое преимущество': 2,
+            'слабое преимущество': 3,
+            'почти существенное преимущество': 4,
+            'существенное преимущество': 5,
+            'почти сильное преимущество': 6,
+            'явное преимущество': 7,
+            'очень сильное преимущество': 8,
+            'абсолютное преимущество': 9,
+        }
+        text_lower = text.lower().strip()
+        for key, value in linguistic_map.items():
+            if key in text_lower:
+                return value
+        return 1
+
+
+class ComparisonMatrix:
+    """
+    Матрица парных сравнений с методами для расчета весов
+    и обеспечения непротиворечивости.
+    """
+    
+    def __init__(self, elements: List[str], name: str = ""):
+        self.elements = elements
+        self.name = name
+        self.n = len(elements)
+        # Инициализация матрицы единицами (диагональ)
+        self.matrix = np.ones((self.n, self.n))
+        # Заполняем диагональ единицами
+        for i in range(self.n):
+            self.matrix[i][i] = 1.0
+    
+    def set_comparison(self, i: int, j: int, value: float):
+        """Установка значения сравнения элемента i над j"""
+        self.matrix[i][j] = value
+        self.matrix[j][i] = 1.0 / value
+    
+    def set_comparison_linguistic(self, i: int, j: int, linguistic: str):
+        """Установка сравнения на основе лингвистической оценки"""
+        value = SaatyScale.from_linguistic(linguistic)
+        self.set_comparison(i, j, value)
+    
+    def get_comparison(self, i: int, j: int) -> float:
+        """Получение значения сравнения"""
+        return self.matrix[i][j]
+    
+    def calculate_weights(self) -> np.ndarray:
+        """
+        Расчет вектора приоритетов (собственный вектор матрицы)
+        Метод: нормализация геометрического среднего
+        """
+        # Геометрическое среднее по строкам
+        geometric_means = np.zeros(self.n)
+        for i in range(self.n):
+            product = np.prod(self.matrix[i, :])
+            geometric_means[i] = product ** (1.0 / self.n)
+        
+        # Нормализация
+        weights = geometric_means / np.sum(geometric_means)
+        return weights
+    
+    def calculate_consistency_ratio(self) -> Dict[str, float]:
+        """
+        Расчет отношения согласованности матрицы
+        Возвращает: CI (индекс согласованности), CR (отношение согласованности)
+        """
+        # Случайные индексы для n до 15
+        random_indices = {
+            1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12,
+            6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49,
+            11: 1.51, 12: 1.48, 13: 1.56, 14: 1.57, 15: 1.59
+        }
+        
+        # Расчет максимального собственного значения
+        weights = self.calculate_weights()
+        aw = self.matrix @ weights
+        lambda_max = np.mean(aw / weights)
+        
+        # Индекс согласованности
+        ci = (lambda_max - self.n) / (self.n - 1) if self.n > 1 else 0
+        
+        # Отношение согласованности
+        ri = random_indices.get(self.n, 1.59)
+        cr = ci / ri if ri > 0 else 0
+        
+        return {
+        'lambda_max': float(lambda_max),
+        'ci': float(ci),
+        'ri': float(ri),
+        'cr': float(cr),
+        'is_consistent': bool(cr < 0.1)
+    }
+    
+    def ensure_consistency(self, max_iterations: int = 10):
+        """
+        Обеспечение непротиворечивости матрицы с использованием правил из методички
+        """
+        cr = self.calculate_consistency_ratio()['cr']
+        if cr < 0.1:
+            return True
+        
+        # Применяем правила (2.38) - (2.41) из методички
+        for iteration in range(max_iterations):
+            changes_made = False
+            
+            for i in range(self.n):
+                for j in range(self.n):
+                    if i == j:
+                        continue
+                    for k in range(self.n):
+                        if k == i or k == j:
+                            continue
+                        
+                        a_ij = self.matrix[i][j]
+                        a_jk = self.matrix[j][k]
+                        a_ik = self.matrix[i][k]
+                        
+                        # Правило 1: если a_ij > a_ik, то a_jk ≤ 1
+                        if a_ij > a_ik and a_jk > 1:
+                            new_value = 1.0
+                            self.set_comparison(j, k, new_value)
+                            changes_made = True
+                        
+                        # Правило 2: если a_ij > a_kj, то a_ik ≥ 1
+                        if a_ij > 1 / a_jk and a_ik < 1:
+                            new_value = 1.0
+                            self.set_comparison(i, k, new_value)
+                            changes_made = True
+                        
+                        # Правило 3: если a_ij > 1 и a_jk > 1, то a_ik ≥ max(a_ij, a_jk)
+                        if a_ij > 1 and a_jk > 1:
+                            new_value = max(a_ij, a_jk)
+                            if a_ik < new_value:
+                                self.set_comparison(i, k, new_value)
+                                changes_made = True
+                        
+                        # Правило 4: если a_ij < 1 и a_jk < 1, то a_ik ≤ min(a_ij, a_jk)
+                        if a_ij < 1 and a_jk < 1:
+                            new_value = min(a_ij, a_jk)
+                            if a_ik > new_value:
+                                self.set_comparison(i, k, new_value)
+                                changes_made = True
+            
+            if not changes_made:
+                break
+        
+        return self.calculate_consistency_ratio()['cr'] < 0.1
+    
+    def to_dict(self) -> Dict:
+        """Сериализация матрицы в словарь"""
+        return {
+            'name': self.name,
+            'elements': self.elements,
+            'matrix': self.matrix.tolist(),
+            'n': self.n
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'ComparisonMatrix':
+        """Десериализация матрицы из словаря"""
+        matrix = cls(data['elements'], data['name'])
+        matrix.matrix = np.array(data['matrix'])
+        return matrix
+
+
+class FuzzySetFromComparisons:
+    """
+    Нечеткое множество, построенное на основе матрицы парных сравнений
+    """
+    
+    def __init__(self, name: str, matrix: ComparisonMatrix):
+        self.name = name
+        self.matrix = matrix
+        self.weights = matrix.calculate_weights()
+        self.memberships = {}
+        
+        # Степени принадлежности = нормированные веса
+        for i, element in enumerate(matrix.elements):
+            self.memberships[element] = self.weights[i]
+    
+    def get_membership(self, element: str) -> float:
+        """Получение степени принадлежности элемента"""
+        value = self.memberships.get(element, 0.0)
+        # Убедимся, что возвращается число от 0 до 1
+        if value is None or value == 0:
+            return 0.0
+        return min(1.0, max(0.0, float(value)))
+    
+    def get_ranked_elements(self) -> List[Tuple[str, float]]:
+        """Получение отсортированного списка элементов по степени принадлежности"""
+        return sorted(self.memberships.items(), key=lambda x: x[1], reverse=True)
+    
+    def to_dict(self) -> Dict:
+        """Сериализация"""
+        return {
+            'name': self.name,
+            'matrix': self.matrix.to_dict(),
+            'memberships': self.memberships
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'FuzzySetFromComparisons':
+        """Десериализация"""
+        matrix = ComparisonMatrix.from_dict(data['matrix'])
+        return cls(data['name'], matrix)
+
+
+class BellmanZadeMCDA:
+    """
+    Полноценная реализация метода нечеткого многокритериального анализа
+    вариантов по схеме Беллмана-Заде.
+    """
+    
+    def __init__(self):
+        self.alternatives: List[str] = []
+        self.criteria: List[str] = []
+        self.criterion_matrices: Dict[str, ComparisonMatrix] = {}
+        self.criterion_fuzzy_sets: Dict[str, FuzzySetFromComparisons] = {}
+        self.criteria_weights: Optional[np.ndarray] = None
+        self.criteria_comparison_matrix: Optional[ComparisonMatrix] = None
+        
+        # Результаты
+        self.solution_fuzzy_set: Dict[str, float] = {}
+        self.alternative_scores: Dict[str, Dict[str, float]] = {}
+    
+    def set_alternatives(self, alternatives: List[str]):
+        """Установка списка альтернатив (вариантов)"""
+        self.alternatives = alternatives
+    
+    def set_criteria(self, criteria: List[str]):
+        """Установка списка критериев"""
+        self.criteria = criteria
+    
+    def add_criterion_comparison(self, criterion1: str, criterion2: str, value: float):
+        """Добавление сравнения критериев (для расчета важности)"""
+        print(f"=== add_criterion_comparison called: {criterion1} vs {criterion2} = {value} ===")
+        
+        if self.criteria_comparison_matrix is None:
+            self.criteria_comparison_matrix = ComparisonMatrix(self.criteria, "Критерии")
+            print(f"Created new criteria comparison matrix with criteria: {self.criteria}")
+        
+        i = self.criteria.index(criterion1)
+        j = self.criteria.index(criterion2)
+        self.criteria_comparison_matrix.set_comparison(i, j, value)
+        print(f"Set matrix[{i}][{j}] = {value}")
+        
+        # Выводим текущую матрицу для отладки
+        print("Current criteria matrix:")
+        for row in self.criteria_comparison_matrix.matrix:
+            print(f"  {row}")
+    
+    def add_criterion_comparison_linguistic(self, criterion1: str, criterion2: str, linguistic: str):
+        """Добавление лингвистического сравнения критериев"""
+        if self.criteria_comparison_matrix is None:
+            self.criteria_comparison_matrix = ComparisonMatrix(self.criteria, "Критерии")
+        
+        i = self.criteria.index(criterion1)
+        j = self.criteria.index(criterion2)
+        
+        # Преобразуем лингвистическую оценку в число
+        if '/' in linguistic:
+            num, den = linguistic.split('/')
+            value = float(num) / float(den)
+        else:
+            value = float(linguistic)
+        
+        self.criteria_comparison_matrix.set_comparison(i, j, value)
+        print(f"Added linguistic comparison: {criterion1} vs {criterion2} = {linguistic} -> {value}")
+    
+    def add_alternative_comparison(self, criterion: str, alt1: str, alt2: str, value: float):
+        """Добавление сравнения альтернатив по конкретному критерию"""
+        if criterion not in self.criterion_matrices:
+            self.criterion_matrices[criterion] = ComparisonMatrix(self.alternatives, criterion)
+        
+        i = self.alternatives.index(alt1)
+        j = self.alternatives.index(alt2)
+        self.criterion_matrices[criterion].set_comparison(i, j, value)
+        print(f"Added comparison: {criterion}: {alt1} vs {alt2} = {value}")
+    
+    def add_alternative_comparison_linguistic(self, criterion: str, alt1: str, alt2: str, linguistic: str):
+        """Добавление лингвистического сравнения альтернатив по критерию"""
+        if criterion not in self.criterion_matrices:
+            self.criterion_matrices[criterion] = ComparisonMatrix(self.alternatives, criterion)
+        
+        i = self.alternatives.index(alt1)
+        j = self.alternatives.index(alt2)
+        self.criterion_matrices[criterion].set_comparison_linguistic(i, j, linguistic)
+    
+    def calculate_criteria_weights(self) -> Dict[str, float]:
+        """
+        Расчет коэффициентов относительной важности критериев (α_i)
+        """
+        print("\n=== calculate_criteria_weights called ===")
+        print(f"criteria_comparison_matrix is None: {self.criteria_comparison_matrix is None}")
+        
+        if self.criteria_comparison_matrix is None:
+            # Если нет матрицы сравнений, все критерии равноважны
+            weights = np.ones(len(self.criteria)) / len(self.criteria)
+            print("No criteria comparison matrix, using equal weights")
+        else:
+            # Выводим матрицу для отладки
+            print("Criteria comparison matrix:")
+            for i, row in enumerate(self.criteria_comparison_matrix.matrix):
+                print(f"  {self.criteria[i]}: {row}")
+            
+            weights = self.criteria_comparison_matrix.calculate_weights()
+            print(f"Calculated weights from matrix: {weights}")
+        
+        self.criteria_weights = weights
+        result = {criterion: weights[i] for i, criterion in enumerate(self.criteria)}
+        print(f"Criteria weights result: {result}")
+        return result
+    
+    def build_fuzzy_sets(self):
+        """
+        Построение нечетких множеств для каждого критерия
+        """
+        print(f"=== build_fuzzy_sets called ===")
+        print(f"Criterion matrices: {list(self.criterion_matrices.keys())}")
+        
+        if not self.criterion_matrices:
+            print("ERROR: No criterion matrices found!")
+            return
+        
+        for criterion, matrix in self.criterion_matrices.items():
+            print(f"Building fuzzy set for criterion: {criterion}")
+            print(f"Matrix elements: {matrix.elements}")
+            print(f"Matrix shape: {matrix.matrix.shape}")
+            
+            fuzzy_set = FuzzySetFromComparisons(criterion, matrix)
+            self.criterion_fuzzy_sets[criterion] = fuzzy_set
+            
+            print(f"Fuzzy set memberships for {criterion}:")
+            for alt, mu in fuzzy_set.memberships.items():
+                print(f"  {alt}: {mu}")
+        
+        print(f"Total fuzzy sets built: {len(self.criterion_fuzzy_sets)}")
+        
+        # Расчет весов критериев (если есть матрица)
+        self.calculate_criteria_weights()
+        
+        # Если веса не установлены, используем равные
+        if self.criteria_weights is None:
+            n = len(self.criteria)
+            self.criteria_weights = np.ones(n) / n
+            print(f"Using equal weights: {self.criteria_weights}")
+    
+    def calculate_solution(self, use_weights: bool = True) -> Dict[str, float]:
+        """
+        Расчет нечеткого решения D по формуле (2.34) или (2.35)
+        
+        Формула (2.34) для равноважных критериев:
+            μ_D(P) = min_{j=1..n} μ_{G_j}(P)
+        
+        Формула (2.35) для неравноважных критериев:
+            μ_D(P) = min_{j=1..n} (μ_{G_j}(P))^{α_j}
+        
+        где α_j - коэффициенты относительной важности критериев, ∑α_j = 1
+        """
+        if not self.criterion_fuzzy_sets:
+            self.build_fuzzy_sets()
+        
+        self.solution_fuzzy_set = {}
+        
+        for alternative in self.alternatives:
+            memberships = []
+            
+            for j, criterion in enumerate(self.criteria):
+                fuzzy_set = self.criterion_fuzzy_sets.get(criterion)
+                if fuzzy_set:
+                    mu = fuzzy_set.get_membership(alternative)
+                    
+                    if use_weights and self.criteria_weights is not None:
+                        # Формула (2.35): возведение в степень α_j
+                        alpha = self.criteria_weights[j]
+                        # Показатель степени концентрирует нечеткое множество
+                        mu_weighted = mu ** alpha
+                        memberships.append(mu_weighted)
+                        
+                        # Сохраняем для детального анализа
+                        if alternative not in self.alternative_scores:
+                            self.alternative_scores[alternative] = {}
+                        self.alternative_scores[alternative][f"{criterion} (степень {alpha:.3f})"] = mu_weighted
+                    else:
+                        memberships.append(mu)
+                    
+                    # Сохраняем исходные значения
+                    if alternative not in self.alternative_scores:
+                        self.alternative_scores[alternative] = {}
+                    self.alternative_scores[alternative][criterion] = mu
+            
+            # Формулы (2.34) и (2.35): пересечение = минимум
+            self.solution_fuzzy_set[alternative] = min(memberships) if memberships else 0.0
+        
+        return self.solution_fuzzy_set
+    
+    def get_best_alternative(self) -> Tuple[str, float]:
+        """Получение наилучшей альтернативы (максимум μ_D)"""
+        if not self.solution_fuzzy_set:
+            self.calculate_solution()
+        
+        best = max(self.solution_fuzzy_set.items(), key=lambda x: x[1])
+        return best
+    
+    def get_ranking(self) -> List[Tuple[str, float]]:
+        """Получение ранжированного списка альтернатив"""
+        if not self.solution_fuzzy_set:
+            self.calculate_solution()
+        
+        return sorted(self.solution_fuzzy_set.items(), key=lambda x: x[1], reverse=True)
+    
+    def get_consistency_report(self) -> Dict[str, Any]:
+        """Отчет о согласованности всех матриц"""
+        report = {
+            'criteria_matrix': None,
+            'criterion_matrices': {}
+        }
+        
+        if self.criteria_comparison_matrix:
+            report['criteria_matrix'] = self.criteria_comparison_matrix.calculate_consistency_ratio()
+        
+        for criterion, matrix in self.criterion_matrices.items():
+            report['criterion_matrices'][criterion] = matrix.calculate_consistency_ratio()
+        
+        return report
+    
+    def to_dict(self) -> Dict:
+        """Сериализация всей модели"""
+        return {
+            'alternatives': self.alternatives,
+            'criteria': self.criteria,
+            'criteria_comparison_matrix': self.criteria_comparison_matrix.to_dict() if self.criteria_comparison_matrix else None,
+            'criterion_matrices': {
+                name: matrix.to_dict() 
+                for name, matrix in self.criterion_matrices.items()
+            },
+            'criteria_weights': self.criteria_weights.tolist() if self.criteria_weights is not None else None,
+            'solution': self.solution_fuzzy_set,
+            'alternative_scores': self.alternative_scores
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'BellmanZadeMCDA':
+        """Десериализация модели"""
+        model = cls()
+        model.alternatives = data['alternatives']
+        model.criteria = data['criteria']
+        
+        if data.get('criteria_comparison_matrix'):
+            model.criteria_comparison_matrix = ComparisonMatrix.from_dict(data['criteria_comparison_matrix'])
+        
+        for name, matrix_data in data.get('criterion_matrices', {}).items():
+            model.criterion_matrices[name] = ComparisonMatrix.from_dict(matrix_data)
+        
+        if data.get('criteria_weights'):
+            model.criteria_weights = np.array(data['criteria_weights'])
+        
+        if data.get('solution'):
+            model.solution_fuzzy_set = data['solution']
+        
+        if data.get('alternative_scores'):
+            model.alternative_scores = data['alternative_scores']
+        
+        return model
+
+
+class WhatIfAnalyzer:
+    """
+    Анализатор "Что-Если" для чувствительности решения
+    (методика из подраздела 2.3.4)
+    """
+    
+    def __init__(self, model: BellmanZadeMCDA):
+        self.model = model
+        self.original_solution = model.solution_fuzzy_set.copy() if model.solution_fuzzy_set else {}
+    
+    def analyze_criterion_comparison_change(
+        self, 
+        criterion1: str, 
+        criterion2: str, 
+        new_value: float
+    ) -> Dict[str, Any]:
+        """
+        Анализ изменения сравнения критериев
+        """
+        # Сохраняем исходное состояние
+        original_matrix = self.model.criteria_comparison_matrix
+        
+        # Создаем копию для анализа
+        test_model = BellmanZadeMCDA()
+        test_model.alternatives = self.model.alternatives.copy()
+        test_model.criteria = self.model.criteria.copy()
+        
+        # Копируем матрицы сравнений альтернатив
+        for criterion, matrix in self.model.criterion_matrices.items():
+            test_model.criterion_matrices[criterion] = ComparisonMatrix(
+                matrix.elements.copy(), matrix.name
+            )
+            test_model.criterion_matrices[criterion].matrix = matrix.matrix.copy()
+        
+        # Устанавливаем новое сравнение критериев
+        i = test_model.criteria.index(criterion1)
+        j = test_model.criteria.index(criterion2)
+        
+        if test_model.criteria_comparison_matrix is None:
+            test_model.criteria_comparison_matrix = ComparisonMatrix(
+                test_model.criteria, "Критерии"
+            )
+        
+        test_model.criteria_comparison_matrix.set_comparison(i, j, new_value)
+        
+        # Пересчитываем решение
+        test_model.build_fuzzy_sets()
+        new_solution = test_model.calculate_solution()
+        
+        # Анализируем изменения
+        changes = {}
+        for alt in test_model.alternatives:
+            old_mu = self.original_solution.get(alt, 0)
+            new_mu = new_solution.get(alt, 0)
+            changes[alt] = {
+                'old': old_mu,
+                'new': new_mu,
+                'delta': new_mu - old_mu,
+                'percent_change': ((new_mu - old_mu) / old_mu * 100) if old_mu > 0 else 0
+            }
+        
+        return {
+            'changed_comparison': f"{criterion1} vs {criterion2} = {new_value}",
+            'new_weights': {c: w for c, w in zip(test_model.criteria, test_model.criteria_weights)},
+            'new_solution': new_solution,
+            'best_alternative': test_model.get_best_alternative(),
+            'ranking': test_model.get_ranking(),
+            'changes': changes
+        }
+    
+    def analyze_alternative_comparison_change(
+        self,
+        criterion: str,
+        alt1: str,
+        alt2: str,
+        new_value: float
+    ) -> Dict[str, Any]:
+        """
+        Анализ изменения сравнения альтернатив по критерию
+        (методика "Что-Если" из подраздела 2.3.4)
+        
+        Применяются правила (2.38) - (2.41) из методички
+        """
+        test_model = BellmanZadeMCDA()
+        test_model.alternatives = self.model.alternatives.copy()
+        test_model.criteria = self.model.criteria.copy()
+        
+        # Копируем матрицу сравнений критериев
+        if self.model.criteria_comparison_matrix:
+            test_model.criteria_comparison_matrix = ComparisonMatrix(
+                self.model.criteria, "Критерии"
+            )
+            test_model.criteria_comparison_matrix.matrix = self.model.criteria_comparison_matrix.matrix.copy()
+        
+        # Копируем матрицы сравнений альтернатив
+        for crit, matrix in self.model.criterion_matrices.items():
+            test_model.criterion_matrices[crit] = ComparisonMatrix(
+                matrix.elements.copy(), matrix.name
+            )
+            test_model.criterion_matrices[crit].matrix = matrix.matrix.copy()
+        
+        # Изменяем указанное сравнение
+        i = test_model.alternatives.index(alt1)
+        j = test_model.alternatives.index(alt2)
+        
+        if criterion not in test_model.criterion_matrices:
+            test_model.criterion_matrices[criterion] = ComparisonMatrix(test_model.alternatives, criterion)
+        
+        # Устанавливаем новое значение
+        test_model.criterion_matrices[criterion].set_comparison(i, j, new_value)
+        
+        # Применяем правила обеспечения непротиворечивости
+        test_model.criterion_matrices[criterion].ensure_consistency()
+        
+        # Пересчитываем решение
+        test_model.build_fuzzy_sets()
+        new_solution = test_model.calculate_solution()
+        
+        # Сравниваем с исходным
+        changes = {}
+        for alt in test_model.alternatives:
+            old_mu = self.original_solution.get(alt, 0)
+            new_mu = new_solution.get(alt, 0)
+            changes[alt] = {
+                'old': old_mu,
+                'new': new_mu,
+                'delta': new_mu - old_mu
+            }
+        
+        return {
+            'changed_comparison': f"{criterion}: {alt1} vs {alt2} = {new_value}",
+            'new_solution': new_solution,
+            'best_alternative': test_model.get_best_alternative(),
+            'ranking': test_model.get_ranking(),
+            'changes': changes
+        }
+
+
+# Пример использования (как в методичке, раздел 2.3.3)
+def create_brand_project_example() -> BellmanZadeMCDA:
+    """
+    Создание примера из методички: анализ бренд-проектов
+    """
+    model = BellmanZadeMCDA()
+    
+    # Альтернативы (проекты)
+    model.set_alternatives(['P1', 'P2', 'P3', 'P4'])
+    
+    # Критерии
+    model.set_criteria(['G1', 'G2', 'G3', 'G4', 'G5', 'G6'])
+    
+    # Матрицы парных сравнений из методички (2.36)
+    # A(G1)
+    model.add_alternative_comparison('G1', 'P1', 'P2', 3)
+    model.add_alternative_comparison('G1', 'P1', 'P3', 5)
+    model.add_alternative_comparison('G1', 'P1', 'P4', 5)
+    model.add_alternative_comparison('G1', 'P2', 'P3', 1/3)
+    model.add_alternative_comparison('G1', 'P2', 'P4', 1/3)
+    model.add_alternative_comparison('G1', 'P3', 'P4', 1/5)
+    
+    # A(G2)
+    model.add_alternative_comparison('G2', 'P1', 'P2', 1/3)
+    model.add_alternative_comparison('G2', 'P1', 'P3', 1/5)
+    model.add_alternative_comparison('G2', 'P1', 'P4', 1/7)
+    model.add_alternative_comparison('G2', 'P2', 'P3', 1/2)
+    model.add_alternative_comparison('G2', 'P2', 'P4', 1/3)
+    model.add_alternative_comparison('G2', 'P3', 'P4', 1/2)
+    
+    # A(G3)
+    model.add_alternative_comparison('G3', 'P1', 'P2', 1)
+    model.add_alternative_comparison('G3', 'P1', 'P3', 5)
+    model.add_alternative_comparison('G3', 'P1', 'P4', 1)
+    model.add_alternative_comparison('G3', 'P2', 'P3', 1/5)
+    model.add_alternative_comparison('G3', 'P2', 'P4', 1/3)
+    model.add_alternative_comparison('G3', 'P3', 'P4', 1/7)
+    
+    # A(G4)
+    model.add_alternative_comparison('G4', 'P1', 'P2', 3)
+    model.add_alternative_comparison('G4', 'P1', 'P3', 5)
+    model.add_alternative_comparison('G4', 'P1', 'P4', 3)
+    model.add_alternative_comparison('G4', 'P2', 'P3', 1/3)
+    model.add_alternative_comparison('G4', 'P2', 'P4', 1/3)
+    model.add_alternative_comparison('G4', 'P3', 'P4', 1/5)
+    
+    # A(G5)
+    model.add_alternative_comparison('G5', 'P1', 'P2', 1/3)
+    model.add_alternative_comparison('G5', 'P1', 'P3', 1/3)
+    model.add_alternative_comparison('G5', 'P1', 'P4', 1/5)
+    model.add_alternative_comparison('G5', 'P2', 'P3', 1)
+    model.add_alternative_comparison('G5', 'P2', 'P4', 1/3)
+    model.add_alternative_comparison('G5', 'P3', 'P4', 1/2)
+    
+    # A(G6)
+    model.add_alternative_comparison('G6', 'P1', 'P2', 1/7)
+    model.add_alternative_comparison('G6', 'P1', 'P3', 1/3)
+    model.add_alternative_comparison('G6', 'P1', 'P4', 1/7)
+    model.add_alternative_comparison('G6', 'P2', 'P3', 3)
+    model.add_alternative_comparison('G6', 'P2', 'P4', 1)
+    model.add_alternative_comparison('G6', 'P3', 'P4', 1/3)
+    
+    # Сравнения важности критериев из методички (раздел 2.3.3)
+    # a1 = 0.15, a2 = 0.34, a3 = 0.26, a4 = 0.05, a5 = 0.13, a6 = 0.07
+    model.add_criterion_comparison_linguistic('G1', 'G4', 'почти существенное преимущество G1 над G4')
+    model.add_criterion_comparison_linguistic('G1', 'G5', 'отсутствует преимущество G1 над G5')
+    model.add_criterion_comparison_linguistic('G1', 'G6', 'слабое преимущество G1 над G6')
+    model.add_criterion_comparison_linguistic('G2', 'G1', 'слабое преимущество G2 над G1')
+    model.add_criterion_comparison_linguistic('G2', 'G3', 'почти слабое преимущество G2 над G3')
+    model.add_criterion_comparison_linguistic('G2', 'G4', 'почти сильное преимущество G2 над G4')
+    model.add_criterion_comparison_linguistic('G2', 'G5', 'слабое преимущество G2 над G5')
+    model.add_criterion_comparison_linguistic('G2', 'G6', 'существенное преимущество G2 над G6')
+    model.add_criterion_comparison_linguistic('G3', 'G1', 'почти слабое преимущество G3 над G1')
+    model.add_criterion_comparison_linguistic('G3', 'G4', 'существенное преимущество G3 над G4')
+    model.add_criterion_comparison_linguistic('G3', 'G5', 'почти слабое преимущество G3 над G5')
+    model.add_criterion_comparison_linguistic('G3', 'G6', 'слабое преимущество G3 над G6')
+    model.add_criterion_comparison_linguistic('G4', 'G5', 'слабое преимущество G4 над G5')
+    model.add_criterion_comparison_linguistic('G4', 'G6', 'почти слабое преимущество G4 над G6')
+    
+    return model
+
+    

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Настройка метода Беллмана-Заде{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Настройка метода нечеткого анализа Беллмана-Заде</h1>
+    
+    <div class="alert alert-info">
+        <strong>📊 Метод Беллмана-Заде</strong><br>
+        Здесь вы можете настроить экспертные парные сравнения для многокритериального 
+        анализа вариантов. Все изменения будут использоваться при поиске преподавателей.
+    </div>
+    
+    <form method="post" class="mb-5">
+        {% csrf_token %}
+        
+        <!-- Раздел 1: Сравнение важности критериев -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">1. Сравнение важности критериев (α-коэффициенты)</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Заполните матрицу парных сравнений для критериев.
+                    Значения по шкале Саати: 1 - равная важность, 3 - слабое преимущество,
+                    5 - существенное, 7 - явное, 9 - абсолютное.
+                </p>
+                
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Критерий A</th>
+                            <th>Сравнение</th>
+                            <th>Критерий B</th>
+                            <th>Значение</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i, crit1 in criteria %}
+                            {% for j, crit2 in criteria %}
+                                {% if i < j %}
+                                <tr>
+                                    <td>{{ crit1|upper }}</td>
+                                    <td>по сравнению с</td>
+                                    <td>{{ crit2|upper }}</td>
+                                    <td>
+                                        <select name="criteria_comp_{{ crit1 }}_{{ crit2 }}" class="form-select">
+                                            <option value="1">1 - Одинаковая важность</option>
+                                            <option value="2">2 - Почти слабое преимущество</option>
+                                            <option value="3">3 - Слабое преимущество</option>
+                                            <option value="4">4 - Почти существенное преимущество</option>
+                                            <option value="5">5 - Существенное преимущество</option>
+                                            <option value="6">6 - Почти сильное преимущество</option>
+                                            <option value="7">7 - Явное преимущество</option>
+                                            <option value="8">8 - Очень сильное преимущество</option>
+                                            <option value="9">9 - Абсолютное преимущество</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Раздел 2: Сравнение альтернатив по критериям -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">2. Сравнение преподавателей по критериям</h3>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="criterionTab" role="tablist">
+                    {% for criterion in criteria %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#tab-{{ criterion }}" 
+                                type="button" role="tab">
+                            {{ criterion|upper }}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <div class="tab-content mt-3">
+                    {% for criterion in criteria %}
+                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                         id="tab-{{ criterion }}" role="tabpanel">
+                        
+                        <p class="text-muted">
+                            Сравнение преподавателей по критерию <strong>{{ criterion|upper }}</strong>
+                        </p>
+                        
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Преподаватель A</th>
+                                    <th>Сравнение</th>
+                                    <th>Преподаватель B</th>
+                                    <th>Значение</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i, (alt1, name1) in teacher_choices %}
+                                    {% for j, (alt2, name2) in teacher_choices %}
+                                        {% if i < j %}
+                                        <tr>
+                                            <td>{{ name1 }}</td>
+                                            <td>по сравнению с</td>
+                                            <td>{{ name2 }}</td>
+                                            <td>
+                                                <select name="alt_comp_{{ criterion }}_{{ alt1 }}_{{ alt2 }}" class="form-select">
+                                                    <option value="1">1 - Равны</option>
+                                                    <option value="2">2 - Почти слабое преимущество</option>
+                                                    <option value="3">3 - Слабое преимущество</option>
+                                                    <option value="4">4 - Почти существенное</option>
+                                                    <option value="5">5 - Существенное преимущество</option>
+                                                    <option value="6">6 - Почти сильное</option>
+                                                    <option value="7">7 - Явное преимущество</option>
+                                                    <option value="8">8 - Очень сильное</option>
+                                                    <option value="9">9 - Абсолютное преимущество</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-lg btn-primary">
+            💾 Сохранить настройки
+        </button>
+        <a href="{% url 'resume:public_resume_list' %}" class="btn btn-lg btn-secondary">
+            🔍 Перейти к поиску
+        </a>
+    </form>
+    
+    <!-- Демонстрация текущего решения -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h3>Текущее решение (демонстрация)</h3>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-warning" onclick="runDemo()">
+                📊 Показать расчет по текущим настройкам
+            </button>
+            <div id="demo-result" class="mt-3"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function runDemo() {
+    // AJAX запрос для демонстрации расчета
+    fetch('/resumes/api/demo-fuzzy-calculation/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            'criteria_comparisons': getCriteriaComparisons()
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let html = '<h4>Результаты расчета:</h4>';
+        html += '<table class="table">';
+        html += '<tr><th>Альтернатива</th><th>μD</th><th>Ранг</th></tr>';
+        for (let alt of data.ranking) {
+            html += `<tr>
+                <td>${alt[0]}</td>
+                <td>${(alt[1] * 100).toFixed(1)}%</td>
+                <td>${data.ranking.indexOf(alt) + 1}</td>
+            </tr>`;
+        }
+        html += '</table>';
+        html += `<p><strong>Лучшая альтернатива:</strong> ${data.best[0]} (${(data.best[1] * 100).toFixed(1)}%)</p>`;
+        html += `<p><strong>Коэффициенты важности:</strong> ${JSON.stringify(data.weights)}</p>`;
+        document.getElementById('demo-result').innerHTML = html;
+    });
+}
+
+function getCriteriaComparisons() {
+    let comparisons = {};
+    document.querySelectorAll('[name^="criteria_comp_"]').forEach(select => {
+        comparisons[select.name] = select.value;
+    });
+    return comparisons;
+}
+</script>
+{% endblock %}

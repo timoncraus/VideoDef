@@ -1,6 +1,28 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block page_name %}Регистрация{% endblock %}
+{% block extra_head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .location-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
     <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
         {% csrf_token %}
@@ -10,8 +32,9 @@
             <br>
             <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
             <br>
-            <img id="preview" src="{{ form.photo.value|default:'/static/images/default.png' }}" alt="Аватар" width="100" height="100" alt="Предпросмотр" style="width:150px;height:150px;">
+            <img id="preview" src="{{ forms.register_form.photo.value|default:'/static/images/default.png' }}" alt="Аватар" width="100" height="100" style="width:150px;height:150px;">
         </div>
+        
         <script>
             document.getElementById('id_photo').addEventListener('change', function(event) {
                 const reader = new FileReader();
@@ -34,12 +57,131 @@
         {% include "field/default_field.html" with field=forms.register_form.phone_number %}
         {% include "field/default_field.html" with field=forms.register_form.password1 %}
         {% include "field/default_field.html" with field=forms.register_form.password2 %}
+        
+        <!-- Геолокация -->
+        <div class="form-group mt-3">
+            <label class="form-label">📍 Ваше местоположение</label>
+            <div id="map"></div>
+            <div class="location-info">
+                <div id="selected-address" class="text-muted mb-2">Нажмите на карту, чтобы выбрать местоположение</div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <label>Радиус поиска преподавателей:</label>
+                        <input type="number" name="max_search_distance" id="id_max_search_distance" 
+                               class="form-control" value="10" min="1" max="100" step="1">
+                        <small class="text-muted">км - в этом радиусе будут искаться преподаватели</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Скрытые поля -->
+        <input type="hidden" name="location_lat" id="id_location_lat">
+        <input type="hidden" name="location_lon" id="id_location_lon">
+        <input type="hidden" name="location_address" id="id_location_address">
 
         <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
     </form>
+    
     <div class="mb-3 mt-3">
         <p>Уже есть аккаунт? <a href="{% url 'account:login' %}">Войти</a></p>
     </div>
 
-    
+    <script>
+        // Инициализация карты
+        let map = L.map('map').setView([55.751244, 37.618423], 12);
+        
+        // Добавление слоя карты
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19,
+            minZoom: 3
+        }).addTo(map);
+        
+        // Маркер
+        let marker = null;
+        
+        // Геокодер для поиска адреса
+        const geocoder = L.Control.Geocoder.nominatim();
+        
+        // Добавляем поиск на карту
+        L.Control.geocoder({
+            defaultMarkGeocode: false,
+            placeholder: 'Поиск адреса...',
+            position: 'topright'
+        }).on('markgeocode', function(e) {
+            const center = e.geocode.center;
+            map.setView(center, 15);
+            if (marker) {
+                marker.setLatLng(center);
+            } else {
+                marker = L.marker(center, {draggable: true}).addTo(map);
+                marker.on('dragend', updateLocationFromMarker);
+            }
+            updateLocation(center.lat, center.lng, e.geocode.name);
+        }).addTo(map);
+        
+        // Обработка клика на карте
+        map.on('click', function(e) {
+            if (marker) {
+                marker.setLatLng(e.latlng);
+            } else {
+                marker = L.marker(e.latlng, {draggable: true}).addTo(map);
+                marker.on('dragend', updateLocationFromMarker);
+            }
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+        
+        // Функция обновления местоположения
+        function updateLocation(lat, lng, address = null) {
+            document.getElementById('id_location_lat').value = lat;
+            document.getElementById('id_location_lon').value = lng;
+            
+            if (address) {
+                document.getElementById('id_location_address').value = address;
+                document.getElementById('selected-address').innerHTML = `📍 ${address}`;
+            } else {
+                // Обратный геокодинг
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const addr = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                        document.getElementById('id_location_address').value = addr;
+                        document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
+                    })
+                    .catch(() => {
+                        const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                        document.getElementById('id_location_address').value = addr;
+                        document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
+                    });
+            }
+        }
+        
+        function updateLocationFromMarker() {
+            const latlng = marker.getLatLng();
+            updateLocation(latlng.lat, latlng.lng);
+        }
+        
+        // Попытка получить геолокацию пользователя
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    map.setView([lat, lng], 13);
+                    if (marker) {
+                        marker.setLatLng([lat, lng]);
+                    } else {
+                        marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+                        marker.on('dragend', updateLocationFromMarker);
+                    }
+                    updateLocation(lat, lng);
+                },
+                function(error) {
+                    console.log('Геолокация не доступна');
+                }
+            );
+        }
+    </script>
 {% endblock %}

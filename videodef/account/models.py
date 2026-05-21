@@ -107,7 +107,34 @@ class Profile(models.Model):
         Gender, on_delete=models.SET_NULL, null=True, verbose_name="Пол"
     )
     date_birth = models.DateField(verbose_name="Дата рождения")
-
+    
+    location_lat = models.DecimalField(
+        max_digits=10, 
+        decimal_places=7, 
+        null=True, 
+        blank=True, 
+        verbose_name="Широта"
+    )
+    location_lon = models.DecimalField(
+        max_digits=10, 
+        decimal_places=7, 
+        null=True, 
+        blank=True, 
+        verbose_name="Долгота"
+    )
+    location_address = models.CharField(
+        max_length=500, 
+        blank=True, 
+        null=True, 
+        verbose_name="Адрес"
+    )
+    
+    # Дополнительные поля для настройки поиска
+    max_search_distance = models.IntegerField(
+        default=10,
+        verbose_name="Максимальное расстояние поиска (км)"
+    )
+    
     @property
     def role_display(self):
         if self.role:

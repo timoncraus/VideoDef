@@ -224,6 +224,8 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .results-title {
@@ -232,6 +234,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .results-count {
@@ -242,12 +245,39 @@
             border-radius: 20px;
         }
 
+        .results-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
         .sort-select {
             padding: 8px 14px;
             border: 2px solid #E0E0E0;
             border-radius: 8px;
             font-size: 0.9rem;
             cursor: pointer;
+        }
+
+        .btn-what-if {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-what-if:hover {
+            background: linear-gradient(135deg, #F57C00, #E65100);
+            color: white;
         }
 
         .teacher-card {
@@ -354,6 +384,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .match-value {
@@ -404,6 +436,7 @@
         .teacher-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn-detail {
@@ -468,16 +501,19 @@
             display: flex;
             align-items: center;
             margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .criterion-name {
-            width: 180px;
+            width: 140px;
             font-size: 0.8rem;
             color: #757575;
         }
 
         .criterion-bar-wrap {
             flex: 1;
+            min-width: 150px;
             height: 6px;
             background: #E0E0E0;
             border-radius: 3px;
@@ -493,11 +529,35 @@
         }
 
         .criterion-value {
-            width: 50px;
+            width: 60px;
             text-align: right;
             font-size: 0.8rem;
             font-weight: 600;
             color: #2E7D32;
+        }
+
+        .weight-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #E3F2FD;
+            color: #1565C0;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+
+        .consistency-info {
+            font-size: 0.7rem;
+            color: #757575;
+            margin-top: 4px;
+        }
+
+        .consistency-warning {
+            color: #FF9800;
+        }
+
+        .consistency-ok {
+            color: #4CAF50;
         }
 
         .linguistic-eval {
@@ -528,6 +588,27 @@
             margin-bottom: 16px;
         }
 
+        /* Админ-панель (только для staff) */
+        .admin-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            color: white;
+        }
+
+        .admin-panel a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .admin-panel .btn-admin {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-left: 12px;
+        }
+
         @media (max-width: 1024px) {
             .search-layout {
                 grid-template-columns: 1fr;
@@ -546,6 +627,17 @@
             }
             .teacher-actions {
                 flex-direction: column;
+            }
+            .criterion-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .criterion-bar-wrap {
+                width: 100%;
+                margin: 4px 0;
+            }
+            .criterion-value {
+                text-align: left;
             }
         }
     </style>
@@ -624,6 +716,31 @@
                 </div>
             {% endif %}
 
+            <!-- Админ-панель (только для staff) -->
+            {% if request.user.is_staff %}
+            <div class="admin-panel">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <strong>⚙️ Административная панель метода Беллмана-Заде</strong>
+                        <span class="consistency-info ms-2">
+                            {% if consistency_report and consistency_report.criteria_matrix %}
+                                {% if consistency_report.criteria_matrix.is_consistent %}
+                                    <span class="consistency-ok">✓ CR = {{ consistency_report.criteria_matrix.cr|floatformat:3 }} (согласовано)</span>
+                                {% else %}
+                                    <span class="consistency-warning">⚠ CR = {{ consistency_report.criteria_matrix.cr|floatformat:3 }} (требуется корректировка)</span>
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <a href="{% url 'resume:admin_fuzzy_settings' %}" class="btn-admin">📊 Настроить парные сравнения</a>
+                        <a href="{% url 'resume:what_if_analysis' %}" class="btn-admin">🔍 What-If анализ</a>
+                        <a href="{% url 'resume:fuzzy_demo' %}" class="btn-admin">📈 Демо (пример из методички)</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <h2 class="display-4 text-center mb-4 page-name">Поиск преподавателей</h2>
 
             <div class="search-layout">
@@ -678,6 +795,9 @@
                                     <div class="filter-label">
                                         <span class="icon">💰</span>
                                         Цена занятия (₽)
+                                        {% if criteria_weights.price %}
+                                            <span class="weight-badge">вес: {{ criteria_weights.price|floatformat:2 }}</span>
+                                        {% endif %}
                                     </div>
                                     <div class="slider-wrapper">
                                         <div id="price-slider"></div>
@@ -706,6 +826,9 @@
                                     <div class="filter-label">
                                         <span class="icon">📍</span>
                                         Макс. расстояние
+                                        {% if criteria_weights.distance %}
+                                            <span class="weight-badge">вес: {{ criteria_weights.distance|floatformat:2 }}</span>
+                                        {% endif %}
                                     </div>
                                     <div class="slider-wrapper">
                                         <div id="distance-slider"></div>
@@ -733,6 +856,9 @@
                                     <div class="filter-label">
                                         <span class="icon">⏳</span>
                                         Мин. опыт работы
+                                        {% if criteria_weights.experience %}
+                                            <span class="weight-badge">вес: {{ criteria_weights.experience|floatformat:2 }}</span>
+                                        {% endif %}
                                     </div>
                                     <div class="slider-wrapper">
                                         <div id="experience-slider"></div>
@@ -760,6 +886,9 @@
                                     <div class="filter-label">
                                         <span class="icon">⭐</span>
                                         Мин. рейтинг
+                                        {% if criteria_weights.rating %}
+                                            <span class="weight-badge">вес: {{ criteria_weights.rating|floatformat:2 }}</span>
+                                        {% endif %}
                                     </div>
                                     <div class="slider-wrapper">
                                         <div id="rating-slider"></div>
@@ -782,7 +911,7 @@
                                     </div>
                                 </div>
 
-                                <!-- ОБРАЗОВАНИЕ (скрытое поле, но goal можно добавить) -->
+                                <!-- ОБРАЗОВАНИЕ (скрытое поле) -->
                                 <input type="hidden" name="education_goal" value="{{ education_goal|default:'expert' }}">
 
                                 <button type="button" class="btn-search" onclick="submitSearch()">
@@ -809,22 +938,29 @@
                                 {% endif %}
                             </span>
                         </div>
-                        <select class="sort-select" id="sort-select" onchange="sortResults()">
-                            <option value="rank">По релевантности</option>
-                            <option value="price_asc">Цена: по возрастанию</option>
-                            <option value="price_desc">Цена: по убыванию</option>
-                            <option value="rating_desc">Рейтинг: высокий</option>
-                            <option value="experience_desc">Опыт: большой</option>
-                        </select>
+                        <div class="results-actions">
+                            <select class="sort-select" id="sort-select" onchange="sortResults()">
+                                <option value="rank">По релевантности (μD)</option>
+                                <option value="price_asc">Цена: по возрастанию</option>
+                                <option value="price_desc">Цена: по убыванию</option>
+                                <option value="rating_desc">Рейтинг: высокий</option>
+                                <option value="experience_desc">Опыт: большой</option>
+                            </select>
+                            {% if results %}
+                                <a href="{% url 'resume:what_if_analysis' %}" class="btn-what-if">
+                                    🔬 What-If анализ
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
 
                     {% if results %}
                         {% for result in results %}
-                            <article class="teacher-card {% if result.rank == 1 %}best-match{% endif %}"
+                            <article class="teacher-card {% if result.is_best %}best-match{% endif %}"
                                      data-rank="{{ result.rank }}"
-                                     data-price="{{ result.resume.get_average_price }}"
-                                     data-rating="{{ result.resume.rating }}"
-                                     data-experience="{{ result.resume.experience_years }}">
+                                     data-price="{{ result.price }}"
+                                     data-rating="{{ result.rating }}"
+                                     data-experience="{{ result.experience }}">
                                 
                                 <div class="teacher-card-top">
                                     {% if result.resume.user.profile.photo %}
@@ -838,8 +974,11 @@
                                     <div class="teacher-info">
                                         <h3 class="teacher-name">
                                             {{ result.resume.user.profile.get_full_name|default:result.resume.user.profile }}
+                                            {% if result.is_best %}
+                                                <span class="weight-badge" style="background:#4CAF50; color:white;">🏆 Лучший</span>
+                                            {% endif %}
                                         </h3>
-                                        <p class="teacher-brief">{{ result.resume.short_info }}</p>
+                                        <p class="teacher-brief">{{ result.resume.short_info|truncatechars:100 }}</p>
                                         <div class="teacher-meta">
                                             <span class="meta-item">
                                                 <span class="dot"></span> 
@@ -863,32 +1002,30 @@
 
                                 <div class="match-section">
                                     <div class="match-header">
-                                        <span>Степень соответствия (μD)</span>
+                                        <span>
+                                            Степень соответствия (μD)
+                                            <small class="consistency-info">по методу Беллмана-Заде</small>
+                                        </span>
                                         <span class="match-value 
-                                            {% if result.mu_aggregated >= 70 %}excellent
-                                            {% elif result.mu_aggregated >= 50 %}good
-                                            {% elif result.mu_aggregated >= 30 %}average
+                                            {% if result.mu >= 70 %}excellent
+                                            {% elif result.mu >= 50 %}good
+                                            {% elif result.mu >= 30 %}average
                                             {% else %}poor{% endif %}">
-                                            {{ result.mu_aggregated|floatformat:1 }}%
+                                            {{ result.mu|floatformat:1 }}%
                                         </span>
                                     </div>
                                     <div class="match-bar">
                                         <div class="match-bar-fill 
-                                            {% if result.mu_aggregated >= 70 %}excellent
-                                            {% elif result.mu_aggregated >= 50 %}good
-                                            {% elif result.mu_aggregated >= 30 %}average
+                                            {% if result.mu >= 70 %}excellent
+                                            {% elif result.mu >= 50 %}good
+                                            {% elif result.mu >= 30 %}average
                                             {% else %}poor{% endif %}"
                                             style="width: 0%"
-                                            data-width="{{ result.mu_aggregated|floatformat:1 }}%">
+                                            data-width="{{ result.mu|floatformat:1 }}%">
                                         </div>
                                     </div>
-                                    <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                        <span class="satisfaction-badge level-{{ result.satisfaction_level.level|lower }}">
-                                            {{ result.satisfaction_level.level }} — {{ result.satisfaction_level.description }}
-                                        </span>
-                                        <span style="font-size: 0.8rem; color: #757575;">
-                                            Комбинированная: {{ result.mu_combined|floatformat:1 }}%
-                                        </span>
+                                    <div class="consistency-info mt-2">
+                                        Формула: μD = min(μG₁^α₁, μG₂^α₂, ...)
                                     </div>
                                 </div>
 
@@ -903,35 +1040,44 @@
 
                                 <div class="fuzzy-details" id="details-{{ result.resume.pk }}">
                                     <h4>📐 Детальный нечеткий анализ</h4>
+                                    <p class="consistency-info mb-3">
+                                        Степени принадлежности μ_{G_j}(P) и взвешенные значения (μ_{G_j})^{α_j}
+                                    </p>
                                     
-                                    {% for criterion, mu in result.membership_values.items %}
+                                    {% for criterion, mu in result.memberships.items %}
                                         <div class="criterion-row">
-                                            <span class="criterion-name">{{ criterion }}</span>
+                                            <span class="criterion-name">
+                                                {{ criterion|upper }}
+                                            </span>
                                             <div class="criterion-bar-wrap">
                                                 <div class="criterion-bar-fill" 
                                                      style="width: 0%"
-                                                     data-width="{% widthratio mu 1 100 %}%">
+                                                     data-width="{{ mu|floatformat:1 }}%">
                                                 </div>
                                             </div>
-                                            <span class="criterion-value">{{ mu|floatformat:3 }}</span>
+                                            <span class="criterion-value">{{ mu|floatformat:1 }}%</span>
                                         </div>
                                     {% endfor %}
                                     
                                     <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd;">
-                                        <strong>μD (min-агрегирование):</strong> {{ result.mu_aggregated|floatformat:1 }}%<br>
-                                        <strong>μ weighted (взвешенное):</strong> {{ result.mu_weighted|floatformat:1 }}%<br>
-                                        <strong>μ combined (комбинированное):</strong> {{ result.mu_combined|floatformat:1 }}%
+                                        <strong>μD (по формуле 2.35):</strong> 
+                                        <span class="match-value {% if result.mu >= 70 %}excellent{% elif result.mu >= 50 %}good{% elif result.mu >= 30 %}average{% else %}poor{% endif %}">
+                                            {{ result.mu|floatformat:1 }}%
+                                        </span>
+                                        <div class="consistency-info mt-1">
+                                            μD = минимальное значение среди взвешенных степеней принадлежности = {{ result.mu|floatformat:1 }}%
+                                        </div>
                                     </div>
                                     
-                                    {% if result.linguistic_evaluation %}
-                                        <div style="margin-top: 8px;">
-                                            <strong>Лингвистическая оценка:</strong>
-                                            <div class="linguistic-eval">
-                                                {% for var, label in result.linguistic_evaluation.items %}
-                                                    <span class="ling-tag">{{ var }}: {{ label }}</span>
-                                                {% endfor %}
-                                            </div>
+                                    {% if criteria_weights %}
+                                    <div style="margin-top: 8px;">
+                                        <strong>⚖️ Коэффициенты важности критериев (α_j):</strong>
+                                        <div class="linguistic-eval">
+                                            {% for criterion, weight in criteria_weights.items %}
+                                                <span class="ling-tag">{{ criterion|upper }}: {{ weight|floatformat:3 }}</span>
+                                            {% endfor %}
                                         </div>
+                                    </div>
                                     {% endif %}
                                 </div>
                             </article>
@@ -941,6 +1087,9 @@
                             <div class="icon">🔍</div>
                             <h3>Ничего не найдено</h3>
                             <p>Попробуйте изменить параметры поиска или сбросить фильтры</p>
+                            <button class="btn-search" style="width: auto; padding: 10px 24px; margin-top: 16px;" onclick="resetFilters()">
+                                ↺ Сбросить фильтры
+                            </button>
                         </div>
                     {% endif %}
                 </main>
@@ -1037,7 +1186,7 @@
                 childSelect.addEventListener('change', function() {
                     var childId = this.value;
                     if (childId) {
-                        fetch('/resume/api/child-violations/?child_id=' + childId)
+                        fetch('/resumes/api/child-violations/?child_id=' + childId)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.violations) {

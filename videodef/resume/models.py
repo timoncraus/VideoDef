@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+from django.db import models
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from account.models import User
 from document.models import Document
 
@@ -156,3 +158,49 @@ class TeacherReview(models.Model):
             avg_rating = reviews.aggregate(models.Avg('rating'))['rating__avg']
             # Обновляем рейтинг в резюме преподавателя
             Resume.objects.filter(user=self.teacher).update(rating=avg_rating)
+
+
+class FuzzyComparisonSettings(models.Model):
+    """
+    Хранение настроек парных сравнений для метода Беллмана-Заде.
+    Администратор может настраивать эти параметры через админ-панель.
+    """
+    criteria_comparisons = models.TextField(
+        verbose_name="Сравнения критериев",
+        blank=True,
+        null=True,
+        help_text="JSON с парными сравнениями критериев (шкала Саати)"
+    )
+    alternative_comparisons = models.TextField(
+        verbose_name="Сравнения альтернатив",
+        blank=True,
+        null=True,
+        help_text="JSON с парными сравнениями преподавателей по каждому критерию"
+    )
+    criteria_weights = models.TextField(
+        verbose_name="Веса критериев",
+        blank=True,
+        null=True,
+        help_text="JSON с рассчитанными весами критериев (α-коэффициенты)"
+    )
+    use_expert_comparisons = models.BooleanField(
+        verbose_name="Использовать экспертные сравнения",
+        default=False,
+        help_text="Включить использование ручных экспертных парных сравнений"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Кто обновил"
+    )
+    
+    class Meta:
+        verbose_name = "Настройки нечеткого анализа (Беллман-Заде)"
+        verbose_name_plural = "Настройки нечеткого анализа (Беллман-Заде)"
+    
+    def __str__(self):
+        return f"Настройки Беллмана-Заде от {self.updated_at.strftime('%d.%m.%Y %H:%M')}"
