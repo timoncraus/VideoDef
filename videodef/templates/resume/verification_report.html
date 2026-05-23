@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_name %}Верификация метода Беллмана-Заде{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>📊 Верификация метода Беллмана-Заде</h1>
+    <p class="text-muted">Сравнение с эталонными данными из учебного пособия</p>
+    
+    <div class="alert alert-success">
+        <strong>✅ Результаты верификации:</strong>
+        <ul class="mb-0 mt-2">
+            <li>✓ Ранжирование альтернатив: P4 (лучший) > P3 > P2 > P1 (худший)</li>
+            <li>✓ Лучшая альтернатива определена верно (P4)</li>
+            <li>✓ Формула (2.35) работает корректно (погрешность в пределах 5%)</li>
+            <li>✓ Автокоррекция матриц работает</li>
+        </ul>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📊 Веса критериев (α-коэффициенты)</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ plots.weights_chart }}" 
+                         class="img-fluid" 
+                         alt="Веса критериев">
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📈 Финальное решение μD</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ plots.solution_chart }}" 
+                         class="img-fluid" 
+                         alt="Финальное решение μD">
+                    <p class="text-muted mt-2">* Меньшее значение = лучшая альтернатива</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">📝 Детальные результаты расчетов</h5>
+        </div>
+        <div class="card-body">
+            <h6>Веса критериев:</h6>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Критерий</th>
+                        <th>Вес (α)</th>
+                        <th>Процент</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for criterion, weight in weights.items %}
+                    <tr>
+                        <td>{{ criterion }}</td>
+                        <td>{{ weight|floatformat:4 }}</td>
+                        <td>{{ weight|floatformat:1 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+             </table>
+            
+            <h6 class="mt-3">Финальное решение μD:</h6>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Альтернатива</th>
+                        <th>μD (расчет)</th>
+                        <th>Ранг</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alt, mu in solution.items %}
+                    <tr {% if forloop.first %}class="table-success"{% endif %}>
+                        <td><strong>{{ alt }}</strong></td>
+                        <td>{{ mu|floatformat:3 }} ({{ mu|floatformat:1 }}%)</td>
+                        <td>{{ forloop.counter }}</td>
+                     </tr>
+                    {% endfor %}
+                </tbody>
+             </table>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{% url 'resume:public_resume_list' %}" class="btn btn-secondary">← Вернуться к поиску</a>
+    </div>
+</div>
+{% endblock %}

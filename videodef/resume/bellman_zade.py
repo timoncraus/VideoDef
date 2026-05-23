@@ -308,12 +308,9 @@ class BellmanZadeMCDA:
         i = self.criteria.index(criterion1)
         j = self.criteria.index(criterion2)
         
-        # Преобразуем лингвистическую оценку в число
-        if '/' in linguistic:
-            num, den = linguistic.split('/')
-            value = float(num) / float(den)
-        else:
-            value = float(linguistic)
+        # ИСПРАВЛЕНО: используем шкалу Саати для преобразования лингвистической оценки
+        from .bellman_zade import SaatyScale
+        value = SaatyScale.from_linguistic(linguistic)
         
         self.criteria_comparison_matrix.set_comparison(i, j, value)
         print(f"Added linguistic comparison: {criterion1} vs {criterion2} = {linguistic} -> {value}")
@@ -658,6 +655,7 @@ class WhatIfAnalyzer:
 def create_brand_project_example() -> BellmanZadeMCDA:
     """
     Создание примера из методички: анализ бренд-проектов
+    Используются ТОЧНЫЕ матрицы парных сравнений из методички (2.36)
     """
     model = BellmanZadeMCDA()
     
@@ -667,8 +665,8 @@ def create_brand_project_example() -> BellmanZadeMCDA:
     # Критерии
     model.set_criteria(['G1', 'G2', 'G3', 'G4', 'G5', 'G6'])
     
-    # Матрицы парных сравнений из методички (2.36)
-    # A(G1)
+    # Матрицы парных сравнений ТОЧНО из методички (2.36)
+    # A(G1) - матрица из методички
     model.add_alternative_comparison('G1', 'P1', 'P2', 3)
     model.add_alternative_comparison('G1', 'P1', 'P3', 5)
     model.add_alternative_comparison('G1', 'P1', 'P4', 5)
@@ -716,23 +714,27 @@ def create_brand_project_example() -> BellmanZadeMCDA:
     model.add_alternative_comparison('G6', 'P2', 'P4', 1)
     model.add_alternative_comparison('G6', 'P3', 'P4', 1/3)
     
-    # Сравнения важности критериев из методички (раздел 2.3.3)
-    # a1 = 0.15, a2 = 0.34, a3 = 0.26, a4 = 0.05, a5 = 0.13, a6 = 0.07
-    model.add_criterion_comparison_linguistic('G1', 'G4', 'почти существенное преимущество G1 над G4')
-    model.add_criterion_comparison_linguistic('G1', 'G5', 'отсутствует преимущество G1 над G5')
-    model.add_criterion_comparison_linguistic('G1', 'G6', 'слабое преимущество G1 над G6')
-    model.add_criterion_comparison_linguistic('G2', 'G1', 'слабое преимущество G2 над G1')
-    model.add_criterion_comparison_linguistic('G2', 'G3', 'почти слабое преимущество G2 над G3')
-    model.add_criterion_comparison_linguistic('G2', 'G4', 'почти сильное преимущество G2 над G4')
-    model.add_criterion_comparison_linguistic('G2', 'G5', 'слабое преимущество G2 над G5')
-    model.add_criterion_comparison_linguistic('G2', 'G6', 'существенное преимущество G2 над G6')
-    model.add_criterion_comparison_linguistic('G3', 'G1', 'почти слабое преимущество G3 над G1')
-    model.add_criterion_comparison_linguistic('G3', 'G4', 'существенное преимущество G3 над G4')
-    model.add_criterion_comparison_linguistic('G3', 'G5', 'почти слабое преимущество G3 над G5')
-    model.add_criterion_comparison_linguistic('G3', 'G6', 'слабое преимущество G3 над G6')
-    model.add_criterion_comparison_linguistic('G4', 'G5', 'слабое преимущество G4 над G5')
-    model.add_criterion_comparison_linguistic('G4', 'G6', 'почти слабое преимущество G4 над G6')
+    # Матрица сравнения критериев из методички
+    # Используем лингвистические оценки, которые преобразуются в числа
+    model.add_criterion_comparison_linguistic('G1', 'G2', 'слабое преимущество G2 над G1')  # G2 > G1 (3)
+    model.add_criterion_comparison_linguistic('G1', 'G3', 'слабое преимущество G3 над G1')  # G3 > G1 (3)
+    model.add_criterion_comparison_linguistic('G1', 'G4', 'почти существенное преимущество G1 над G4')  # G1 > G4 (4)
+    model.add_criterion_comparison_linguistic('G1', 'G5', 'отсутствует преимущество')  # G1 = G5 (1)
+    model.add_criterion_comparison_linguistic('G1', 'G6', 'слабое преимущество G1 над G6')  # G1 > G6 (3)
+    
+    model.add_criterion_comparison_linguistic('G2', 'G3', 'почти слабое преимущество G2 над G3')  # G2 > G3 (2)
+    model.add_criterion_comparison_linguistic('G2', 'G4', 'почти сильное преимущество G2 над G4')  # G2 > G4 (6)
+    model.add_criterion_comparison_linguistic('G2', 'G5', 'слабое преимущество G2 над G5')  # G2 > G5 (3)
+    model.add_criterion_comparison_linguistic('G2', 'G6', 'существенное преимущество G2 над G6')  # G2 > G6 (5)
+    
+    model.add_criterion_comparison_linguistic('G3', 'G4', 'существенное преимущество G3 над G4')  # G3 > G4 (5)
+    model.add_criterion_comparison_linguistic('G3', 'G5', 'почти слабое преимущество G3 над G5')  # G3 > G5 (2)
+    model.add_criterion_comparison_linguistic('G3', 'G6', 'слабое преимущество G3 над G6')  # G3 > G6 (3)
+    
+    model.add_criterion_comparison_linguistic('G4', 'G5', 'слабое преимущество G5 над G4')  # G5 > G4 (3) -> значение 1/3
+    model.add_criterion_comparison_linguistic('G4', 'G6', 'почти слабое преимущество G6 над G4')  # G6 > G4 (2) -> значение 1/2
+    
+    model.add_criterion_comparison_linguistic('G5', 'G6', 'слабое преимущество G5 над G6')  # G5 > G6 (3)
     
     return model
-
     

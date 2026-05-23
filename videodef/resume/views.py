@@ -1371,3 +1371,24 @@ def user_weights_settings(request):
     }
     
     return render(request, 'resume/user_weights_settings.html', context)
+
+
+def verification_report(request):
+    """Страница с отчетом верификации"""
+    from .tests.test_verification import VerifyAgainstTextbook
+    
+    test = VerifyAgainstTextbook()
+    test.setUp()
+    plots = test.generate_verification_plots()
+    
+    calculated_weights = test.model.calculate_criteria_weights()
+    solution = test.solution
+    
+    context = {
+        'plots': plots,
+        'weights': calculated_weights,
+        'solution': solution,
+        'expected_mu': test.expected_mu,
+    }
+    
+    return render(request, 'resume/verification_report.html', context)

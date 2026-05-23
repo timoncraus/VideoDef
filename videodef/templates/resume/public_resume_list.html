@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1047,9 +1048,9 @@
                                             {% elif result.mu >= 50 %}good
                                             {% elif result.mu >= 30 %}average
                                             {% else %}poor{% endif %}"
-                                            style="width: 0%"
-                                            data-width="{{ result.mu|floatformat:1 }}%">
+                                            style="width: {{ result.mu|fix_float }}%;">
                                         </div>
+                                        <div style="display:none;">mu value: {{ result.mu }}</div>
                                     </div>
                                     <div class="consistency-info mt-2">
                                         Формула: μD = min(μG₁^α₁, μG₂^α₂, ...)
@@ -1079,7 +1080,7 @@
                                             <div class="criterion-bar-wrap">
                                                 <div class="criterion-bar-fill" 
                                                      style="width: 0%"
-                                                     data-width="{{ mu|floatformat:1 }}%">
+                                                     data-width="{{ mu|fix_float }}%">
                                                 </div>
                                             </div>
                                             <span class="criterion-value">{{ mu|floatformat:1 }}%</span>
@@ -1137,7 +1138,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             initSliders();
             initChildSelect();
-            animateBars();
         });
 
         function initSliders() {
@@ -1246,15 +1246,7 @@
             }
         }
 
-        function animateBars() {
-            setTimeout(function() {
-                document.querySelectorAll('.match-bar-fill[data-width]').forEach(bar => {
-                    if (bar.dataset.width) {
-                        bar.style.width = bar.dataset.width;
-                    }
-                });
-            }, 200);
-        }
+
 
         function resetFilters() {
             document.querySelectorAll('.violation-tag input').forEach(cb => cb.checked = false);
