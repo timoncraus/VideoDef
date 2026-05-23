@@ -3,10 +3,6 @@
 
 {% block page_name %}Регистрация{% endblock %}
 {% block extra_head %}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
     <style>
         #map {
             height: 300px;
@@ -20,6 +16,14 @@
             border-radius: 8px;
             margin-top: 10px;
         }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
     </style>
 {% endblock %}
 
@@ -28,11 +32,11 @@
         {% csrf_token %}
 
         <div class="form-group">
-            <label class="form-label" for="id_photo">{{ forms.register_form.photo.label_tag }}</label>
+            <label class="form-label">{{ forms.register_form.photo.label_tag }}</label>
             <br>
             <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
             <br>
-            <img id="preview" src="{{ forms.register_form.photo.value|default:'/static/images/default.png' }}" alt="Аватар" width="100" height="100" style="width:150px;height:150px;">
+            <img id="preview" src="{% static 'images/default.png' %}" alt="Аватар" style="width:150px;height:150px; object-fit: cover; border-radius: 10px;">
         </div>
         <script>
             document.getElementById('id_photo').addEventListener('change', function(event) {
@@ -60,7 +64,7 @@
         <!-- Геолокация -->
         <div class="form-group mt-3">
             <label class="form-label">📍 Ваше местоположение</label>
-            <div id="map"></div>
+            <div id="map" style="width: 100%; height: 300px; border-radius: 10px;"></div>
             <div class="location-info">
                 <div id="selected-address" class="text-muted mb-2">Нажмите на карту, чтобы выбрать местоположение</div>
                 <div class="row">
@@ -85,7 +89,11 @@
         <p>Уже есть аккаунт? <a href="{% url 'account:login' %}">Войти</a></p>
     </div>
 
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
     <script>
+        let map;
+        let placemark;
+
         function getFormFieldValue(fieldName) {
             const input = document.querySelector(`input[name="${fieldName}"]`);
             return input ? input.value : '';
@@ -95,92 +103,98 @@
             const input = document.querySelector(`input[name="${fieldName}"]`);
             if (input) input.value = value;
         }
-        
-        let map = L.map('map').setView([55.751244, 37.618423], 12);
-        
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            subdomains: 'abcd',
-            maxZoom: 19,
-            minZoom: 3
-        }).addTo(map);
-        
-        let marker = null;
-        
-        const geocoder = L.Control.Geocoder.nominatim();
-        
-        L.Control.geocoder({
-            defaultMarkGeocode: false,
-            placeholder: 'Поиск адреса...',
-            position: 'topright'
-        }).on('markgeocode', function(e) {
-            const center = e.geocode.center;
-            map.setView(center, 15);
-            if (marker) {
-                marker.setLatLng(center);
-            } else {
-                marker = L.marker(center, {draggable: true}).addTo(map);
-                marker.on('dragend', updateLocationFromMarker);
-            }
-            updateLocation(center.lat, center.lng, e.geocode.name);
-        }).addTo(map);
-        
-        map.on('click', function(e) {
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng, {draggable: true}).addTo(map);
-                marker.on('dragend', updateLocationFromMarker);
-            }
-            updateLocation(e.latlng.lat, e.latlng.lng);
-        });
-        
-        function updateLocation(lat, lng, address = null) {
-            setFormFieldValue('location_lat', lat.toFixed(7));
-            setFormFieldValue('location_lon', lng.toFixed(7));
+
+        function updateLocation(lat, lng, address) {
+            var latInput = document.querySelector('input[name="location_lat"]');
+            var lngInput = document.querySelector('input[name="location_lon"]');
+            var addrInput = document.querySelector('input[name="location_address"]');
+            var addrDiv = document.getElementById('selected-address');
+            
+            if (latInput) latInput.value = lat;
+            if (lngInput) lngInput.value = lng;
             
             if (address) {
-                setFormFieldValue('location_address', address);
-                document.getElementById('selected-address').innerHTML = `📍 ${address}`;
+                if (addrInput) addrInput.value = address;
+                if (addrDiv) addrDiv.innerHTML = '📍 ' + address;
+            } else if (typeof ymaps !== 'undefined') {
+                ymaps.geocode([lat, lng]).then(function(res) {
+                    var addr = res.geoObjects.get(0).getAddressLine();
+                    if (addrInput) addrInput.value = addr;
+                    if (addrDiv) addrDiv.innerHTML = '📍 ' + addr;
+                }).catch(function() {
+                    var simpleAddr = lat.toFixed(6) + ', ' + lng.toFixed(6);
+                    if (addrInput) addrInput.value = simpleAddr;
+                    if (addrDiv) addrDiv.innerHTML = '📍 ' + simpleAddr;
+                });
             } else {
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const addr = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        setFormFieldValue('location_address', addr);
-                        document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
-                    })
-                    .catch(() => {
-                        const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        setFormFieldValue('location_address', addr);
-                        document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
-                    });
+                var simpleAddr = lat.toFixed(6) + ', ' + lng.toFixed(6);
+                if (addrInput) addrInput.value = simpleAddr;
+                if (addrDiv) addrDiv.innerHTML = '📍 ' + simpleAddr;
+            }
+        }
+
+        function initMap() {
+            var container = document.getElementById('map');
+            if (!container) return;
+            
+            var lat = 55.751244;
+            var lng = 37.618423;
+            
+            map = new ymaps.Map('map', {
+                center: [lat, lng],
+                zoom: 10,
+                controls: ['zoomControl', 'searchControl', 'fullscreenControl']
+            });
+            
+            placemark = new ymaps.Placemark([lat, lng], {
+                hintContent: 'Перетащите, чтобы изменить расположение'
+            }, {
+                draggable: true,
+                preset: 'islands#redCircleIcon'
+            });
+            
+            placemark.events.add('dragend', function(e) {
+                var coords = placemark.geometry.getCoordinates();
+                updateLocation(coords[0], coords[1]);
+            });
+            
+            map.events.add('click', function(e) {
+                var coords = e.get('coords');
+                placemark.geometry.setCoordinates(coords);
+                updateLocation(coords[0], coords[1]);
+            });
+            
+            map.geoObjects.add(placemark);
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var userLat = position.coords.latitude;
+                        var userLng = position.coords.longitude;
+                        map.setCenter([userLat, userLng], 13);
+                        placemark.geometry.setCoordinates([userLat, userLng]);
+                        updateLocation(userLat, userLng);
+                    },
+                    function(error) {
+                        console.log('Геолокация недоступна: ' + error.message);
+                        updateLocation(lat, lng);
+                    }
+                );
+            } else {
+                updateLocation(lat, lng);
             }
         }
         
-        function updateLocationFromMarker() {
-            const latlng = marker.getLatLng();
-            updateLocation(latlng.lat, latlng.lng);
-        }
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    map.setView([lat, lng], 13);
-                    if (marker) {
-                        marker.setLatLng([lat, lng]);
-                    } else {
-                        marker = L.marker([lat, lng], {draggable: true}).addTo(map);
-                        marker.on('dragend', updateLocationFromMarker);
-                    }
-                    updateLocation(lat, lng);
-                },
-                function(error) {
-                    console.log('Геолокация не доступна');
+        if (typeof ymaps !== 'undefined') {
+            ymaps.ready(initMap);
+        } else {
+            window.addEventListener('load', function() {
+                if (typeof ymaps !== 'undefined') {
+                    ymaps.ready(initMap);
+                } else {
+                    document.getElementById('map').innerHTML = '<div style="background:#f8d7da; color:#721c24; padding:20px; text-align:center;">Ошибка загрузки карты. Попробуйте обновить страницу.</div>';
                 }
-            );
+            });
         }
     </script>
 {% endblock %}

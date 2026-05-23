@@ -216,6 +216,86 @@
             border-color: #757575;
         }
 
+        /* Стили для сворачиваемой карты */
+        .map-collapsible {
+            margin-bottom: 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .map-header {
+            background: linear-gradient(135deg, #4D8CF2, #3b6fc0);
+            color: white;
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .map-header:hover {
+            background: linear-gradient(135deg, #3b6fc0, #2d5a9e);
+        }
+        
+        .map-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .map-toggle-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+        }
+        
+        .map-toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .map-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .map-content.collapsed {
+            display: none;
+        }
+        
+        #search-map {
+            width: 100%;
+            height: 450px;
+        }
+        
+        .map-legend {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            font-size: 0.8rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .map-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 20px;
+        }
+        
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .legend-dot.blue { background: #2196F3; box-shadow: 0 0 0 2px white, 0 0 0 3px #2196F3; }
+        .legend-dot.green { background: #4CAF50; box-shadow: 0 0 0 2px white, 0 0 0 3px #4CAF50; }
+        .legend-dot.orange { background: #FF9800; box-shadow: 0 0 0 2px white, 0 0 0 3px #FF9800; }
+
         .results-header {
             display: flex;
             justify-content: space-between;
@@ -417,23 +497,6 @@
         .match-bar-fill.average { background: linear-gradient(90deg, #FF9800, #FFB74D); }
         .match-bar-fill.poor { background: linear-gradient(90deg, #F44336, #EF5350); }
 
-        .satisfaction-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .satisfaction-badge.level-a { background: #E8F5E9; color: #2E7D32; }
-        .satisfaction-badge.level-b { background: #F1F8E9; color: #558B2F; }
-        .satisfaction-badge.level-c { background: #FFF3E0; color: #E65100; }
-        .satisfaction-badge.level-d { background: #FFF8E1; color: #F57F17; }
-        .satisfaction-badge.level-e { background: #FFEBEE; color: #C62828; }
-        .satisfaction-badge.level-f { background: #ECEFF1; color: #455A64; }
-
         .teacher-actions {
             display: flex;
             gap: 8px;
@@ -553,30 +616,6 @@
             margin-top: 4px;
         }
 
-        .consistency-warning {
-            color: #FF9800;
-        }
-
-        .consistency-ok {
-            color: #4CAF50;
-        }
-
-        .linguistic-eval {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .ling-tag {
-            display: inline-block;
-            padding: 2px 10px;
-            background: #E3F2FD;
-            color: #1565C0;
-            border-radius: 12px;
-            font-size: 0.75rem;
-        }
-
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -587,27 +626,6 @@
         .empty-state .icon {
             font-size: 4rem;
             margin-bottom: 16px;
-        }
-
-        /* Админ-панель (только для staff) */
-        .admin-panel {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
-            color: white;
-        }
-
-        .admin-panel a {
-            color: white;
-            text-decoration: none;
-        }
-
-        .admin-panel .btn-admin {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 8px;
-            margin-left: 12px;
         }
 
         @media (max-width: 1024px) {
@@ -718,6 +736,25 @@
             {% endif %}
 
             <h2 class="display-4 text-center mb-4 page-name">Поиск преподавателей</h2>
+
+            <!-- Сворачиваемая карта -->
+            <div class="map-collapsible">
+                <div class="map-header" onclick="toggleMap()">
+                    <h3>
+                        <span>🗺️</span> Карта преподавателей
+                    </h3>
+                    <span class="map-toggle-icon" id="mapToggleIcon">▼</span>
+                </div>
+                <div class="map-content collapsed" id="mapContent">
+                    <div id="search-map" style="width: 100%; height: 450px;"></div>
+                    <div class="map-legend">
+                        <span><span class="legend-dot blue"></span> Вы</span>
+                        <span><span class="legend-dot green"></span> Преподаватель</span>
+                        <span><span class="legend-dot orange"></span> Лучшее совпадение</span>
+                        <span class="text-muted">💡 Кликните по маркеру или карточке для навигации</span>
+                    </div>
+                </div>
+            </div>
 
             <div class="search-layout">
                 <!-- Боковая панель фильтров -->
@@ -960,10 +997,11 @@
                     {% if results %}
                         {% for result in results %}
                             <article class="teacher-card {% if result.is_best %}best-match{% endif %}"
-                                     data-rank="{{ result.rank }}"
-                                     data-price="{{ result.price }}"
-                                     data-rating="{{ result.rating }}"
-                                     data-experience="{{ result.experience }}">
+                                data-id="{{ result.resume.id }}"
+                                data-rank="{{ result.rank }}"
+                                data-price="{{ result.price }}"
+                                data-rating="{{ result.rating }}"
+                                data-experience="{{ result.experience }}">
                                 
                                 <div class="teacher-card-top">
                                     {% if result.resume.user.profile.photo %}
@@ -1110,9 +1148,30 @@
     </script>
     <script src="{% static 'js/videocall/notify.js' %}"></script>
     <script>
+        // Функция для сворачивания/разворачивания карты
+        function toggleMap() {
+            var mapContent = document.getElementById('mapContent');
+            var toggleIcon = document.getElementById('mapToggleIcon');
+            
+            if (mapContent.classList.contains('collapsed')) {
+                mapContent.classList.remove('collapsed');
+                toggleIcon.classList.add('rotated');
+                // При разворачивании обновляем карту
+                if (typeof searchMap !== 'undefined' && searchMap) {
+                    setTimeout(function() {
+                        searchMap.container.fitToViewport();
+                    }, 100);
+                }
+            } else {
+                mapContent.classList.add('collapsed');
+                toggleIcon.classList.remove('rotated');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             initSliders();
             initChildSelect();
+            // Карта инициализируется отдельно после загрузки API
         });
 
         function initSliders() {
@@ -1141,8 +1200,8 @@
                 noUiSlider.create(distSlider, {
                     start: [parseFloat(document.getElementById('distance-val').value) || 10],
                     connect: [true, false],
-                    range: { 'min': 0, 'max': 50 },
-                    step: 1
+                    range: { 'min': 0, 'max': 50000 },
+                    step: 100
                 });
                 distSlider.noUiSlider.on('update', function(values) {
                     var v = Math.round(parseFloat(values[0]));
@@ -1221,44 +1280,11 @@
             }
         }
 
-
-
         function resetFilters() {
             document.querySelectorAll('.violation-tag input').forEach(cb => cb.checked = false);
             var childSelect = document.getElementById('child-select');
             if (childSelect) childSelect.value = '';
             window.location.href = window.location.pathname;
-        }
-
-        function sortResults() {
-            var sortBy = document.getElementById('sort-select').value;
-            var cards = Array.from(document.querySelectorAll('.teacher-card'));
-            
-            cards.sort(function(a, b) {
-                if (sortBy === 'rank') {
-                    return (parseInt(a.dataset.rank) || 999) - (parseInt(b.dataset.rank) || 999);
-                }
-                if (sortBy === 'price_asc') {
-                    return (parseFloat(a.dataset.price) || 0) - (parseFloat(b.dataset.price) || 0);
-                }
-                if (sortBy === 'price_desc') {
-                    return (parseFloat(b.dataset.price) || 0) - (parseFloat(a.dataset.price) || 0);
-                }
-                if (sortBy === 'rating_desc') {
-                    return (parseFloat(b.dataset.rating) || 0) - (parseFloat(a.dataset.rating) || 0);
-                }
-                if (sortBy === 'experience_desc') {
-                    return (parseFloat(b.dataset.experience) || 0) - (parseFloat(a.dataset.experience) || 0);
-                }
-                return 0;
-            });
-            
-            var parent = cards[0] ? cards[0].parentNode : null;
-            if (parent) {
-                cards.forEach(function(card) {
-                    parent.appendChild(card);
-                });
-            }
         }
 
         function submitSearch() {
@@ -1279,18 +1305,14 @@
                 form.submit();
             }
         }
-    </script>
 
-    <script>
         function changeOrdering() {
             const select = document.getElementById('sort-select');
             const orderingInput = document.getElementById('ordering-input');
             orderingInput.value = select.value;
             document.getElementById('search-form').submit();
         }
-    </script>
 
-    <script>
         function changeWeightMode(mode) {
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -1298,6 +1320,134 @@
             input.value = mode;
             document.getElementById('search-form').appendChild(input);
             document.getElementById('search-form').submit();
+        }
+    </script>
+
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ae2bc558-cd51-4f16-bb0c-feb46fa8cdc7&lang=ru_RU" type="text/javascript"></script>
+    <script>
+        let searchMap;
+        let userPlacemark;
+        let teacherPlacemarks = [];
+
+        // Данные преподавателей из результатов поиска
+        const teachersForMap = [
+            {% for result in results %}
+            {
+                id: {{ result.resume.id }},
+                name: "{{ result.resume.user.profile.get_full_name|default:result.resume.user.profile|escapejs }}",
+                lat: "{{ result.resume.location_lat|default:'0' }}",
+                lon: "{{ result.resume.location_lon|default:'0' }}",
+                isBest: {% if result.is_best %}true{% else %}false{% endif %},
+                mu: "{{ result.mu|default:'0' }}",
+                rank: "{{ result.rank|default:'99' }}"
+            },
+            {% endfor %}
+        ];
+
+        // Координаты пользователя из профиля - безопасное получение
+        let userLat = 55.751244;
+        let userLon = 37.618423;
+        {% if request.user.profile.location_lat and request.user.profile.location_lon %}
+        userLat = parseFloat("{{ request.user.profile.location_lat|stringformat:'f'|default:'55.751244' }}".replace(',', '.'));
+        userLon = parseFloat("{{ request.user.profile.location_lon|stringformat:'f'|default:'37.618423' }}".replace(',', '.'));
+        {% endif %}
+
+        function initSearchMap() {
+            if (typeof ymaps === 'undefined') {
+                console.error('Yandex Maps API not loaded');
+                setTimeout(initSearchMap, 500);
+                return;
+            }
+
+            ymaps.ready(function() {
+                // Создаем карту с центром на пользователе
+                searchMap = new ymaps.Map('search-map', {
+                    center: [userLat, userLon],
+                    zoom: 10,
+                    controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+                });
+
+                // Маркер пользователя
+                userPlacemark = new ymaps.Placemark([userLat, userLon], {
+                    hintContent: 'Ваше местоположение',
+                    balloonContent: '<b>Вы</b><br>Ваше местоположение для поиска'
+                }, {
+                    preset: 'islands#blueCircleIcon',
+                    iconColor: '#2196F3'
+                });
+                searchMap.geoObjects.add(userPlacemark);
+
+                // Маркеры преподавателей
+                teacherPlacemarks = [];
+                for (var i = 0; i < teachersForMap.length; i++) {
+                    var teacher = teachersForMap[i];
+                    // Преобразуем строки с запятой в числа с точкой
+                    var latStr = String(teacher.lat).replace(',', '.');
+                    var lonStr = String(teacher.lon).replace(',', '.');
+                    var muStr = String(teacher.mu).replace(',', '.');
+                    var latNum = parseFloat(latStr);
+                    var lonNum = parseFloat(lonStr);
+                    var muNum = parseFloat(muStr);
+                    var rankNum = parseInt(teacher.rank, 10);
+                    
+                    if (latNum && lonNum && !isNaN(latNum) && !isNaN(lonNum) && latNum !== 0 && lonNum !== 0) {
+                        var preset = teacher.isBest ? 'islands#orangeCircleIcon' : 'islands#greenCircleIcon';
+                        var iconColor = teacher.isBest ? '#FF9800' : '#4CAF50';
+                        
+                        var placemark = new ymaps.Placemark([latNum, lonNum], {
+                            hintContent: teacher.name,
+                            balloonContent: '<b>' + teacher.name + '</b><br>Совпадение: ' + (isNaN(muNum) ? 0 : muNum.toFixed(1)) + '%<br>Ранг: ' + (isNaN(rankNum) ? 99 : rankNum) + '<br><a href="/resumes/' + teacher.id + '/" target="_blank">Подробнее</a>'
+                        }, {
+                            preset: preset,
+                            iconColor: iconColor
+                        });
+                        
+                        // При клике на маркер - подсвечиваем карточку преподавателя
+                        placemark.events.add('click', (function(teacherId) {
+                            return function() {
+                                var card = document.querySelector('.teacher-card[data-id="' + teacherId + '"]');
+                                if (card) {
+                                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    card.style.boxShadow = '0 0 0 3px #FF9800';
+                                    setTimeout(function() {
+                                        if (card) card.style.boxShadow = '';
+                                    }, 2000);
+                                }
+                            };
+                        })(teacher.id));
+                        
+                        searchMap.geoObjects.add(placemark);
+                        teacherPlacemarks.push(placemark);
+                    }
+                }
+
+                // Если есть преподаватели, центрируем карту так, чтобы показать всех
+                if (teacherPlacemarks.length > 0) {
+                    var bounds = searchMap.geoObjects.getBounds();
+                    if (bounds) {
+                        searchMap.setBounds(bounds, {
+                            checkZoomRange: true,
+                            zoomMargin: 50
+                        });
+                    }
+                }
+            });
+        }
+
+        // Загружаем карту после загрузки страницы
+        if (typeof ymaps !== 'undefined') {
+            ymaps.ready(initSearchMap);
+        } else {
+            window.addEventListener('load', function() {
+                if (typeof ymaps !== 'undefined') {
+                    ymaps.ready(initSearchMap);
+                } else {
+                    var mapContainer = document.getElementById('search-map');
+                    if (mapContainer) {
+                        mapContainer.innerHTML = '<div class="alert alert-warning">Ошибка загрузки карты. Проверьте API-ключ Яндекса.</div>';
+                    }
+                }
+            });
         }
     </script>
 </body>

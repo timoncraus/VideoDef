@@ -39,7 +39,7 @@ class RegisterForm(UserCreationForm):
         widget=forms.HiddenInput()
     )
     max_search_distance = forms.IntegerField(
-        initial=10,
+        initial=50000,
         required=False,
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'км'})
     )
@@ -60,7 +60,7 @@ class RegisterForm(UserCreationForm):
             photo=self.cleaned_data.get("photo", None),
             location_lat=self.cleaned_data.get("location_lat"),
             location_lon=self.cleaned_data.get("location_lon"),
-            max_search_distance=self.cleaned_data.get("max_search_distance", 10),
+            max_search_distance=self.cleaned_data.get("max_search_distance", 50000),
         )
         user.profile = profile
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
