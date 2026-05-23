@@ -66,8 +66,8 @@
                 {% csrf_token %}
                 <input type="hidden" name="pairwise_comparisons" id="pairwise_comparisons">
                 <input type="hidden" name="calculated_weights" id="calculated_weights">
-                <div class="mt-4"><div class="form-check"><input type="checkbox" name="use_custom" class="form-check-input" id="use_custom" {% if use_custom %}checked{% endif %}><label class="form-check-label" for="use_custom">Использовать мои веса вместо экспертных</label></div></div>
-                <div class="mt-4"><button type="submit" class="btn btn-primary">💾 Сохранить настройки</button><a href="{% url 'resume:public_resume_list' %}" class="btn btn-secondary ms-2">← Вернуться к поиску</a></div>
+                <div class="mt-4"><button type="submit" class="btn btn-primary">💾 Сохранить настройки</button>
+                <a href="{% url 'resume:public_resume_list' %}" class="btn btn-secondary mt-3 ms-2">← Вернуться к поиску</a></div>
             </form>
         </div>
     </div>

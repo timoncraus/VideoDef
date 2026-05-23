@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
     <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}"/>
     <style>
-        /* Дополнительные стили для поиска */
         .search-layout {
             display: grid;
             grid-template-columns: 400px 1fr;
@@ -32,7 +31,7 @@
         .filters-card {
             background: white;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
         }
 
@@ -216,7 +215,6 @@
             border-color: #757575;
         }
 
-        /* Стили для сворачиваемой карты */
         .map-collapsible {
             margin-bottom: 24px;
             background: white;
@@ -370,6 +368,7 @@
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
 
         .teacher-card:hover {
@@ -570,9 +569,10 @@
         }
 
         .criterion-name {
-            width: 140px;
-            font-size: 0.8rem;
-            color: #757575;
+            width: 120px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #424242;
         }
 
         .criterion-bar-wrap {
@@ -595,7 +595,7 @@
         .criterion-value {
             width: 60px;
             text-align: right;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: #2E7D32;
         }
@@ -626,6 +626,38 @@
         .empty-state .icon {
             font-size: 4rem;
             margin-bottom: 16px;
+        }
+        
+        .criteria-weights {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .weight-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: #E8F5E9;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #2E7D32;
+        }
+        
+        .weight-chip .chip-icon {
+            font-size: 0.9rem;
+        }
+        
+        .weight-chip .chip-value {
+            font-weight: 700;
+            background: #4CAF50;
+            color: white;
+            padding: 1px 6px;
+            border-radius: 12px;
+            margin-left: 4px;
         }
 
         @media (max-width: 1024px) {
@@ -678,46 +710,22 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account:about' %}"><i class="bi bi-info-circle"></i> О проекте</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'game:games' %}"><i class="bi bi-controller"></i> Игры</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'chat:chats' %}"><i class="bi bi-chat-left-text"></i> Переписки</a>
-                    </li>
-
+                    <li class="nav-item"><a class="nav-link" href="{% url 'account:about' %}"><i class="bi bi-info-circle"></i> О проекте</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'game:games' %}"><i class="bi bi-controller"></i> Игры</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'chat:chats' %}"><i class="bi bi-chat-left-text"></i> Переписки</a></li>
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'game:my_games' %}"><i class="bi bi-person-circle"></i> Мои игры</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="bi bi-calendar-event"></i> Расписание</a>
-                        </li>
-
+                        <li class="nav-item"><a class="nav-link" href="{% url 'game:my_games' %}"><i class="bi bi-person-circle"></i> Мои игры</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-calendar-event"></i> Расписание</a></li>
                         {% if request.user.profile.role.name == 'Преподаватель' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'document:my_documents' %}"><i class="bi bi-file-earmark-text"></i> Мои документы</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'resume:my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'document:my_documents' %}"><i class="bi bi-file-earmark-text"></i> Мои документы</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'resume:my_resumes' %}"><i class="bi bi-file-earmark-text"></i> Мои резюме</a></li>
                         {% endif %}
-
                         {% if request.user.profile.role.name == 'Родитель' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'child:my_children' %}"><i class="bi bi-person-lines-fill"></i> Мои дети</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link active" href="{% url 'resume:public_resume_list' %}"><i class="bi bi-search"></i> Найти преподавателя</a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'child:my_children' %}"><i class="bi bi-person-lines-fill"></i> Мои дети</a></li>
+                            <li class="nav-item"><a class="nav-link active" href="{% url 'resume:public_resume_list' %}"><i class="bi bi-search"></i> Найти преподавателя</a></li>
                         {% endif %}
                     {% endif %}
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account:account' %}"><i class="bi bi-person-circle"></i> Личный кабинет</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'account:account' %}"><i class="bi bi-person-circle"></i> Личный кабинет</a></li>
                 </ul>
             </div>
         </div>
@@ -728,9 +736,7 @@
             {% if messages %}
                 <div class="messages">
                     {% for message in messages %}
-                        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% endif %}">
-                            {{ message }}
-                        </div>
+                        <div class="alert alert-{% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
                     {% endfor %}
                 </div>
             {% endif %}
@@ -740,9 +746,7 @@
             <!-- Сворачиваемая карта -->
             <div class="map-collapsible">
                 <div class="map-header" onclick="toggleMap()">
-                    <h3>
-                        <span>🗺️</span> Карта преподавателей
-                    </h3>
+                    <h3><span>🗺️</span> Карта преподавателей</h3>
                     <span class="map-toggle-icon" id="mapToggleIcon">▼</span>
                 </div>
                 <div class="map-content collapsed" id="mapContent">
@@ -757,227 +761,91 @@
             </div>
 
             <div class="search-layout">
-                <!-- Боковая панель фильтров -->
                 <aside class="filters-sidebar">
                     <div class="filters-card">
                         <div class="filters-header">
-                            <h2>
-                                🔍 Поиск преподавателя
-                                <span class="badge">Беллман-Заде</span>
-                            </h2>
+                            <h2>🔍 Поиск преподавателя <span class="badge">С использованием<br> метода Беллмана-Заде</span></h2>
                         </div>
-                        
                         <div class="filters-body">
                             <form method="get" id="search-form" action="{% url 'resume:public_resume_list' %}">
-                                
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">👶</span>
-                                        Выбрать ребенка
-                                    </div>
+                                    <div class="filter-label"><span class="icon">👶</span> Выбрать ребенка</div>
                                     <select name="child" id="child-select" class="child-select">
                                         <option value="">-- Выберите ребенка --</option>
                                         {% for child in user_children %}
-                                            <option value="{{ child.id }}" 
-                                                {% if selected_child_id == child.id %}selected{% endif %}>
-                                                {{ child.name }}
-                                            </option>
+                                            <option value="{{ child.id }}" {% if selected_child_id == child.id %}selected{% endif %}>{{ child.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">📋</span>
-                                        Виды нарушений
-                                    </div>
+                                    <div class="filter-label"><span class="icon">📋</span> Виды нарушений</div>
                                     <div class="violation-tags" id="violation-container">
                                         {% for violation in all_violations %}
                                             <label class="violation-tag">
-                                                <input type="checkbox" name="violation_types" 
-                                                       value="{{ violation.id }}"
-                                                       {% if violation.id in selected_violations %}checked{% endif %}>
+                                                <input type="checkbox" name="violation_types" value="{{ violation.id }}" {% if violation.id in selected_violations %}checked{% endif %}>
                                                 <span class="tag-content">{{ violation.name }}</span>
                                             </label>
                                         {% endfor %}
                                     </div>
                                 </div>
-
-                                <!-- ЦЕНА -->
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">💰</span>
-                                        Цена занятия (₽)
-                                        {% if criteria_weights.price %}
-                                            <span class="weight-badge">вес: {{ criteria_weights.price|floatformat:2 }}</span>
-                                        {% endif %}
-                                    </div>
+                                    <div class="filter-label"><span class="icon">💰</span> Цена занятия (₽)</div>
                                     <div class="slider-wrapper">
                                         <div id="price-slider"></div>
-                                        <div class="slider-value-display" id="price-display">
-                                            {{ price_min|default:0 }} — {{ price_max|default:5000 }} ₽
-                                        </div>
+                                        <div class="slider-value-display" id="price-display">{{ price_min|default:0 }} — {{ price_max|default:5000 }} ₽</div>
                                     </div>
                                     <input type="hidden" name="price_min" id="price-min" value="{{ price_min|default:0 }}">
                                     <input type="hidden" name="price_max" id="price-max" value="{{ price_max|default:5000 }}">
-                                    
-                                    <div style="margin-top: 12px;">
-                                        <div class="filter-label" style="margin-bottom: 8px;">
-                                            <span class="icon">🎯</span>
-                                            Желаемая цена
-                                        </div>
-                                        <select name="price_goal" class="goal-select">
-                                            <option value="low" {% if price_goal == 'low' %}selected{% endif %}>Низкая (чем меньше, тем лучше)</option>
-                                            <option value="medium" {% if price_goal == 'medium' %}selected{% endif %}>Средняя (оптимальная)</option>
-                                            <option value="high" {% if price_goal == 'high' %}selected{% endif %}>Высокая (чем больше, тем лучше)</option>
-                                        </select>
-                                    </div>
                                 </div>
-
-                                <!-- РАССТОЯНИЕ -->
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">📍</span>
-                                        Макс. расстояние
-                                        {% if criteria_weights.distance %}
-                                            <span class="weight-badge">вес: {{ criteria_weights.distance|floatformat:2 }}</span>
-                                        {% endif %}
-                                    </div>
+                                    <div class="filter-label"><span class="icon">📍</span> Макс. расстояние (км)</div>
                                     <div class="slider-wrapper">
                                         <div id="distance-slider"></div>
-                                        <div class="slider-value-display" id="distance-display">
-                                            {{ max_distance|default:10 }} км
-                                        </div>
+                                        <div class="slider-value-display" id="distance-display">{{ max_distance|default:10 }} км</div>
                                     </div>
                                     <input type="hidden" name="max_distance" id="distance-val" value="{{ max_distance|default:10 }}">
-                                    
-                                    <div style="margin-top: 12px;">
-                                        <div class="filter-label" style="margin-bottom: 8px;">
-                                            <span class="icon">🎯</span>
-                                            Желаемое расстояние
-                                        </div>
-                                        <select name="distance_goal" class="goal-select">
-                                            <option value="close" {% if distance_goal == 'close' %}selected{% endif %}>Близко (чем меньше, тем лучше)</option>
-                                            <option value="medium" {% if distance_goal == 'medium' %}selected{% endif %}>Средне</option>
-                                            <option value="far" {% if distance_goal == 'far' %}selected{% endif %}>Далеко (можно и далеко)</option>
-                                        </select>
-                                    </div>
                                 </div>
-
-                                <!-- ОПЫТ -->
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">⏳</span>
-                                        Мин. опыт работы
-                                        {% if criteria_weights.experience %}
-                                            <span class="weight-badge">вес: {{ criteria_weights.experience|floatformat:2 }}</span>
-                                        {% endif %}
-                                    </div>
+                                    <div class="filter-label"><span class="icon">⏳</span> Мин. опыт работы (лет)</div>
                                     <div class="slider-wrapper">
                                         <div id="experience-slider"></div>
-                                        <div class="slider-value-display" id="experience-display">
-                                            {{ min_experience|default:0 }} лет
-                                        </div>
+                                        <div class="slider-value-display" id="experience-display">{{ min_experience|default:0 }} лет</div>
                                     </div>
                                     <input type="hidden" name="min_experience" id="experience-val" value="{{ min_experience|default:0 }}">
-                                    
-                                    <div style="margin-top: 12px;">
-                                        <div class="filter-label" style="margin-bottom: 8px;">
-                                            <span class="icon">🎯</span>
-                                            Желаемый опыт
-                                        </div>
-                                        <select name="experience_goal" class="goal-select">
-                                            <option value="beginner" {% if experience_goal == 'beginner' %}selected{% endif %}>Начинающий (до 3 лет)</option>
-                                            <option value="intermediate" {% if experience_goal == 'intermediate' %}selected{% endif %}>Средний (3-7 лет)</option>
-                                            <option value="expert" {% if experience_goal == 'expert' %}selected{% endif %}>Опытный (более 7 лет)</option>
-                                        </select>
-                                    </div>
                                 </div>
-
-                                <!-- РЕЙТИНГ -->
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">⭐</span>
-                                        Мин. рейтинг
-                                        {% if criteria_weights.rating %}
-                                            <span class="weight-badge">вес: {{ criteria_weights.rating|floatformat:2 }}</span>
-                                        {% endif %}
-                                    </div>
+                                    <div class="filter-label"><span class="icon">⭐</span> Мин. рейтинг</div>
                                     <div class="slider-wrapper">
                                         <div id="rating-slider"></div>
-                                        <div class="slider-value-display" id="rating-display">
-                                            {{ min_rating|default:0 }} ★
-                                        </div>
+                                        <div class="slider-value-display" id="rating-display">{{ min_rating|default:0 }} ★</div>
                                     </div>
                                     <input type="hidden" name="min_rating" id="rating-val" value="{{ min_rating|default:0 }}">
-                                    
-                                    <div style="margin-top: 12px;">
-                                        <div class="filter-label" style="margin-bottom: 8px;">
-                                            <span class="icon">🎯</span>
-                                            Желаемый рейтинг
-                                        </div>
-                                        <select name="rating_goal" class="goal-select">
-                                            <option value="low" {% if rating_goal == 'low' %}selected{% endif %}>Низкий (1-2 звезды)</option>
-                                            <option value="medium" {% if rating_goal == 'medium' %}selected{% endif %}>Средний (2-4 звезды)</option>
-                                            <option value="high" {% if rating_goal == 'high' %}selected{% endif %}>Высокий (4-5 звезд)</option>
-                                        </select>
-                                    </div>
                                 </div>
-
-                                <!-- ОБРАЗОВАНИЕ (скрытое поле) -->
-                                <input type="hidden" name="education_goal" value="{{ education_goal|default:'expert' }}">
                                 <div class="filter-section">
-                                    <div class="filter-label">
-                                        <span class="icon">⚖️</span>
-                                        Веса критериев
-                                    </div>
+                                    <div class="filter-label"><span class="icon">⚖️</span> Веса критериев</div>
                                     <div class="mb-2">
                                         <div class="form-check">
-                                            <input type="radio" name="weight_mode" id="weight_expert" class="form-check-input" 
-                                                value="expert" {% if weight_mode != 'custom' %}checked{% endif %}
-                                                onchange="changeWeightMode('expert')">
-                                            <label class="form-check-label" for="weight_expert">
-                                                Использовать веса экспертов
-                                            </label>
+                                            <input type="radio" name="weight_mode" id="weight_expert" class="form-check-input" value="expert" {% if weight_mode != 'custom' %}checked{% endif %} onchange="changeWeightMode('expert')">
+                                            <label class="form-check-label" for="weight_expert">Использовать веса экспертов</label>
                                         </div>
                                         <div class="form-check">
-                                            <input type="radio" name="weight_mode" id="weight_custom" class="form-check-input" 
-                                                value="custom" {% if weight_mode == 'custom' %}checked{% endif %}
-                                                onchange="changeWeightMode('custom')">
-                                            <label class="form-check-label" for="weight_custom">
-                                                Использовать мои веса
-                                            </label>
+                                            <input type="radio" name="weight_mode" id="weight_custom" class="form-check-input" value="custom" {% if weight_mode == 'custom' %}checked{% endif %} onchange="changeWeightMode('custom')">
+                                            <label class="form-check-label" for="weight_custom">Использовать мои веса</label>
                                         </div>
-                                        <a href="{% url 'resume:user_weights_settings' %}" class="btn btn-sm btn-outline-primary mt-2">
-                                            ⚙️ Настроить веса самостоятельно
-                                        </a>
+                                        <a href="{% url 'resume:user_weights_settings' %}" class="btn btn-sm btn-outline-primary mt-2">⚙️ Настроить веса самостоятельно</a>
                                     </div>
                                 </div>
-                                <button type="button" class="btn-search" onclick="submitSearch()">
-                                    🔍 Применить фильтры
-                                </button>
-                                <button type="button" class="btn-reset" onclick="resetFilters()">
-                                    ↺ Сбросить фильтры
-                                </button>
+                                <button type="button" class="btn-search" onclick="submitSearch()">🔍 Применить фильтры</button>
+                                <button type="button" class="btn-reset" onclick="resetFilters()">↺ Сбросить фильтры</button>
                             </form>
                             <input type="hidden" name="ordering" id="ordering-input" value="{{ request.GET.ordering|default:'rank' }}">
                         </div>
                     </div>
                 </aside>
 
-                <!-- Результаты поиска -->
                 <main class="results-area">
                     <div class="results-header">
-                        <div class="results-title">
-                            📚 Результаты поиска
-                            <span class="results-count">
-                                {% if results %}
-                                    Найдено: {{ results|length }}
-                                {% else %}
-                                    Нет результатов
-                                {% endif %}
-                            </span>
-                        </div>
+                        <div class="results-title">📚 Результаты поиска <span class="results-count">{% if results %}Найдено: {{ results|length }}{% else %}Нет результатов{% endif %}</span></div>
                         <div class="results-actions">
                             <select class="sort-select" id="sort-select" onchange="changeOrdering()">
                                 <option value="rank" {% if request.GET.ordering == 'rank' or not request.GET.ordering %}selected{% endif %}>По релевантности (μD)</option>
@@ -986,136 +854,74 @@
                                 <option value="-rating" {% if request.GET.ordering == '-rating' %}selected{% endif %}>Рейтинг: высокий</option>
                                 <option value="-experience" {% if request.GET.ordering == '-experience' %}selected{% endif %}>Опыт: большой</option>
                             </select>
-                            {% if results %}
-                                <a href="{% url 'resume:what_if_analysis' %}" class="btn-what-if">
-                                    🔬 What-If анализ
-                                </a>
-                            {% endif %}
+                            {% if results %}<a href="{% url 'resume:what_if_analysis' %}" class="btn-what-if">🔬 Анализ Что-Если</a>{% endif %}
                         </div>
                     </div>
 
                     {% if results %}
                         {% for result in results %}
-                            <article class="teacher-card {% if result.is_best %}best-match{% endif %}"
-                                data-id="{{ result.resume.id }}"
-                                data-rank="{{ result.rank }}"
-                                data-price="{{ result.price }}"
-                                data-rating="{{ result.rating }}"
-                                data-experience="{{ result.experience }}">
-                                
+                            <article class="teacher-card {% if result.is_best %}best-match{% endif %}" data-id="{{ result.resume.id }}" data-lat="{{ result.resume.location_lat|default:'0' }}" data-lon="{{ result.resume.location_lon|default:'0' }}" data-rank="{{ result.rank }}">
                                 <div class="teacher-card-top">
                                     {% if result.resume.user.profile.photo %}
-                                        <img src="{{ result.resume.user.profile.photo.url }}" 
-                                             alt="Фото" 
-                                             class="teacher-avatar">
+                                        <img src="{{ result.resume.user.profile.photo.url }}" alt="Фото" class="teacher-avatar">
                                     {% else %}
                                         <div class="teacher-avatar-placeholder">👤</div>
                                     {% endif %}
-                                    
                                     <div class="teacher-info">
                                         <h3 class="teacher-name">
-                                            {{ result.resume.user.profile.get_full_name|default:result.resume.user.profile }}
-                                            {% if result.is_best %}
-                                                <span class="weight-badge" style="background:#4CAF50; color:white;">🏆 Лучший</span>
-                                            {% endif %}
+                                            {{ result.resume.user.profile.last_name }} {{ result.resume.user.profile.first_name }} {{ result.resume.user.profile.patronymic|default:'' }}
                                         </h3>
                                         <p class="teacher-brief">{{ result.resume.short_info|truncatechars:100 }}</p>
                                         <div class="teacher-meta">
-                                            <span class="meta-item">
-                                                <span class="dot"></span> 
-                                                {{ result.resume.price_min }}–{{ result.resume.price_max }} ₽
-                                            </span>
-                                            <span class="meta-item">
-                                                <span class="dot"></span> 
-                                                {{ result.distance|floatformat:1 }} км
-                                            </span>
-                                            <span class="meta-item">
-                                                <span class="dot"></span> 
-                                                {{ result.resume.experience_years }} лет
-                                            </span>
-                                            <span class="meta-item">
-                                                <span class="dot"></span> 
-                                                ⭐ {{ result.rating|floatformat:1 }}
-                                            </span>
+                                            <span class="meta-item"><span class="dot"></span> {{ result.resume.price_min }}–{{ result.resume.price_max }} ₽</span>
+                                            <span class="meta-item"><span class="dot"></span> {{ result.distance|floatformat:1 }} км</span>
+                                            <span class="meta-item"><span class="dot"></span> {{ result.resume.experience_years }} лет</span>
+                                            <span class="meta-item"><span class="dot"></span> ⭐ {{ result.rating|floatformat:1 }}</span>
                                         </div>
                                     </div>
                                 </div>
-
                                 <div class="match-section">
-                                    <div class="match-header">
-                                        <span>
-                                            Степень соответствия (μD)
-                                            <small class="consistency-info">по методу Беллмана-Заде</small>
-                                        </span>
-                                        <span class="match-value 
-                                            {% if result.mu >= 70 %}excellent
-                                            {% elif result.mu >= 50 %}good
-                                            {% elif result.mu >= 30 %}average
-                                            {% else %}poor{% endif %}">
-                                            {{ result.mu|floatformat:1 }}%
-                                        </span>
-                                    </div>
-                                    <div class="match-bar">
-                                        <div class="match-bar-fill 
-                                            {% if result.mu >= 70 %}excellent
-                                            {% elif result.mu >= 50 %}good
-                                            {% elif result.mu >= 30 %}average
-                                            {% else %}poor{% endif %}"
-                                            style="width: {{ result.mu|fix_float }}%;">
-                                        </div>
-                                        <div style="display:none;">mu value: {{ result.mu }}</div>
-                                    </div>
-                                    <div class="consistency-info mt-2">
-                                        Формула: μD = min(μG₁^α₁, μG₂^α₂, ...)
-                                    </div>
+                                    <div class="match-header"><span>Степень соответствия (μD) <small class="consistency-info">по методу Беллмана-Заде</small></span><span class="match-value {% if result.mu >= 70 %}excellent{% elif result.mu >= 50 %}good{% elif result.mu >= 30 %}average{% else %}poor{% endif %}">{{ result.mu|floatformat:1 }}%</span></div>
+                                    <div class="match-bar"><div class="match-bar-fill {% if result.mu >= 70 %}excellent{% elif result.mu >= 50 %}good{% elif result.mu >= 30 %}average{% else %}poor{% endif %}" style="width: {{ result.mu|fix_float }}%;"></div></div>
                                 </div>
-
                                 <div class="teacher-actions">
-                                    <a href="{% url 'resume:public_resume_detail' result.resume.pk %}" class="btn-detail">
-                                        👁 Подробнее
-                                    </a>
-                                    <button class="btn-analysis" onclick="toggleFuzzyDetails('details-{{ result.resume.pk }}')">
-                                        📊 Анализ Беллмана-Заде
-                                    </button>
+                                    <a href="{% url 'resume:public_resume_detail' result.resume.pk %}" class="btn-detail">👁 Подробнее</a>
+                                    <button class="btn-analysis" onclick="toggleFuzzyDetails('details-{{ result.resume.pk }}')">📊 Анализ Беллмана-Заде</button>
                                 </div>
-
                                 <div class="fuzzy-details" id="details-{{ result.resume.pk }}">
                                     <h4>📐 Детальный нечеткий анализ</h4>
-                                    <p class="consistency-info mb-3">
-                                        Степени принадлежности μ_{G_j}(P) и взвешенные значения (μ_{G_j})^{α_j}
-                                    </p>
-                                    
+                                    <p class="consistency-info mb-3">Степени принадлежности по критериям</p>
                                     {% for criterion, mu in result.memberships.items %}
                                         <div class="criterion-row">
-                                            <span class="criterion-name">
-                                                {{ criterion|upper }}
-                                            </span>
-                                            <div class="criterion-bar-wrap">
-                                                <div class="criterion-bar-fill" 
-                                                     style="width: 0%"
-                                                     data-width="{{ mu|fix_float }}%">
-                                                </div>
-                                            </div>
+                                            <span class="criterion-name">{{ criterion|upper }}</span>
+                                            <div class="criterion-bar-wrap"><div class="criterion-bar-fill" style="width: 0%" data-width="{{ mu|fix_float }}%"></div></div>
                                             <span class="criterion-value">{{ mu|floatformat:1 }}%</span>
                                         </div>
                                     {% endfor %}
-                                    
-                                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd;">
-                                        <strong>μD (по формуле 2.35):</strong> 
-                                        <span class="match-value {% if result.mu >= 70 %}excellent{% elif result.mu >= 50 %}good{% elif result.mu >= 30 %}average{% else %}poor{% endif %}">
-                                            {{ result.mu|floatformat:1 }}%
-                                        </span>
-                                        <div class="consistency-info mt-1">
-                                            μD = минимальное значение среди взвешенных степеней принадлежности = {{ result.mu|floatformat:1 }}%
-                                        </div>
-                                    </div>
-                                    
                                     {% if criteria_weights %}
-                                    <div style="margin-top: 8px;">
+                                    <div class="mt-3">
                                         <strong>⚖️ Коэффициенты важности критериев (α_j):</strong>
-                                        <div class="linguistic-eval">
+                                        <div class="criteria-weights">
                                             {% for criterion, weight in criteria_weights.items %}
-                                                <span class="ling-tag">{{ criterion|upper }}: {{ weight|floatformat:3 }}</span>
+                                                <span class="weight-chip">
+                                                    <span class="chip-icon">
+                                                        {% if criterion == 'price' %}💰
+                                                        {% elif criterion == 'distance' %}📍
+                                                        {% elif criterion == 'experience' %}⏳
+                                                        {% elif criterion == 'rating' %}⭐
+                                                        {% elif criterion == 'education' %}🎓
+                                                        {% else %}⚖️
+                                                        {% endif %}
+                                                    </span>
+                                                    {% if criterion == 'price' %}Цена
+                                                    {% elif criterion == 'distance' %}Расстояние
+                                                    {% elif criterion == 'experience' %}Опыт
+                                                    {% elif criterion == 'rating' %}Рейтинг
+                                                    {% elif criterion == 'education' %}Образование
+                                                    {% else %}{{ criterion|upper }}
+                                                    {% endif %}
+                                                    <span class="chip-value">{{ weight|floatformat:3 }}</span>
+                                                </span>
                                             {% endfor %}
                                         </div>
                                     </div>
@@ -1124,14 +930,7 @@
                             </article>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-state">
-                            <div class="icon">🔍</div>
-                            <h3>Ничего не найдено</h3>
-                            <p>Попробуйте изменить параметры поиска или сбросить фильтры</p>
-                            <button class="btn-search" style="width: auto; padding: 10px 24px; margin-top: 16px;" onclick="resetFilters()">
-                                ↺ Сбросить фильтры
-                            </button>
-                        </div>
+                        <div class="empty-state"><div class="icon">🔍</div><h3>Ничего не найдено</h3><p>Попробуйте изменить параметры поиска или сбросить фильтры</p><button class="btn-search" style="width: auto; padding: 10px 24px; margin-top: 16px;" onclick="resetFilters()">↺ Сбросить фильтры</button></div>
                     {% endif %}
                 </main>
             </div>
@@ -1145,22 +944,15 @@
     <script src="{% static 'js/date.js' %}"></script>
     <script>
         const user_id = "{{ request.user.unique_id }}";
-    </script>
-    <script src="{% static 'js/videocall/notify.js' %}"></script>
-    <script>
-        // Функция для сворачивания/разворачивания карты
+        
         function toggleMap() {
             var mapContent = document.getElementById('mapContent');
             var toggleIcon = document.getElementById('mapToggleIcon');
-            
             if (mapContent.classList.contains('collapsed')) {
                 mapContent.classList.remove('collapsed');
                 toggleIcon.classList.add('rotated');
-                // При разворачивании обновляем карту
                 if (typeof searchMap !== 'undefined' && searchMap) {
-                    setTimeout(function() {
-                        searchMap.container.fitToViewport();
-                    }, 100);
+                    setTimeout(function() { searchMap.container.fitToViewport(); }, 100);
                 }
             } else {
                 mapContent.classList.add('collapsed');
@@ -1171,19 +963,15 @@
         document.addEventListener('DOMContentLoaded', function() {
             initSliders();
             initChildSelect();
-            // Карта инициализируется отдельно после загрузки API
         });
 
         function initSliders() {
             var priceSlider = document.getElementById('price-slider');
             if (priceSlider) {
                 noUiSlider.create(priceSlider, {
-                    start: [
-                        parseFloat(document.getElementById('price-min').value) || 0,
-                        parseFloat(document.getElementById('price-max').value) || 5000
-                    ],
+                    start: [parseFloat(document.getElementById('price-min').value) || 0, parseFloat(document.getElementById('price-max').value) || 5000],
                     connect: true,
-                    range: { 'min': 0, 'max': 5000 },
+                    range: { min: 0, max: 5000 },
                     step: 100
                 });
                 priceSlider.noUiSlider.on('update', function(values) {
@@ -1194,13 +982,12 @@
                     document.getElementById('price-display').textContent = minVal + ' — ' + maxVal + ' ₽';
                 });
             }
-
             var distSlider = document.getElementById('distance-slider');
             if (distSlider) {
                 noUiSlider.create(distSlider, {
                     start: [parseFloat(document.getElementById('distance-val').value) || 10],
                     connect: [true, false],
-                    range: { 'min': 0, 'max': 50000 },
+                    range: { min: 0, max: 50000 },
                     step: 100
                 });
                 distSlider.noUiSlider.on('update', function(values) {
@@ -1209,13 +996,12 @@
                     document.getElementById('distance-display').textContent = v + ' км';
                 });
             }
-
             var expSlider = document.getElementById('experience-slider');
             if (expSlider) {
                 noUiSlider.create(expSlider, {
                     start: [parseFloat(document.getElementById('experience-val').value) || 0],
                     connect: [true, false],
-                    range: { 'min': 0, 'max': 30 },
+                    range: { min: 0, max: 30 },
                     step: 1
                 });
                 expSlider.noUiSlider.on('update', function(values) {
@@ -1224,13 +1010,12 @@
                     document.getElementById('experience-display').textContent = v + ' лет';
                 });
             }
-
             var ratSlider = document.getElementById('rating-slider');
             if (ratSlider) {
                 noUiSlider.create(ratSlider, {
                     start: [parseFloat(document.getElementById('rating-val').value) || 0],
                     connect: [true, false],
-                    range: { 'min': 0, 'max': 5 },
+                    range: { min: 0, max: 5 },
                     step: 0.5
                 });
                 ratSlider.noUiSlider.on('update', function(values) {
@@ -1251,9 +1036,7 @@
                             .then(response => response.json())
                             .then(data => {
                                 if (data.violations) {
-                                    document.querySelectorAll('.violation-tag input').forEach(cb => {
-                                        cb.checked = false;
-                                    });
+                                    document.querySelectorAll('.violation-tag input').forEach(cb => cb.checked = false);
                                     data.violations.forEach(violation => {
                                         var cb = document.querySelector('.violation-tag input[value="' + violation.id + '"]');
                                         if (cb) cb.checked = true;
@@ -1271,10 +1054,8 @@
             if (el) {
                 el.classList.toggle('active');
                 if (el.classList.contains('active')) {
-                    el.querySelectorAll('.criterion-bar-fill').forEach(bar => {
-                        if (bar.dataset.width) {
-                            bar.style.width = bar.dataset.width;
-                        }
+                    el.querySelectorAll('.criterion-bar-fill').forEach(function(bar) {
+                        if (bar.dataset.width) bar.style.width = bar.dataset.width;
                     });
                 }
             }
@@ -1295,26 +1076,41 @@
                 var distanceVal = document.getElementById('distance-val');
                 var experienceVal = document.getElementById('experience-val');
                 var ratingVal = document.getElementById('rating-val');
-                
                 if (priceMin && priceMin.value) priceMin.value = String(priceMin.value).replace(',', '.');
                 if (priceMax && priceMax.value) priceMax.value = String(priceMax.value).replace(',', '.');
                 if (distanceVal && distanceVal.value) distanceVal.value = String(distanceVal.value).replace(',', '.');
                 if (experienceVal && experienceVal.value) experienceVal.value = String(experienceVal.value).replace(',', '.');
                 if (ratingVal && ratingVal.value) ratingVal.value = String(ratingVal.value).replace(',', '.');
-                
                 form.submit();
             }
         }
 
         function changeOrdering() {
-            const select = document.getElementById('sort-select');
-            const orderingInput = document.getElementById('ordering-input');
+        var select = document.getElementById('sort-select');
+        var orderingInput = document.getElementById('ordering-input');
+        var form = document.getElementById('search-form');
+        
+        if (orderingInput) {
             orderingInput.value = select.value;
-            document.getElementById('search-form').submit();
         }
+        
+        // Добавляем параметр в URL и отправляем форму
+        if (form) {
+            // Создаем скрытое поле если его нет
+            var orderingField = form.querySelector('input[name="ordering"]');
+            if (!orderingField) {
+                orderingField = document.createElement('input');
+                orderingField.type = 'hidden';
+                orderingField.name = 'ordering';
+                form.appendChild(orderingField);
+            }
+            orderingField.value = select.value;
+            form.submit();
+        }
+    }
 
         function changeWeightMode(mode) {
-            const input = document.createElement('input');
+            var input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'weight_mode';
             input.value = mode;
@@ -1329,7 +1125,6 @@
         let userPlacemark;
         let teacherPlacemarks = [];
 
-        // Данные преподавателей из результатов поиска
         const teachersForMap = [
             {% for result in results %}
             {
@@ -1344,7 +1139,6 @@
             {% endfor %}
         ];
 
-        // Координаты пользователя из профиля - безопасное получение
         let userLat = 55.751244;
         let userLon = 37.618423;
         {% if request.user.profile.location_lat and request.user.profile.location_lon %}
@@ -1354,34 +1148,23 @@
 
         function initSearchMap() {
             if (typeof ymaps === 'undefined') {
-                console.error('Yandex Maps API not loaded');
                 setTimeout(initSearchMap, 500);
                 return;
             }
-
             ymaps.ready(function() {
-                // Создаем карту с центром на пользователе
                 searchMap = new ymaps.Map('search-map', {
                     center: [userLat, userLon],
                     zoom: 10,
                     controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
                 });
-
-                // Маркер пользователя
                 userPlacemark = new ymaps.Placemark([userLat, userLon], {
                     hintContent: 'Ваше местоположение',
                     balloonContent: '<b>Вы</b><br>Ваше местоположение для поиска'
-                }, {
-                    preset: 'islands#blueCircleIcon',
-                    iconColor: '#2196F3'
-                });
+                }, { preset: 'islands#blueCircleIcon', iconColor: '#2196F3' });
                 searchMap.geoObjects.add(userPlacemark);
-
-                // Маркеры преподавателей
                 teacherPlacemarks = [];
                 for (var i = 0; i < teachersForMap.length; i++) {
                     var teacher = teachersForMap[i];
-                    // Преобразуем строки с запятой в числа с точкой
                     var latStr = String(teacher.lat).replace(',', '.');
                     var lonStr = String(teacher.lon).replace(',', '.');
                     var muStr = String(teacher.mu).replace(',', '.');
@@ -1389,66 +1172,62 @@
                     var lonNum = parseFloat(lonStr);
                     var muNum = parseFloat(muStr);
                     var rankNum = parseInt(teacher.rank, 10);
-                    
                     if (latNum && lonNum && !isNaN(latNum) && !isNaN(lonNum) && latNum !== 0 && lonNum !== 0) {
                         var preset = teacher.isBest ? 'islands#orangeCircleIcon' : 'islands#greenCircleIcon';
-                        var iconColor = teacher.isBest ? '#FF9800' : '#4CAF50';
-                        
                         var placemark = new ymaps.Placemark([latNum, lonNum], {
                             hintContent: teacher.name,
                             balloonContent: '<b>' + teacher.name + '</b><br>Совпадение: ' + (isNaN(muNum) ? 0 : muNum.toFixed(1)) + '%<br>Ранг: ' + (isNaN(rankNum) ? 99 : rankNum) + '<br><a href="/resumes/' + teacher.id + '/" target="_blank">Подробнее</a>'
-                        }, {
-                            preset: preset,
-                            iconColor: iconColor
-                        });
-                        
-                        // При клике на маркер - подсвечиваем карточку преподавателя
+                        }, { preset: preset, iconColor: teacher.isBest ? '#FF9800' : '#4CAF50' });
                         placemark.events.add('click', (function(teacherId) {
                             return function() {
                                 var card = document.querySelector('.teacher-card[data-id="' + teacherId + '"]');
                                 if (card) {
                                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                     card.style.boxShadow = '0 0 0 3px #FF9800';
-                                    setTimeout(function() {
-                                        if (card) card.style.boxShadow = '';
-                                    }, 2000);
+                                    setTimeout(function() { if (card) card.style.boxShadow = ''; }, 2000);
                                 }
                             };
                         })(teacher.id));
-                        
                         searchMap.geoObjects.add(placemark);
                         teacherPlacemarks.push(placemark);
                     }
                 }
-
-                // Если есть преподаватели, центрируем карту так, чтобы показать всех
                 if (teacherPlacemarks.length > 0) {
                     var bounds = searchMap.geoObjects.getBounds();
-                    if (bounds) {
-                        searchMap.setBounds(bounds, {
-                            checkZoomRange: true,
-                            zoomMargin: 50
-                        });
-                    }
+                    if (bounds) searchMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
                 }
             });
         }
 
-        // Загружаем карту после загрузки страницы
         if (typeof ymaps !== 'undefined') {
             ymaps.ready(initSearchMap);
         } else {
             window.addEventListener('load', function() {
-                if (typeof ymaps !== 'undefined') {
-                    ymaps.ready(initSearchMap);
-                } else {
+                if (typeof ymaps !== 'undefined') ymaps.ready(initSearchMap);
+                else {
                     var mapContainer = document.getElementById('search-map');
-                    if (mapContainer) {
-                        mapContainer.innerHTML = '<div class="alert alert-warning">Ошибка загрузки карты. Проверьте API-ключ Яндекса.</div>';
-                    }
+                    if (mapContainer) mapContainer.innerHTML = '<div class="alert alert-warning">Ошибка загрузки карты. Проверьте API-ключ Яндекса.</div>';
                 }
             });
         }
+        
+        document.querySelectorAll('.teacher-card').forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+                var lat = parseFloat(this.dataset.lat);
+                var lon = parseFloat(this.dataset.lon);
+                if (lat && lon && !isNaN(lat) && !isNaN(lon) && searchMap) {
+                    searchMap.setCenter([lat, lon], 14, { checkZoomRange: true, duration: 500 });
+                    for (var i = 0; i < teacherPlacemarks.length; i++) {
+                        var coords = teacherPlacemarks[i].geometry.getCoordinates();
+                        if (Math.abs(coords[0] - lat) < 0.0001 && Math.abs(coords[1] - lon) < 0.0001) {
+                            teacherPlacemarks[i].balloon.open();
+                            break;
+                        }
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>
