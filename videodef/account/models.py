@@ -108,26 +108,19 @@ class Profile(models.Model):
     )
     date_birth = models.DateField(verbose_name="Дата рождения")
     
-    location_lat = models.DecimalField(
-        max_digits=10, 
-        decimal_places=7, 
+    # Координаты
+    location_lat = models.FloatField(
         null=True, 
         blank=True, 
         verbose_name="Широта"
     )
-    location_lon = models.DecimalField(
-        max_digits=10, 
-        decimal_places=7, 
+    location_lon = models.FloatField(
         null=True, 
         blank=True, 
         verbose_name="Долгота"
     )
-    location_address = models.CharField(
-        max_length=500, 
-        blank=True, 
-        null=True, 
-        verbose_name="Адрес"
-    )
+    
+    # Удаляем поле location_address
     
     # Дополнительные поля для настройки поиска
     max_search_distance = models.IntegerField(
@@ -140,6 +133,13 @@ class Profile(models.Model):
         if self.role:
             return self.role.name
         return "Неизвестно"
+    
+    @property
+    def location_address(self):
+        """Виртуальное свойство для получения адреса из координат"""
+        if self.location_lat and self.location_lon:
+            return f"{self.location_lat}, {self.location_lon}"
+        return ""
 
     def __str__(self):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()

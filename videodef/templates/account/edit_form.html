@@ -2,202 +2,265 @@
 {% load static %}
 
 {% block page_name %}Ваш профиль{% endblock %}
+
 {% block extra_head %}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
     <style>
         #map {
             height: 400px;
             width: 100%;
             border-radius: 10px;
-            margin-bottom: 15px;
+            margin: 15px 0;
+            clear: both;
         }
+        
         .location-info {
             background: #f8f9fa;
-            padding: 10px;
+            padding: 15px;
             border-radius: 8px;
-            margin-top: 10px;
+            margin: 15px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            clear: both;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+        
+        .col-md-8 {
+            flex: 0 0 66.666%;
+            max-width: 66.666%;
+            padding: 0 10px;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+        }
+        
+        .mb-2 {
+            margin-bottom: 10px;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
         }
     </style>
 {% endblock %}
 
 {% block content %}
-    <form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
-        {% csrf_token %}
+<form method="post" enctype="multipart/form-data" class="mb-3 mt-3">
+    {% csrf_token %}
 
-        <p><a href="{% url 'account:view_other_user' unique_id %}">Посмотреть на мою страничку со стороны</a></p>
-        
-        <div class="form-group">
-            <p class="form-label">Фото: </p>
-            {% if forms.profile_form.instance.photo %}
-                <img src="{{ forms.profile_form.instance.photo.url }}" style="width:150px;height:150px;">
-            {% else %}
-                <img src="/static/images/default.png" style="width:150px;height:150px;">
-            {% endif %}
-            <br>
-            <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
-            <br>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" name="photo-clear" id="photo-clear_id" style="transform: scale(1.5)">
-                <p class="form-label mx-2">Очистить фото</p>
-            </div>
-        </div>
-
-        <p class="form-label">Ваш ID: {{ unique_id }}</p>
-        <p class="form-label">Дата вашей регистрации: {{ date_registr }} по мск</p>
-        <p class="form-label">Последний раз в сети: {{ last_seen }} по мск</p>
-
-        {% include "field/default_field.html" with field=forms.user_form.username %}
-        {% include "field/default_field.html" with field=forms.user_form.email %}
-        {% include "field/default_field.html" with field=forms.user_form.phone_number %}
-        {% include "field/default_field.html" with field=forms.user_form.password1 %}
-        {% include "field/default_field.html" with field=forms.user_form.password2 %}
-
-        {% include "field/default_field.html" with field=forms.profile_form.first_name %}
-        {% include "field/default_field.html" with field=forms.profile_form.last_name %}
-        {% include "field/default_field.html" with field=forms.profile_form.patronymic %}
-        {% include "field/date_field.html" with field=forms.profile_form.date_birth %}
-        {% include "field/default_field.html" with field=forms.profile_form.role %}
-        {% include "field/default_field.html" with field=forms.profile_form.gender %}
-        
-        <!-- Геолокация -->
-        <div class="form-group mt-3">
-            <label class="form-label">📍 Ваше местоположение</label>
-            <div id="map"></div>
-            <div class="location-info">
-                <div id="selected-address" class="text-muted mb-2">
-                    {% if forms.profile_form.instance.location_address %}
-                        📍 {{ forms.profile_form.instance.location_address }}
-                    {% else %}
-                        Нажмите на карту, чтобы выбрать местоположение
-                    {% endif %}
-                </div>
-                <div class="row">
-                    <div class="col-md-8">
-                        <label>Радиус поиска преподавателей:</label>
-                        <input type="number" name="max_search_distance" id="id_max_search_distance" 
-                               class="form-control" value="{{ forms.profile_form.instance.max_search_distance|default:10 }}" 
-                               min="1" max="100" step="1">
-                        <small class="text-muted">км - в этом радиусе будут искаться преподаватели</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Скрытые поля -->
-        <input type="hidden" name="location_lat" id="id_location_lat" value="{{ forms.profile_form.instance.location_lat|default:'' }}">
-        <input type="hidden" name="location_lon" id="id_location_lon" value="{{ forms.profile_form.instance.location_lon|default:'' }}">
-        <input type="hidden" name="location_address" id="id_location_address" value="{{ forms.profile_form.instance.location_address|default:'' }}">
-
-        <button type="submit" class="btn btn-primary mb-3 mt-3">Отправить изменения</button>
-    </form>
+    <p><a href="{% url 'account:view_other_user' unique_id %}">Посмотреть на мою страничку со стороны</a></p>
     
-    <div class="mb-3 mt-3">
-        <p><a href="{% url 'account:logout' %}">Выйти</a></p>
+    <div class="form-group">
+        <p class="form-label">Фото:</p>
+        {% if forms.profile_form.instance.photo %}
+            <img src="{{ forms.profile_form.instance.photo.url }}" style="width:150px;height:150px; object-fit: cover; border-radius: 10px;">
+        {% else %}
+            <img src="{% static 'images/default.png' %}" style="width:150px;height:150px; object-fit: cover; border-radius: 10px;">
+        {% endif %}
+        <br>
+        <input class="form-control" type="file" name="photo" id="id_photo" accept="image/*">
+        <br>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="photo-clear" id="photo-clear_id">
+            <label class="form-check-label mx-2" for="photo-clear_id">Очистить фото</label>
+        </div>
     </div>
 
-    <script>
-        // Инициализация карты
-        const initialLat = {{ forms.profile_form.instance.location_lat|default:55.751244 }};
-        const initialLng = {{ forms.profile_form.instance.location_lon|default:37.618423 }};
+    <p class="form-label">Ваш ID: {{ unique_id }}</p>
+    <p class="form-label">Дата вашей регистрации: {{ date_registr }} по мск</p>
+    <p class="form-label">Последний раз в сети: {{ last_seen }} по мск</p>
+
+    {% include "field/default_field.html" with field=forms.user_form.username %}
+    {% include "field/default_field.html" with field=forms.user_form.email %}
+    {% include "field/default_field.html" with field=forms.user_form.phone_number %}
+    {% include "field/default_field.html" with field=forms.user_form.password1 %}
+    {% include "field/default_field.html" with field=forms.user_form.password2 %}
+
+    {% include "field/default_field.html" with field=forms.profile_form.first_name %}
+    {% include "field/default_field.html" with field=forms.profile_form.last_name %}
+    {% include "field/default_field.html" with field=forms.profile_form.patronymic %}
+    {% include "field/date_field.html" with field=forms.profile_form.date_birth %}
+    {% include "field/default_field.html" with field=forms.profile_form.role %}
+    {% include "field/default_field.html" with field=forms.profile_form.gender %}
+    
+    <!-- Геолокация -->
+    <div class="form-group">
+        <label class="form-label">📍 Ваше местоположение</label>
+        <div id="map" style="width: 100%; height: 400px;"></div>
+        <div class="location-info">
+            <div id="selected-address" class="text-muted mb-2">
+                {% if forms.profile_form.instance.location_lat and forms.profile_form.instance.location_lon %}
+                    📍 {{ forms.profile_form.instance.location_lat|floatformat:6 }}, {{ forms.profile_form.instance.location_lon|floatformat:6 }}
+                {% else %}
+                    Нажмите на карту, чтобы выбрать местоположение
+                {% endif %}
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <label class="form-label">Радиус поиска преподавателей:</label>
+                    <input type="number" name="max_search_distance" id="id_max_search_distance" 
+                           class="form-control" value="{{ forms.profile_form.instance.max_search_distance|default:10 }}" 
+                           min="1" max="50000" step="1">
+                    <small class="text-muted">км - в этом радиусе будут искаться преподаватели</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Скрытые поля -->
+    <input type="hidden" name="location_lat" id="id_location_lat" value="{{ forms.profile_form.instance.location_lat|default:'' }}">
+    <input type="hidden" name="location_lon" id="id_location_lon" value="{{ forms.profile_form.instance.location_lon|default:'' }}">
+
+    <button type="submit" class="btn btn-primary mb-3 mt-3">Отправить изменения</button>
+</form>
+
+<div class="mb-3 mt-3">
+    <p><a href="{% url 'account:logout' %}">Выйти</a></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="https://api-maps.yandex.ru/2.1/?&lang=ru_RU" type="text/javascript"></script>
+
+<script>
+    (function() {
+        var map;
+        var placemark;
         
-        let map = L.map('map').setView([initialLat, initialLng], 12);
-        
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            subdomains: 'abcd',
-            maxZoom: 19,
-            minZoom: 3
-        }).addTo(map);
-        
-        let marker = null;
-        
-        // Если есть сохраненные координаты, ставим маркер
-        if (initialLat && initialLng && initialLat !== 55.751244) {
-            marker = L.marker([initialLat, initialLng], {draggable: true}).addTo(map);
-            marker.on('dragend', updateLocationFromMarker);
-            map.setView([initialLat, initialLng], 13);
-        }
-        
-        const geocoder = L.Control.Geocoder.nominatim();
-        
-        L.Control.geocoder({
-            defaultMarkGeocode: false,
-            placeholder: 'Поиск адреса...',
-            position: 'topright'
-        }).on('markgeocode', function(e) {
-            const center = e.geocode.center;
-            map.setView(center, 15);
-            if (marker) {
-                marker.setLatLng(center);
-            } else {
-                marker = L.marker(center, {draggable: true}).addTo(map);
-                marker.on('dragend', updateLocationFromMarker);
-            }
-            updateLocation(center.lat, center.lng, e.geocode.name);
-        }).addTo(map);
-        
-        map.on('click', function(e) {
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng, {draggable: true}).addTo(map);
-                marker.on('dragend', updateLocationFromMarker);
-            }
-            updateLocation(e.latlng.lat, e.latlng.lng);
-        });
-        
-        function updateLocation(lat, lng, address = null) {
-            document.getElementById('id_location_lat').value = lat;
-            document.getElementById('id_location_lon').value = lng;
+        function updateLocation(lat, lng) {
+            var latInput = document.getElementById('id_location_lat');
+            var lngInput = document.getElementById('id_location_lon');
+            var addrDiv = document.getElementById('selected-address');
             
-            if (address) {
-                document.getElementById('id_location_address').value = address;
-                document.getElementById('selected-address').innerHTML = `📍 ${address}`;
-            } else {
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const addr = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        document.getElementById('id_location_address').value = addr;
-                        document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
-                    })
-                    .catch(() => {
-                        const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        document.getElementById('id_location_address').value = addr;
-                        document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
-                    });
+            // Сохраняем с полной точностью (9 знаков после запятой)
+            var latFixed = lat.toFixed(9);
+            var lngFixed = lng.toFixed(9);
+            
+            if (latInput) latInput.value = latFixed;
+            if (lngInput) lngInput.value = lngFixed;
+            if (addrDiv) addrDiv.innerHTML = '📍 ' + latFixed + ', ' + lngFixed;
+            
+            console.log('Обновлены координаты:', latFixed, lngFixed);
+        }
+        
+        function initMap() {
+            var container = document.getElementById('map');
+            if (!container) return;
+            
+            // Получаем сохраненные координаты из скрытых полей
+            var latInput = document.getElementById('id_location_lat');
+            var lngInput = document.getElementById('id_location_lon');
+            
+            var lat = 55.751244;  // Значение по умолчанию (Москва)
+            var lng = 37.618423;  // Значение по умолчанию (Москва)
+            
+            // Если есть сохраненные координаты, используем их
+            if (latInput && latInput.value && latInput.value !== '') {
+                var latStr = latInput.value.toString().replace(',', '.').replace(/\s/g, '');
+                var parsedLat = parseFloat(latStr);
+                if (!isNaN(parsedLat)) lat = parsedLat;
+                console.log('Загружена широта:', lat, 'из строки:', latInput.value);
             }
-        }
-        
-        function updateLocationFromMarker() {
-            const latlng = marker.getLatLng();
-            updateLocation(latlng.lat, latlng.lng);
-        }
-        
-        // Автоматическое определение местоположения
-        if (!initialLat || initialLat === 55.751244) {
-            if (navigator.geolocation) {
+            if (lngInput && lngInput.value && lngInput.value !== '') {
+                var lngStr = lngInput.value.toString().replace(',', '.').replace(/\s/g, '');
+                var parsedLng = parseFloat(lngStr);
+                if (!isNaN(parsedLng)) lng = parsedLng;
+                console.log('Загружена долгота:', lng, 'из строки:', lngInput.value);
+            }
+            
+            console.log('Инициализация карты с координатами:', lat, lng);
+            
+            map = new ymaps.Map('map', {
+                center: [lat, lng],
+                zoom: 14,
+                controls: ['zoomControl', 'searchControl', 'fullscreenControl']
+            });
+            
+            placemark = new ymaps.Placemark([lat, lng], {
+                hintContent: 'Перетащите, чтобы изменить расположение'
+            }, {
+                draggable: true,
+                preset: 'islands#redCircleIcon'
+            });
+            
+            placemark.events.add('dragend', function(e) {
+                var coords = placemark.geometry.getCoordinates();
+                updateLocation(coords[0], coords[1]);
+            });
+            
+            map.events.add('click', function(e) {
+                var coords = e.get('coords');
+                placemark.geometry.setCoordinates(coords);
+                updateLocation(coords[0], coords[1]);
+            });
+            
+            map.geoObjects.add(placemark);
+            
+            // Обновляем отображаемый адрес
+            updateLocation(lat, lng);
+            
+            // Если координаты по умолчанию и есть геолокация, запрашиваем реальное местоположение
+            var isDefaultLocation = (Math.abs(lat - 55.751244) < 0.0001 && Math.abs(lng - 37.618423) < 0.0001);
+            
+            if (isDefaultLocation && navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        map.setView([lat, lng], 13);
-                        if (marker) {
-                            marker.setLatLng([lat, lng]);
-                        } else {
-                            marker = L.marker([lat, lng], {draggable: true}).addTo(map);
-                            marker.on('dragend', updateLocationFromMarker);
-                        }
-                        updateLocation(lat, lng);
+                        var userLat = position.coords.latitude;
+                        var userLng = position.coords.longitude;
+                        map.setCenter([userLat, userLng], 14);
+                        placemark.geometry.setCoordinates([userLat, userLng]);
+                        updateLocation(userLat, userLng);
                     },
                     function(error) {
-                        console.log('Геолокация не доступна');
+                        console.log('Геолокация недоступна: ' + error.message);
                     }
                 );
             }
         }
-    </script>
+        
+        if (typeof ymaps !== 'undefined') {
+            ymaps.ready(initMap);
+        } else {
+            window.addEventListener('load', function() {
+                if (typeof ymaps !== 'undefined') {
+                    ymaps.ready(initMap);
+                } else {
+                    var mapContainer = document.getElementById('map');
+                    if (mapContainer) {
+                        mapContainer.innerHTML = '<div style="background:#f8d7da; color:#721c24; padding:20px; text-align:center;">Ошибка загрузки карты. Проверьте API-ключ.</div>';
+                    }
+                }
+            });
+        }
+    })();
+</script>
+<script>
+    // Отладка перед отправкой формы
+    document.querySelector('form').addEventListener('submit', function(e) {
+        var latInput = document.getElementById('id_location_lat');
+        var lngInput = document.getElementById('id_location_lon');
+        
+        console.log('=== ОТПРАВКА ФОРМЫ ===');
+        console.log('location_lat значение:', latInput.value);
+        console.log('location_lon значение:', lngInput.value);
+        console.log('location_lat число:', parseFloat(latInput.value));
+        console.log('location_lon число:', parseFloat(lngInput.value));
+        console.log('=======================');
+    });
+</script>
 {% endblock %}

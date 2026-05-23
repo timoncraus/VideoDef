@@ -6,14 +6,6 @@ from django import forms
 from .models import User, Profile, Role, Gender
 
 
-from django.contrib.auth.forms import UserCreationForm
-from django.core.validators import RegexValidator
-from django.conf import settings
-from django import forms
-
-from .models import User, Profile, Role, Gender
-
-
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(max_length=40, required=True, label="Имя")
     last_name = forms.CharField(max_length=40, required=True, label="Фамилия")
@@ -37,20 +29,12 @@ class RegisterForm(UserCreationForm):
     )
     photo = forms.ImageField(required=False, label="Фото")
 
-    location_lat = forms.DecimalField(
-        max_digits=10, 
-        decimal_places=7, 
+    # Координаты
+    location_lat = forms.FloatField(
         required=False, 
         widget=forms.HiddenInput()
     )
-    location_lon = forms.DecimalField(
-        max_digits=10, 
-        decimal_places=7, 
-        required=False, 
-        widget=forms.HiddenInput()
-    )
-    location_address = forms.CharField(
-        max_length=500, 
+    location_lon = forms.FloatField(
         required=False, 
         widget=forms.HiddenInput()
     )
@@ -74,10 +58,8 @@ class RegisterForm(UserCreationForm):
             role=self.cleaned_data["role"],
             gender=self.cleaned_data["gender"],
             photo=self.cleaned_data.get("photo", None),
-            # Новые поля
             location_lat=self.cleaned_data.get("location_lat"),
             location_lon=self.cleaned_data.get("location_lon"),
-            location_address=self.cleaned_data.get("location_address"),
             max_search_distance=self.cleaned_data.get("max_search_distance", 10),
         )
         user.profile = profile
@@ -92,11 +74,15 @@ class ProfileEditForm(forms.ModelForm):
     """Форма редактирования профиля с геолокацией"""
     
     def __init__(self, *args, auth_user, **kwargs):
-        auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
         # Блокируем поле role
-        self.fields['role'].disabled = True
-        self.fields['role'].help_text = "Роль нельзя изменить самостоятельно. Обратитесь к администратору."
+        if 'role' in self.fields:
+            self.fields['role'].disabled = True
+            self.fields['role'].help_text = "Роль нельзя изменить самостоятельно. Обратитесь к администратору."
+        
+        # Делаем поля геолокации необязательными
+        self.fields['location_lat'].required = False
+        self.fields['location_lon'].required = False
     
     class Meta:
         model = Profile
@@ -110,15 +96,34 @@ class ProfileEditForm(forms.ModelForm):
             "gender",
             "location_lat",
             "location_lon",
-            "location_address",
             "max_search_distance",
         ]
         widgets = {
             'location_lat': forms.HiddenInput(),
             'location_lon': forms.HiddenInput(),
-            'location_address': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly', 'placeholder': 'Выберите на карте'}),
-            'max_search_distance': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 100}),
+            'max_search_distance': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 50000}),
         }
+    
+    def clean_location_lat(self):
+        """Очистка и валидация широты"""
+        lat = self.cleaned_data.get('location_lat')
+        if lat is None or lat == '':
+            return None
+        try:
+            return float(lat)
+        except (TypeError, ValueError):
+            return None
+    
+    def clean_location_lon(self):
+        """Очистка и валидация долготы"""
+        lon = self.cleaned_data.get('location_lon')
+        if lon is None or lon == '':
+            return None
+        try:
+            return float(lon)
+        except (TypeError, ValueError):
+            return None
+
 
 class LoginForm(forms.Form):
     identifier = forms.CharField(label="Логин, E-mail, ID или Телефон", required=True)
@@ -134,7 +139,7 @@ class LoginForm(forms.Form):
             try:
                 user = User.objects.authenticate_user(
                     identifier, password
-                )  # Используем метод из UserManager
+                )
             except Exception as e:
                 raise forms.ValidationError(str(e))
 
@@ -149,7 +154,6 @@ class LoginForm(forms.Form):
 
 class UserEditForm(forms.ModelForm):
     def __init__(self, *args, auth_user, **kwargs):
-        auth_user.backend = settings.AUTHENTICATION_BACKENDS[0]
         super().__init__(*args, **kwargs)
 
     class Meta:

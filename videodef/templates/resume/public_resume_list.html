@@ -717,31 +717,6 @@
                 </div>
             {% endif %}
 
-            <!-- Админ-панель (только для staff) -->
-            {% if request.user.is_staff %}
-            <div class="admin-panel">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <strong>⚙️ Административная панель метода Беллмана-Заде</strong>
-                        <span class="consistency-info ms-2">
-                            {% if consistency_report and consistency_report.criteria_matrix %}
-                                {% if consistency_report.criteria_matrix.is_consistent %}
-                                    <span class="consistency-ok">✓ CR = {{ consistency_report.criteria_matrix.cr|floatformat:3 }} (согласовано)</span>
-                                {% else %}
-                                    <span class="consistency-warning">⚠ CR = {{ consistency_report.criteria_matrix.cr|floatformat:3 }} (требуется корректировка)</span>
-                                {% endif %}
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div>
-                        <a href="{% url 'resume:admin_fuzzy_settings' %}" class="btn-admin">📊 Настроить парные сравнения</a>
-                        <a href="{% url 'resume:what_if_analysis' %}" class="btn-admin">🔍 What-If анализ</a>
-                        <a href="{% url 'resume:fuzzy_demo' %}" class="btn-admin">📈 Демо (пример из методички)</a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
             <h2 class="display-4 text-center mb-4 page-name">Поиск преподавателей</h2>
 
             <div class="search-layout">

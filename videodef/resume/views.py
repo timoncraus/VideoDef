@@ -161,26 +161,64 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
             return default
     
     def get_user_location(self, child_id: int = None) -> Tuple[float, float]:
-        """Получение координат пользователя (по ребенку или по умолчанию)"""
+        """
+        Получение координат пользователя.
+        Сначала пытается получить из профиля пользователя,
+        затем из ребенка (если есть поля геолокации),
+        иначе возвращает координаты по умолчанию.
+        """
         # Координаты по умолчанию (Москва)
         default_lat = 55.751244
         default_lon = 37.618423
         
-        if child_id:
-            try:
-                child = Child.objects.get(id=child_id, user=self.request.user)
-                if hasattr(child, 'location_lat') and hasattr(child, 'location_lon'):
-                    if child.location_lat and child.location_lon:
-                        return float(child.location_lat), float(child.location_lon)
-            except Child.DoesNotExist:
-                pass
+        print(f"=== get_user_location called with child_id={child_id} ===")
         
         # Пробуем получить из профиля пользователя
         if hasattr(self.request.user, 'profile'):
             profile = self.request.user.profile
-            if profile.location_lat and profile.location_lon:
-                return float(profile.location_lat), float(profile.location_lon)
+            print(f"Profile exists: {profile}")
+            print(f"Profile.location_lat: {profile.location_lat}")
+            print(f"Profile.location_lon: {profile.location_lon}")
+            
+            if profile.location_lat is not None and profile.location_lon is not None:
+                try:
+                    lat = float(profile.location_lat)
+                    lon = float(profile.location_lon)
+                    print(f"Using profile coordinates: lat={lat}, lon={lon}")
+                    return lat, lon
+                except (ValueError, TypeError) as e:
+                    print(f"Error converting profile coordinates: {e}")
         
+        # Если указан ребенок, пробуем получить координаты из модели Child
+        if child_id:
+            try:
+                child = Child.objects.get(id=child_id, user=self.request.user)
+                print(f"Child found: {child}")
+                print(f"Child has location_lat: {hasattr(child, 'location_lat')}")
+                print(f"Child has location_lon: {hasattr(child, 'location_lon')}")
+                
+                if hasattr(child, 'location_lat') and hasattr(child, 'location_lon'):
+                    print(f"Child.location_lat value: {child.location_lat}")
+                    print(f"Child.location_lon value: {child.location_lon}")
+                    
+                    if child.location_lat is not None and child.location_lon is not None:
+                        try:
+                            lat = float(child.location_lat)
+                            lon = float(child.location_lon)
+                            print(f"Using child coordinates: lat={lat}, lon={lon}")
+                            return lat, lon
+                        except (ValueError, TypeError) as e:
+                            print(f"Error converting child coordinates: {e}")
+                    else:
+                        print("Child coordinates are None")
+                else:
+                    print("Child model has no location fields")
+            except Child.DoesNotExist as e:
+                print(f"Child not found: {e}")
+            except Exception as e:
+                print(f"Error getting child: {e}")
+        
+        print(f"Using default coordinates: {default_lat}, {default_lon}")
         return default_lat, default_lon
     
     def get_criteria_weights_from_admin(self) -> Dict[str, float]:
@@ -364,16 +402,29 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        print("=" * 60)
+        print("=== PublicResumeListView.get_context_data START ===")
+        print(f"GET params: {dict(self.request.GET)}")
+        
         # Получаем параметры фильтрации из GET-запроса
         price_min = self.safe_float('price_min', 0)
         price_max = self.safe_float('price_max', 10000)
-        max_distance = self.safe_float('max_distance', 20)
         min_experience = self.safe_float('min_experience', 0)
         min_rating = self.safe_float('min_rating', 0)
         selected_child_id = self.request.GET.get('child')
         selected_violations = self.request.GET.getlist('violation_types')
         ordering = self.request.GET.get('ordering', 'rank')
         weight_mode = self.request.GET.get('weight_mode', 'expert')
+
+        default_max_distance = 20
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.max_search_distance:
+            default_max_distance = self.request.user.profile.max_search_distance
+
+        max_distance = self.safe_float('max_distance', default_max_distance)
+        print(f"max_distance from GET or profile: {max_distance}")
+        
+        print(f"Filters: price_min={price_min}, price_max={price_max}, max_distance={max_distance}")
+        print(f"selected_child_id={selected_child_id}, selected_violations={selected_violations}")
         
         # Получаем цели пользователя (для лингвистических переменных)
         price_goal = self.request.GET.get('price_goal', 'low')
@@ -383,29 +434,37 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         
         # Базовый queryset с фильтрацией
         resumes = self.get_queryset()
+        print(f"Initial resumes count: {resumes.count()}")
         
         # Фильтрация по видам нарушений (если выбраны)
         if selected_violations:
             resumes = resumes.filter(violation_types__id__in=selected_violations).distinct()
+            print(f"After violation filter: {resumes.count()}")
         
         # Фильтрация по цене
         resumes = resumes.filter(
             Q(price_min__lte=price_max) | Q(price_min__isnull=True),
             Q(price_max__gte=price_min) | Q(price_max__isnull=True)
         )
+        print(f"After price filter: {resumes.count()}")
         
         # Фильтрация по опыту
         if min_experience > 0:
             resumes = resumes.filter(experience_years__gte=min_experience)
+            print(f"After experience filter: {resumes.count()}")
         
         # Фильтрация по рейтингу
         if min_rating > 0:
             resumes = resumes.filter(rating__gte=min_rating)
+            print(f"After rating filter: {resumes.count()}")
         
         # Получаем координаты пользователя
-        user_lat, user_lon = self.get_user_location(
-            int(selected_child_id) if selected_child_id and selected_child_id.isdigit() else None
-        )
+        child_id_int = None
+        if selected_child_id and selected_child_id.isdigit():
+            child_id_int = int(selected_child_id)
+        
+        user_lat, user_lon = self.get_user_location(child_id_int)
+        print(f"User location: lat={user_lat}, lon={user_lon}")
         
         # Подготовка данных для метода Беллмана-Заде
         alternatives_data = []
@@ -415,10 +474,13 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
             # Рассчитываем расстояние
             distance = max_distance
             if resume.location_lat and resume.location_lon:
-                distance = calculate_distance(
-                    user_lat, user_lon,
-                    float(resume.location_lat), float(resume.location_lon)
-                )
+                try:
+                    distance = calculate_distance(
+                        user_lat, user_lon,
+                        float(resume.location_lat), float(resume.location_lon)
+                    )
+                except Exception as e:
+                    print(f"Error calculating distance for resume {resume.id}: {e}")
             
             # Пропускаем, если расстояние превышает лимит
             if distance > max_distance:
@@ -430,11 +492,13 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
                 'price': avg_price,
                 'distance': distance,
                 'experience': float(resume.experience_years),
-                'rating': resume.get_rating(),  # Используем метод get_rating()
+                'rating': resume.get_rating(),
                 'education': float(resume.education_level),
-                'reviews_count': TeacherReview.objects.filter(teacher=resume.user).count()  # Убрали is_approved
+                'reviews_count': TeacherReview.objects.filter(teacher=resume.user).count()
             })
             teacher_ids.append(resume.id)
+        
+        print(f"Alternatives prepared: {len(alternatives_data)}")
         
         # Применяем метод Беллмана-Заде
         results = []
@@ -442,39 +506,49 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         criteria_weights = {}
         
         if alternatives_data:
-            # Строим модель
-            model = self.build_fuzzy_model(alternatives_data, teacher_ids)
-            
-            # Получаем отчет о согласованности
-            consistency_report = model.get_consistency_report()
-            
-            # Получаем веса критериев
-            if model.criteria_weights is not None:
-                for i, criterion in enumerate(model.criteria):
-                    criteria_weights[criterion] = model.criteria_weights[i]
-            
-            # Рассчитываем оценки
-            scored_results = self.calculate_alternative_scores(model, alternatives_data, teacher_ids)
-            
-            # Собираем полные данные для отображения
-            for sr in scored_results:
-                resume = next((r for r in resumes if r.id == sr['teacher_id']), None)
-                if resume:
-                    results.append({
-                        'resume': resume,
-                        'mu': sr['mu'] * 100,
-                        'rank': sr['rank'],
-                        'is_best': sr['is_best'],
-                        'memberships': {k: v * 100 for k, v in sr['memberships'].items()},
-                        'criteria_weights': criteria_weights,
-                        'distance': sr['raw_data']['distance'],
-                        'price': sr['raw_data']['price'],
-                        'experience': sr['raw_data']['experience'],
-                        'rating': sr['raw_data']['rating']
-                    })
-            
-            # Сохраняем модель в сессию для What-If анализа
-            self.request.session['bz_model_json'] = json.dumps(model.to_dict(), default=str)
+            try:
+                # Строим модель
+                model = self.build_fuzzy_model(alternatives_data, teacher_ids)
+                
+                # Получаем отчет о согласованности
+                consistency_report = model.get_consistency_report()
+                
+                # Получаем веса критериев
+                if model.criteria_weights is not None:
+                    for i, criterion in enumerate(model.criteria):
+                        criteria_weights[criterion] = float(model.criteria_weights[i])
+                
+                # Рассчитываем оценки
+                scored_results = self.calculate_alternative_scores(model, alternatives_data, teacher_ids)
+                
+                # Собираем полные данные для отображения
+                for sr in scored_results:
+                    resume = next((r for r in resumes if r.id == sr['teacher_id']), None)
+                    if resume:
+                        results.append({
+                            'resume': resume,
+                            'mu': sr['mu'] * 100,
+                            'rank': sr['rank'],
+                            'is_best': sr['is_best'],
+                            'memberships': {k: v * 100 for k, v in sr['memberships'].items()},
+                            'criteria_weights': criteria_weights,
+                            'distance': sr['raw_data']['distance'],
+                            'price': sr['raw_data']['price'],
+                            'experience': sr['raw_data']['experience'],
+                            'rating': sr['raw_data']['rating']
+                        })
+                
+                print(f"Results after fuzzy model: {len(results)}")
+                
+                # Сохраняем модель в сессию для What-If анализа
+                self.request.session['bz_model_json'] = json.dumps(model.to_dict(), default=str)
+            except Exception as e:
+                print(f"Error in fuzzy model: {e}")
+                import traceback
+                traceback.print_exc()
+                messages.error(self.request, f"Ошибка при анализе: {str(e)}")
+        else:
+            print("No alternatives data available")
         
         # Сортируем результаты по рангу
         if results:
@@ -489,6 +563,10 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
             else:  # rank
                 results.sort(key=lambda x: x['rank'])
         
+        print(f"Final results count: {len(results)}")
+        print("=== PublicResumeListView.get_context_data END ===")
+        print("=" * 60)
+        
         context['weight_mode'] = weight_mode
         context['ordering'] = ordering
         
@@ -496,7 +574,7 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         context['results'] = results
         context['user_children'] = Child.objects.filter(user=self.request.user)
         context['all_violations'] = ViolationType.objects.all()
-        context['selected_violations'] = [int(v) for v in selected_violations]
+        context['selected_violations'] = [int(v) for v in selected_violations if v.isdigit()]
         context['selected_child_id'] = int(selected_child_id) if selected_child_id and selected_child_id.isdigit() else None
         context['price_min'] = int(price_min)
         context['price_max'] = int(price_max)

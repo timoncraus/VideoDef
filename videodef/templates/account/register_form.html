@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
     <style>
         #map {
-            height: 400px;
+            height: 300px;
             width: 100%;
             border-radius: 10px;
             margin-bottom: 15px;
@@ -34,7 +34,6 @@
             <br>
             <img id="preview" src="{{ forms.register_form.photo.value|default:'/static/images/default.png' }}" alt="Аватар" width="100" height="100" style="width:150px;height:150px;">
         </div>
-        
         <script>
             document.getElementById('id_photo').addEventListener('change', function(event) {
                 const reader = new FileReader();
@@ -67,8 +66,7 @@
                 <div class="row">
                     <div class="col-md-8">
                         <label>Радиус поиска преподавателей:</label>
-                        <input type="number" name="max_search_distance" id="id_max_search_distance" 
-                               class="form-control" value="10" min="1" max="100" step="1">
+                        {{ forms.register_form.max_search_distance }}
                         <small class="text-muted">км - в этом радиусе будут искаться преподаватели</small>
                     </div>
                 </div>
@@ -76,9 +74,9 @@
         </div>
         
         <!-- Скрытые поля -->
-        <input type="hidden" name="location_lat" id="id_location_lat">
-        <input type="hidden" name="location_lon" id="id_location_lon">
-        <input type="hidden" name="location_address" id="id_location_address">
+        {{ forms.register_form.location_lat }}
+        {{ forms.register_form.location_lon }}
+        {{ forms.register_form.location_address }}
 
         <button type="submit" class="btn btn-primary mb-3 mt-3">Зарегистрироваться</button>
     </form>
@@ -88,24 +86,29 @@
     </div>
 
     <script>
-        // Инициализация карты
+        function getFormFieldValue(fieldName) {
+            const input = document.querySelector(`input[name="${fieldName}"]`);
+            return input ? input.value : '';
+        }
+        
+        function setFormFieldValue(fieldName, value) {
+            const input = document.querySelector(`input[name="${fieldName}"]`);
+            if (input) input.value = value;
+        }
+        
         let map = L.map('map').setView([55.751244, 37.618423], 12);
         
-        // Добавление слоя карты
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             subdomains: 'abcd',
             maxZoom: 19,
             minZoom: 3
         }).addTo(map);
         
-        // Маркер
         let marker = null;
         
-        // Геокодер для поиска адреса
         const geocoder = L.Control.Geocoder.nominatim();
         
-        // Добавляем поиск на карту
         L.Control.geocoder({
             defaultMarkGeocode: false,
             placeholder: 'Поиск адреса...',
@@ -122,7 +125,6 @@
             updateLocation(center.lat, center.lng, e.geocode.name);
         }).addTo(map);
         
-        // Обработка клика на карте
         map.on('click', function(e) {
             if (marker) {
                 marker.setLatLng(e.latlng);
@@ -133,26 +135,24 @@
             updateLocation(e.latlng.lat, e.latlng.lng);
         });
         
-        // Функция обновления местоположения
         function updateLocation(lat, lng, address = null) {
-            document.getElementById('id_location_lat').value = lat;
-            document.getElementById('id_location_lon').value = lng;
+            setFormFieldValue('location_lat', lat.toFixed(7));
+            setFormFieldValue('location_lon', lng.toFixed(7));
             
             if (address) {
-                document.getElementById('id_location_address').value = address;
+                setFormFieldValue('location_address', address);
                 document.getElementById('selected-address').innerHTML = `📍 ${address}`;
             } else {
-                // Обратный геокодинг
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
                     .then(response => response.json())
                     .then(data => {
                         const addr = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        document.getElementById('id_location_address').value = addr;
+                        setFormFieldValue('location_address', addr);
                         document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
                     })
                     .catch(() => {
                         const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        document.getElementById('id_location_address').value = addr;
+                        setFormFieldValue('location_address', addr);
                         document.getElementById('selected-address').innerHTML = `📍 ${addr}`;
                     });
             }
@@ -163,7 +163,6 @@
             updateLocation(latlng.lat, latlng.lng);
         }
         
-        // Попытка получить геолокацию пользователя
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
