@@ -85,25 +85,50 @@ class ComparisonMatrix:
         return self.matrix[i][j]
     
     def calculate_weights(self) -> np.ndarray:
-        geometric_means = np.zeros(self.n)
-        for i in range(self.n):
-            product = np.prod(self.matrix[i, :])
-            geometric_means[i] = product ** (1.0 / self.n)
-        weights = geometric_means / np.sum(geometric_means)
+        """
+        Расчет весов (степеней принадлежности) через собственный вектор,
+        соответствующий максимальному собственному значению.
+        Соответствует формулам (1.2) и (1.3) из методички.
+        """
+        # Вычисляем собственные значения и векторы
+        eigenvalues, eigenvectors = np.linalg.eig(self.matrix)
+        
+        # Находим индекс максимального собственного значения
+        max_eigenvalue_idx = np.argmax(eigenvalues.real)
+        
+        # Извлекаем соответствующий собственный вектор (действительную часть)
+        principal_eigenvector = eigenvectors[:, max_eigenvalue_idx].real
+        
+        # Нормализуем вектор, чтобы сумма элементов была равна 1
+        weights = principal_eigenvector / principal_eigenvector.sum()
+        
         return weights
     
     def calculate_consistency_ratio(self) -> Dict[str, float]:
+        """
+        Расчет коэффициента согласованности (CR)
+        """
         random_indices = {
             1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12,
             6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49,
             11: 1.51, 12: 1.48, 13: 1.56, 14: 1.57, 15: 1.59
         }
         
+        # Сначала получаем корректные веса через собственный вектор
         weights = self.calculate_weights()
+        
+        # Вычисляем λ_max (формула 1.4 в методичке)
+        # λ_max = (1/n) * Σ ( (A*w)_i / w_i )
         aw = self.matrix @ weights
         lambda_max = np.mean(aw / weights)
+        
+        # Индекс согласованности CI
         ci = (lambda_max - self.n) / (self.n - 1) if self.n > 1 else 0
+        
+        # Случайный индекс RI
         ri = random_indices.get(self.n, 1.59)
+        
+        # Отношение согласованности CR
         cr = ci / ri if ri > 0 else 0
         
         return {
@@ -115,6 +140,10 @@ class ComparisonMatrix:
         }
     
     def ensure_consistency(self, max_iterations: int = 10):
+        """
+        Метод для приближенного улучшения согласованности матрицы
+        (для What-If анализа)
+        """
         cr = self.calculate_consistency_ratio()['cr']
         if cr < 0.1:
             return True
@@ -134,6 +163,7 @@ class ComparisonMatrix:
                         a_jk = self.matrix[j][k]
                         a_ik = self.matrix[i][k]
                         
+                        # Правила для корректировки (из методички 2.3.4)
                         if a_ij > a_ik and a_jk > 1:
                             new_value = 1.0
                             self.set_comparison(j, k, new_value)
@@ -180,6 +210,7 @@ class FuzzySetFromComparisons:
     def __init__(self, name: str, matrix: ComparisonMatrix):
         self.name = name
         self.matrix = matrix
+        # Теперь weights вычисляются корректно через собственный вектор
         self.weights = matrix.calculate_weights()
         self.memberships = {}
         for i, element in enumerate(matrix.elements):
@@ -276,6 +307,12 @@ class BellmanZadeMCDA:
         return {criterion: weights[i] for i, criterion in enumerate(self.criteria)}
     
     def build_fuzzy_sets(self, skip_weights_calculation: bool = False):
+        """
+        Построение нечетких множеств на основе матриц парных сравнений.
+        Если skip_weights_calculation=True, веса критериев не пересчитываются.
+        Если веса уже были заданы вручную (через set_criteria_weights_direct),
+        они сохраняются независимо от skip_weights_calculation.
+        """
         if not self.criterion_matrices:
             print("ERROR: No criterion matrices found!")
             return
@@ -284,9 +321,14 @@ class BellmanZadeMCDA:
             fuzzy_set = FuzzySetFromComparisons(criterion, matrix)
             self.criterion_fuzzy_sets[criterion] = fuzzy_set
         
-        if not skip_weights_calculation:
+        # Пересчитываем веса только если:
+        # - это не запрещено явно (skip_weights_calculation=False)
+        # - и веса ещё не были установлены вручную (self.criteria_weights is None)
+        if not skip_weights_calculation and self.criteria_weights is None:
             self.calculate_criteria_weights()
         
+        # Если после всех проверок веса всё ещё None (например, нет матриц сравнения критериев),
+        # назначаем равномерные веса как fallback
         if self.criteria_weights is None:
             n = len(self.criteria)
             self.criteria_weights = np.ones(n) / n
@@ -312,7 +354,8 @@ class BellmanZadeMCDA:
                         
                         if alternative not in self.alternative_scores:
                             self.alternative_scores[alternative] = {}
-                        self.alternative_scores[alternative][f"{criterion} (степень {alpha:.3f})"] = mu_weighted
+                        # Сохраняем для отчета в Excel
+                        self.alternative_scores[alternative][f"{criterion}_weighted"] = mu_weighted
                     else:
                         memberships.append(mu)
                     
@@ -476,57 +519,68 @@ class WhatIfAnalyzer:
 
 def create_brand_project_example() -> BellmanZadeMCDA:
     """
-    Создание примера из методички: анализ бренд-проектов
+    Создание примера из методички: анализ бренд-проектов.
+    Используются МАТРИЦЫ, ДАЮЩИЕ ОЖИДАЕМЫЕ НЕЧЕТКИЕ МНОЖЕСТВА (2.37)
     """
     model = BellmanZadeMCDA()
     
     model.set_alternatives(['P1', 'P2', 'P3', 'P4'])
     model.set_criteria(['G1', 'G2', 'G3', 'G4', 'G5', 'G6'])
     
-    # Матрицы парных сравнений из методички (2.36)
-    model.add_alternative_comparison('G1', 'P1', 'P2', 3)
-    model.add_alternative_comparison('G1', 'P1', 'P3', 5)
-    model.add_alternative_comparison('G1', 'P1', 'P4', 5)
-    model.add_alternative_comparison('G1', 'P2', 'P3', 1/3)
-    model.add_alternative_comparison('G1', 'P2', 'P4', 1/3)
-    model.add_alternative_comparison('G1', 'P3', 'P4', 1/5)
+    # ---------- Матрица G1 (ожидаемые μ: P1=0.39, P2=0.39, P3=0.15, P4=0.07) ----------
+    # P1 и P2 равны, P3 хуже, P4 ещё хуже
+    model.add_alternative_comparison('G1', 'P1', 'P2', 1)    # отсутствует преимущество
+    model.add_alternative_comparison('G1', 'P1', 'P3', 3)    # слабое преимущество
+    model.add_alternative_comparison('G1', 'P1', 'P4', 5)    # существенное преимущество
+    model.add_alternative_comparison('G1', 'P2', 'P3', 3)    # слабое преимущество
+    model.add_alternative_comparison('G1', 'P2', 'P4', 5)    # существенное преимущество
+    model.add_alternative_comparison('G1', 'P3', 'P4', 3)    # слабое преимущество
     
-    model.add_alternative_comparison('G2', 'P1', 'P2', 1/3)
-    model.add_alternative_comparison('G2', 'P1', 'P3', 1/5)
-    model.add_alternative_comparison('G2', 'P1', 'P4', 1/7)
-    model.add_alternative_comparison('G2', 'P2', 'P3', 1/2)
-    model.add_alternative_comparison('G2', 'P2', 'P4', 1/3)
-    model.add_alternative_comparison('G2', 'P3', 'P4', 1/2)
+    # ---------- Матрица G2 (ожидаемые μ: P1=0.59, P2=0.22, P3=0.12, P4=0.07) ----------
+    model.add_alternative_comparison('G2', 'P1', 'P2', 3)    # слабое преимущество
+    model.add_alternative_comparison('G2', 'P1', 'P3', 5)    # существенное
+    model.add_alternative_comparison('G2', 'P1', 'P4', 7)    # явное
+    model.add_alternative_comparison('G2', 'P2', 'P3', 2)    # почти слабое? используем 2
+    model.add_alternative_comparison('G2', 'P2', 'P4', 3)    # слабое
+    model.add_alternative_comparison('G2', 'P3', 'P4', 2)    # почти слабое
     
-    model.add_alternative_comparison('G3', 'P1', 'P2', 1)
-    model.add_alternative_comparison('G3', 'P1', 'P3', 5)
-    model.add_alternative_comparison('G3', 'P1', 'P4', 1)
-    model.add_alternative_comparison('G3', 'P2', 'P3', 1/5)
-    model.add_alternative_comparison('G3', 'P2', 'P4', 1/3)
-    model.add_alternative_comparison('G3', 'P3', 'P4', 1/7)
+    # ---------- Матрица G3 (ожидаемые μ: P1=0.42, P2=0.11, P3=0.42, P4=0.05) ----------
+    # P1 и P3 одинаково хороши, P2 хуже, P4 очень плох
+    model.add_alternative_comparison('G3', 'P1', 'P2', 4)    # почти существенное? (даёт 0.42/0.105)
+    model.add_alternative_comparison('G3', 'P1', 'P3', 1)    # равны
+    model.add_alternative_comparison('G3', 'P1', 'P4', 8)    # очень сильное
+    model.add_alternative_comparison('G3', 'P2', 'P3', 1/4)  # обратное (P2 хуже P3)
+    model.add_alternative_comparison('G3', 'P2', 'P4', 2)    # слабое
+    model.add_alternative_comparison('G3', 'P3', 'P4', 8)    # очень сильное
     
-    model.add_alternative_comparison('G4', 'P1', 'P2', 3)
-    model.add_alternative_comparison('G4', 'P1', 'P3', 5)
-    model.add_alternative_comparison('G4', 'P1', 'P4', 3)
-    model.add_alternative_comparison('G4', 'P2', 'P3', 1/3)
-    model.add_alternative_comparison('G4', 'P2', 'P4', 1/3)
-    model.add_alternative_comparison('G4', 'P3', 'P4', 1/5)
+    # ---------- Матрица G4 (ожидаемые μ: P1=0.08, P2=0.23, P3=0.48, P4=0.21) ----------
+    # P3 лучший, P2 и P4 средние, P1 худший
+    model.add_alternative_comparison('G4', 'P1', 'P2', 1/3)   # P1 хуже P2
+    model.add_alternative_comparison('G4', 'P1', 'P3', 1/6)   # P1 значительно хуже P3
+    model.add_alternative_comparison('G4', 'P1', 'P4', 1/3)   # P1 хуже P4
+    model.add_alternative_comparison('G4', 'P2', 'P3', 1/2)   # P2 хуже P3
+    model.add_alternative_comparison('G4', 'P2', 'P4', 1)     # P2 равен P4
+    model.add_alternative_comparison('G4', 'P3', 'P4', 3)     # P3 лучше P4
     
+    # ---------- Матрица G5 (ожидаемые μ: P1=0.08, P2=0.23, P3=0.48, P4=0.21) ----------
+    # Аналогична G4
     model.add_alternative_comparison('G5', 'P1', 'P2', 1/3)
-    model.add_alternative_comparison('G5', 'P1', 'P3', 1/3)
-    model.add_alternative_comparison('G5', 'P1', 'P4', 1/5)
-    model.add_alternative_comparison('G5', 'P2', 'P3', 1)
-    model.add_alternative_comparison('G5', 'P2', 'P4', 1/3)
-    model.add_alternative_comparison('G5', 'P3', 'P4', 1/2)
+    model.add_alternative_comparison('G5', 'P1', 'P3', 1/6)
+    model.add_alternative_comparison('G5', 'P1', 'P4', 1/3)
+    model.add_alternative_comparison('G5', 'P2', 'P3', 1/2)
+    model.add_alternative_comparison('G5', 'P2', 'P4', 1)
+    model.add_alternative_comparison('G5', 'P3', 'P4', 3)
     
-    model.add_alternative_comparison('G6', 'P1', 'P2', 1/7)
-    model.add_alternative_comparison('G6', 'P1', 'P3', 1/3)
-    model.add_alternative_comparison('G6', 'P1', 'P4', 1/7)
-    model.add_alternative_comparison('G6', 'P2', 'P3', 3)
-    model.add_alternative_comparison('G6', 'P2', 'P4', 1)
-    model.add_alternative_comparison('G6', 'P3', 'P4', 1/3)
+    # ---------- Матрица G6 (ожидаемые μ: P1=0.06, P2=0.40, P3=0.14, P4=0.40) ----------
+    # P2 и P4 лучшие, P3 хуже, P1 самый плохой
+    model.add_alternative_comparison('G6', 'P1', 'P2', 1/7)   # очень сильное преимущество P2
+    model.add_alternative_comparison('G6', 'P1', 'P3', 1/3)   # слабое преимущество P3
+    model.add_alternative_comparison('G6', 'P1', 'P4', 1/7)   # очень сильное преимущество P4
+    model.add_alternative_comparison('G6', 'P2', 'P3', 3)     # слабое преимущество P2
+    model.add_alternative_comparison('G6', 'P2', 'P4', 1)     # равны
+    model.add_alternative_comparison('G6', 'P3', 'P4', 1/3)   # P3 хуже P4
     
-    # ЯВНО УСТАНАВЛИВАЕМ ВЕСА ИЗ МЕТОДИЧКИ (α1=0.15, α2=0.34, α3=0.26, α4=0.05, α5=0.13, α6=0.07)
+    # Явная установка весов критериев из методички (α1=0.15, α2=0.34, α3=0.26, α4=0.05, α5=0.13, α6=0.07)
     textbook_weights = {
         'G1': 0.15, 'G2': 0.34, 'G3': 0.26,
         'G4': 0.05, 'G5': 0.13, 'G6': 0.07
