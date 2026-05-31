@@ -1,7 +1,16 @@
+import io
+import base64
 import json
 import math
+from datetime import datetime
 from typing import List, Dict, Any, Tuple
-from django.http import JsonResponse, HttpResponseBadRequest
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
@@ -34,7 +43,7 @@ from document.forms import DocumentForm
 from document.models import Document
 from child.models import Child
 
-from .models import Resume, ViolationType, TeacherReview
+from .models import Resume, ViolationType, TeacherReview, FuzzyComparisonSettings, UserCriteriaWeights
 from .forms import ResumeForm, ResumeImageFormSet, ResumeInitialImageFormSet, TeacherReviewForm
 
 # Для преподавателя: список резюме
@@ -397,9 +406,12 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
         print("Calling calculate_solution...")
         model.calculate_solution(use_weights=True)
         
+        self.bz_model = model  # Сохраняем модель для экспорта
         return model
     
     def get_context_data(self, **kwargs):
+        self.bz_model = None  # Инициализация
+
         context = super().get_context_data(**kwargs)
         
         print("=" * 60)
@@ -743,6 +755,61 @@ class PublicResumeListView(LoginRequiredMixin, FilterView):
                 })
         
         return results
+
+    def export_current_results_to_excel(self, results, alternatives_data, teacher_ids,
+                                         user_lat, user_lon, criteria_weights,
+                                         consistency_report, user_filters):
+        """
+        Экспорт текущих результатов поиска в Excel с полными вычислениями
+        
+        Возвращает tuple: (excel_data_bytes, filename)
+        """
+        from .excel_export import TeacherSearchExcelExporter
+        from .models import FuzzyComparisonSettings
+        
+        # Определяем, использовались ли экспертные веса
+        weight_mode = self.request.GET.get('weight_mode', 'expert')
+        use_expert = weight_mode == 'expert'
+        
+        # Получаем экспертные сравнения (для отчета)
+        criteria_comparisons = []
+        alternative_comparisons = {}
+        
+        if use_expert:
+            try:
+                settings = FuzzyComparisonSettings.objects.first()
+                if settings:
+                    if settings.criteria_comparisons:
+                        criteria_comparisons = json.loads(settings.criteria_comparisons)
+                    if settings.alternative_comparisons:
+                        alternative_comparisons = json.loads(settings.alternative_comparisons)
+            except Exception as e:
+                print(f"Error loading expert comparisons: {e}")
+        
+        # Создаем экспортер
+        exporter = TeacherSearchExcelExporter(
+            model=self.bz_model,
+            results=results,
+            alternatives_data=alternatives_data,
+            teacher_ids=teacher_ids,
+            user_location=(user_lat, user_lon),
+            criteria_weights=criteria_weights,
+            consistency_report=consistency_report,
+            user_filters=user_filters,
+            use_expert_weights=use_expert,
+            criteria_comparisons=criteria_comparisons,
+            alternative_comparisons=alternative_comparisons
+        )
+        
+        # Генерируем имя файла
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        mode_str = "expert" if use_expert else "user"
+        filename = f"teacher_search_{mode_str}_{timestamp}.xlsx"
+        
+        # Экспортируем в BytesIO
+        excel_data = exporter.export_to_bytesio()
+        
+        return excel_data, filename
 
 # Для родителя: подробная страничка резюме
 class ResumeDetailView(DetailView):
@@ -1454,19 +1521,602 @@ def user_weights_settings(request):
 def verification_report(request):
     """Страница с отчетом верификации"""
     from .tests.test_verification import VerifyAgainstTextbook
+    import matplotlib.pyplot as plt
+    import io
+    import base64
+    import numpy as np
     
     test = VerifyAgainstTextbook()
     test.setUp()
-    plots = test.generate_verification_plots()
     
+    # Рассчитываем данные
     calculated_weights = test.model.calculate_criteria_weights()
     solution = test.solution
+    
+    # Получаем эталонные данные
+    expected_memberships = getattr(test, 'expected_memberships', {})
+    expected_weights = getattr(test, 'expected_weights', {})
+    expected_mu = getattr(test, 'expected_mu', {})
+    
+    # Генерируем графики
+    plots = {}
+    
+    # График 1: Веса критериев
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Подготавливаем данные для весов критериев
+    criteria = list(calculated_weights.keys())
+    weights_values = list(calculated_weights.values())
+    
+    # Если есть эталонные веса, показываем сравнение
+    if expected_weights:
+        expected_values = [expected_weights.get(c, 0) for c in criteria]
+        x = np.arange(len(criteria))
+        width = 0.35
+        
+        ax.bar(x - width/2, expected_values, width, label='Эталонные', alpha=0.7, color='blue')
+        ax.bar(x + width/2, weights_values, width, label='Расчетные', alpha=0.7, color='green')
+        ax.set_title('Сравнение весов критериев (α-коэффициенты)')
+    else:
+        ax.bar(criteria, weights_values, color='steelblue', alpha=0.7)
+        ax.set_title('Веса критериев (α-коэффициенты)')
+    
+    ax.set_xlabel('Критерии')
+    ax.set_ylabel('Вес')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # Добавляем значения на столбцы
+    for i, v in enumerate(weights_values):
+        ax.text(i, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9)
+    
+    plt.tight_layout()
+    plots['weights_chart'] = _fig_to_base64(fig)
+    plt.close(fig)
+    
+    # График 2: Финальное решение μD
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    alternatives = list(solution.keys())
+    mu_values = list(solution.values())
+    
+    # Сортируем по убыванию (меньшее значение = лучшая альтернатива)
+    sorted_pairs = sorted(zip(alternatives, mu_values), key=lambda x: x[1])
+    sorted_alts = [p[0] for p in sorted_pairs]
+    sorted_mus = [p[1] for p in sorted_pairs]
+    
+    colors = ['#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1'][:len(sorted_alts)]
+    
+    bars = ax.bar(sorted_alts, sorted_mus, color=colors, alpha=0.7)
+    ax.set_xlabel('Альтернативы')
+    ax.set_ylabel('Степень принадлежности (μD)')
+    ax.set_title('Финальное решение - μD (меньше = лучше)')
+    ax.grid(True, alpha=0.3)
+    
+    # Добавляем значения на столбцы
+    for bar, mu in zip(bars, sorted_mus):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2, height + 0.01, 
+                f'{mu:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    plt.tight_layout()
+    plots['solution_chart'] = _fig_to_base64(fig)
+    plt.close(fig)
+    
+    # График 3: Сравнение расчетных и эталонных значений μD
+    if expected_mu:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        alt_names = list(expected_mu.keys())
+        expected_values = [expected_mu.get(alt, 0) for alt in alt_names]
+        actual_values = [solution.get(alt, 0) for alt in alt_names]
+        
+        x = np.arange(len(alt_names))
+        width = 0.35
+        
+        bars1 = ax.bar(x - width/2, expected_values, width, label='Эталонные', alpha=0.7, color='blue')
+        bars2 = ax.bar(x + width/2, actual_values, width, label='Расчетные', alpha=0.7, color='green')
+        
+        ax.set_xlabel('Альтернативы')
+        ax.set_ylabel('Степень принадлежности (μD)')
+        ax.set_title('Сравнение эталонных и расчетных значений μD')
+        ax.set_xticks(x)
+        ax.set_xticklabels(alt_names)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Добавляем значения
+        for bar in bars1:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2, height + 0.01, 
+                   f'{height:.3f}', ha='center', va='bottom', fontsize=9)
+        
+        for bar in bars2:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2, height + 0.01, 
+                   f'{height:.3f}', ha='center', va='bottom', fontsize=9)
+        
+        plt.tight_layout()
+        plots['comparison_chart'] = _fig_to_base64(fig)
+        plt.close(fig)
+        
+        # График 4: Погрешность
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        errors = []
+        for alt in alt_names:
+            expected = expected_mu.get(alt, 0)
+            actual = solution.get(alt, 0)
+            error = abs(actual - expected)
+            relative_error = (error / expected * 100) if expected > 0 else 0
+            errors.append(relative_error)
+        
+        colors = ['green' if e < 5 else 'orange' if e < 10 else 'red' for e in errors]
+        bars = ax.bar(alt_names, errors, color=colors, alpha=0.7)
+        
+        ax.axhline(y=5, color='green', linestyle='--', label='Допустимая погрешность (5%)', linewidth=2)
+        ax.axhline(y=10, color='orange', linestyle='--', label='Критическая погрешность (10%)', linewidth=2)
+        
+        ax.set_xlabel('Альтернативы')
+        ax.set_ylabel('Относительная погрешность (%)')
+        ax.set_title('Относительная погрешность вычислений')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Добавляем значения
+        for bar, error in zip(bars, errors):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2, height + 0.5, 
+                   f'{error:.1f}%', ha='center', va='bottom', fontsize=10)
+        
+        plt.tight_layout()
+        plots['errors_chart'] = _fig_to_base64(fig)
+        plt.close(fig)
+    
+    # Рассчитываем погрешности
+    errors = {}
+    verification_passed = True
+    
+    if expected_mu and solution:
+        for alt, actual in solution.items():
+            expected = expected_mu.get(alt, 0)
+            if expected > 0:
+                error = abs(actual - expected)
+                relative_error = error / expected * 100
+                errors[alt] = {
+                    'expected': expected,
+                    'actual': actual,
+                    'error': error,
+                    'relative_error': relative_error
+                }
+                if relative_error > 5:
+                    verification_passed = False
+    
+    # Определяем лучшее ранжирование
+    sorted_solution = sorted(solution.items(), key=lambda x: x[1])
+    ranking_text = " > ".join([f"{alt} ({mu:.3f})" for alt, mu in sorted_solution])
+    best_alternative = sorted_solution[0][0] if sorted_solution else "N/A"
+    
+    # Проверяем, что лучшая альтернатива - P4 (как в эталоне)
+    best_correct = best_alternative == 'P4'
     
     context = {
         'plots': plots,
         'weights': calculated_weights,
         'solution': solution,
-        'expected_mu': test.expected_mu,
+        'expected_mu': expected_mu,
+        'expected_memberships': expected_memberships,
+        'expected_weights': expected_weights,
+        'errors': errors,
+        'verification_passed': verification_passed and best_correct,
+        'best_correct': best_correct,
+        'ranking_text': ranking_text,
+        'best_alternative': best_alternative,
     }
     
     return render(request, 'resume/verification_report.html', context)
+
+
+def _fig_to_base64(fig):
+    """Конвертирует matplotlib figure в base64 строку"""
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    buf.close()
+    return img_base64
+
+
+@login_required
+@user_passes_test(is_parent, login_url='account:home')
+def export_search_results_excel(request):
+    """
+    Экспорт результатов поиска преподавателей в Excel
+    Использует ТУ ЖЕ логику определения весов, что и PublicResumeListView.build_fuzzy_model
+    """
+    from .bellman_zade import BellmanZadeMCDA, calculate_distance, ComparisonMatrix
+    from .models import FuzzyComparisonSettings, UserCriteriaWeights
+    
+    print("=" * 80)
+    print("=== EXPORT_SEARCH_RESULTS_EXCEL START ===")
+    print(f"GET params: {dict(request.GET)}")
+    
+    # ============================================================
+    # 1. Получаем параметры фильтрации
+    # ============================================================
+    def safe_float(param, default):
+        value = request.GET.get(param, str(default))
+        if isinstance(value, str):
+            value = value.replace(',', '.')
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    price_min = safe_float('price_min', 0)
+    price_max = safe_float('price_max', 10000)
+    min_experience = safe_float('min_experience', 0)
+    min_rating = safe_float('min_rating', 0)
+    selected_child_id = request.GET.get('child')
+    selected_violations = request.GET.getlist('violation_types')
+    weight_mode = request.GET.get('weight_mode', 'expert')
+    
+    default_max_distance = 20
+    if hasattr(request.user, 'profile') and request.user.profile.max_search_distance:
+        default_max_distance = request.user.profile.max_search_distance
+    
+    max_distance = safe_float('max_distance', default_max_distance)
+    
+    print(f"Weight mode: {weight_mode}")
+    print(f"Filters: price_min={price_min}, price_max={price_max}, max_distance={max_distance}")
+    
+    # ============================================================
+    # 2. Получаем активные резюме с фильтрацией
+    # ============================================================
+    resumes = Resume.objects.filter(status=Resume.ACTIVE).select_related(
+        'user__profile'
+    ).prefetch_related('violation_types')
+    
+    if selected_violations:
+        resumes = resumes.filter(violation_types__id__in=selected_violations).distinct()
+    
+    resumes = resumes.filter(
+        Q(price_min__lte=price_max) | Q(price_min__isnull=True),
+        Q(price_max__gte=price_min) | Q(price_max__isnull=True)
+    )
+    
+    if min_experience > 0:
+        resumes = resumes.filter(experience_years__gte=min_experience)
+    
+    if min_rating > 0:
+        resumes = resumes.filter(rating__gte=min_rating)
+    
+    # ============================================================
+    # 3. Получаем координаты пользователя
+    # ============================================================
+    def get_user_location(child_id):
+        if hasattr(request.user, 'profile') and request.user.profile.location_lat and request.user.profile.location_lon:
+            try:
+                return (float(request.user.profile.location_lat), float(request.user.profile.location_lon))
+            except:
+                pass
+        
+        if child_id:
+            try:
+                child = Child.objects.get(id=child_id, user=request.user)
+                if hasattr(child, 'location_lat') and child.location_lat and child.location_lon:
+                    return (float(child.location_lat), float(child.location_lon))
+            except:
+                pass
+        
+        return (55.751244, 37.618423)
+    
+    child_id_int = int(selected_child_id) if selected_child_id and selected_child_id.isdigit() else None
+    user_lat, user_lon = get_user_location(child_id_int)
+    print(f"User location: lat={user_lat}, lon={user_lon}")
+    
+    # ============================================================
+    # 4. Подготовка данных альтернатив
+    # ============================================================
+    alternatives_data = []
+    teacher_ids = []
+    
+    for resume in resumes:
+        distance = max_distance
+        if resume.location_lat and resume.location_lon:
+            try:
+                distance = calculate_distance(
+                    user_lat, user_lon,
+                    float(resume.location_lat), float(resume.location_lon)
+                )
+            except:
+                pass
+        
+        if distance > max_distance:
+            continue
+        
+        avg_price = resume.get_average_price()
+        
+        alternatives_data.append({
+            'price': avg_price,
+            'distance': distance,
+            'experience': float(resume.experience_years),
+            'rating': resume.get_rating(),
+            'education': float(resume.education_level),
+        })
+        teacher_ids.append(resume.id)
+    
+    if not alternatives_data:
+        messages.warning(request, "Нет преподавателей, соответствующих критериям поиска")
+        return redirect('resume:public_resume_list')
+    
+    print(f"Alternatives prepared: {len(alternatives_data)}")
+    
+    # ============================================================
+    # 5. Строим модель Беллмана-Заде (как в build_fuzzy_model)
+    # ============================================================
+    bz_model = BellmanZadeMCDA()
+    criteria = ['price', 'distance', 'experience', 'rating', 'education']
+    alternatives = [f"T_{tid}" for tid in teacher_ids]
+    
+    bz_model.set_alternatives(alternatives)
+    bz_model.set_criteria(criteria)
+    
+    # Строим матрицы сравнений альтернатив (как в _build_auto_matrices)
+    n = len(teacher_ids)
+    for criterion in criteria:
+        values = []
+        for data in alternatives_data:
+            if criterion == 'price':
+                val = data.get('price', 5000)
+                normalized = max(1, min(10, 10 - (val / 10000) * 9))
+            elif criterion == 'distance':
+                val = data.get('distance', 50)
+                normalized = max(1, min(10, 10 - (val / 50) * 9))
+            elif criterion == 'experience':
+                val = data.get('experience', 0)
+                normalized = max(1, min(10, 1 + (val / 30) * 9))
+            elif criterion == 'rating':
+                val = data.get('rating', 0)
+                normalized = max(0.1, min(10.0, 1.0 + (val / 5.0) * 9.0))
+            elif criterion == 'education':
+                val = data.get('education', 0)
+                normalized = max(1, min(10, 1 + (val / 10) * 9))
+            else:
+                normalized = 5
+            values.append(normalized)
+        
+        for i in range(n):
+            for j in range(i + 1, n):
+                if values[i] > 0 and values[j] > 0:
+                    ratio = values[i] / values[j]
+                else:
+                    ratio = 1.0
+                
+                if ratio > 1:
+                    saaty_value = min(ratio, 9)
+                else:
+                    saaty_value = max(1/ratio, 1/9)
+                
+                alt1 = f"T_{teacher_ids[i]}"
+                alt2 = f"T_{teacher_ids[j]}"
+                bz_model.add_alternative_comparison(criterion, alt1, alt2, saaty_value)
+    
+    # Строим нечеткие множества без пересчета весов
+    bz_model.build_fuzzy_sets(skip_weights_calculation=True)
+    
+    # ============================================================
+    # 6. ОПРЕДЕЛЯЕМ ВЕСА КРИТЕРИЕВ (как в build_fuzzy_model)
+    # ============================================================
+    criteria_weights = {}
+    user_weights_used = False
+    use_expert = (weight_mode == 'expert')
+    
+    if weight_mode == 'custom':
+        # Пользовательские веса
+        print("=" * 50)
+        print("Используем ПОЛЬЗОВАТЕЛЬСКИЕ веса критериев")
+        print("=" * 50)
+        
+        user_weights = None
+        # Сначала проверяем сессию
+        if request.session.get('use_custom_weights'):
+            user_weights = request.session.get('user_criteria_weights')
+        
+        # Затем проверяем БД
+        if not user_weights:
+            try:
+                user_weights_obj = UserCriteriaWeights.objects.filter(user=request.user).first()
+                if user_weights_obj and user_weights_obj.weights:
+                    user_weights = user_weights_obj.weights
+            except Exception as e:
+                print(f"Error getting user weights: {e}")
+        
+        if user_weights:
+            weight_values = []
+            for c in criteria:
+                w = user_weights.get(c, 0.2)
+                weight_values.append(w)
+                print(f"  {c}: {w}")
+            
+            total = sum(weight_values)
+            if total > 0:
+                user_weights_values = np.array([w / total for w in weight_values])
+            else:
+                user_weights_values = np.ones(len(criteria)) / len(criteria)
+            
+            bz_model.criteria_weights = user_weights_values
+            user_weights_used = True
+            
+            for i, criterion in enumerate(criteria):
+                criteria_weights[criterion] = float(user_weights_values[i])
+    
+    if not user_weights_used:
+        # Экспертные веса из админки (как в build_fuzzy_model)
+        print("=" * 50)
+        print("Загружаем ЭКСПЕРТНЫЕ ВЕСА КРИТЕРИЕВ из админки")
+        print("=" * 50)
+        
+        try:
+            settings = FuzzyComparisonSettings.objects.first()
+            if settings and settings.use_expert_comparisons and settings.criteria_comparisons:
+                # Создаем матрицу парных сравнений критериев
+                temp_matrix = ComparisonMatrix(criteria, "Критерии")
+                for comp in json.loads(settings.criteria_comparisons):
+                    criterion1 = comp.get('criterion1')
+                    criterion2 = comp.get('criterion2')
+                    if criterion1 in criteria and criterion2 in criteria:
+                        i = criteria.index(criterion1)
+                        j = criteria.index(criterion2)
+                        
+                        # Получаем значение сравнения
+                        value = comp.get('value')
+                        if value is None:
+                            ling = comp.get('linguistic_value', '1')
+                            if '/' in ling:
+                                num, den = ling.split('/')
+                                value = float(num) / float(den)
+                            else:
+                                try:
+                                    value = float(ling)
+                                except:
+                                    value = 1
+                        
+                        temp_matrix.set_comparison(i, j, float(value))
+                
+                # Рассчитываем веса методом собственного вектора
+                weights = temp_matrix.calculate_weights()
+                bz_model.criteria_weights = weights
+                
+                for i, criterion in enumerate(criteria):
+                    criteria_weights[criterion] = float(weights[i])
+                    print(f"  {criterion}: {weights[i]:.4f} ({weights[i]*100:.1f}%)")
+            else:
+                print("Экспертные веса не найдены, используем равные")
+                criteria_weights = {c: 0.2 for c in criteria}
+                criteria_weights['education'] = 0.2
+                bz_model.criteria_weights = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
+        except Exception as e:
+            print(f"Error loading expert weights: {e}")
+            criteria_weights = {c: 0.2 for c in criteria}
+            criteria_weights['education'] = 0.2
+            bz_model.criteria_weights = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
+    
+    # Выводим итоговые веса
+    print("\n" + "=" * 50)
+    print("ИТОГОВЫЕ ВЕСА КРИТЕРИЕВ:")
+    print("=" * 50)
+    for criterion, weight in criteria_weights.items():
+        print(f"  {criterion.upper()}: {weight:.4f} ({weight*100:.1f}%)")
+    
+    # Рассчитываем решение с весами
+    bz_model.calculate_solution(use_weights=True)
+    
+    # ============================================================
+    # 7. Получаем результаты
+    # ============================================================
+    results = []
+    ranking = bz_model.get_ranking()
+    
+    for rank, (alt, mu) in enumerate(ranking, 1):
+        teacher_id = int(alt.split('_')[1])
+        resume = next((r for r in resumes if r.id == teacher_id), None)
+        if not resume:
+            continue
+        
+        alt_data = None
+        for i, tid in enumerate(teacher_ids):
+            if tid == teacher_id:
+                alt_data = alternatives_data[i]
+                break
+        
+        memberships = {}
+        for criterion in criteria:
+            fuzzy_set = bz_model.criterion_fuzzy_sets.get(criterion)
+            if fuzzy_set:
+                membership = fuzzy_set.get_membership(alt)
+                memberships[criterion] = membership * 100 if membership else 0
+            else:
+                memberships[criterion] = 0
+        
+        results.append({
+            'resume': resume,
+            'mu': mu * 100,
+            'rank': rank,
+            'is_best': rank == 1,
+            'memberships': memberships,
+            'price': alt_data.get('price', 0) if alt_data else 0,
+            'distance': alt_data.get('distance', 0) if alt_data else 0,
+            'experience': alt_data.get('experience', 0) if alt_data else 0,
+            'rating': alt_data.get('rating', 0) if alt_data else 0,
+            'raw_data': alt_data if alt_data else {}
+        })
+    
+    print(f"Results count: {len(results)}")
+    
+    # Получаем отчет о согласованности
+    consistency_report = bz_model.get_consistency_report()
+    
+    # Фильтры для отчета
+    filters = {
+        'price_min': price_min,
+        'price_max': price_max,
+        'max_distance': max_distance,
+        'min_experience': min_experience,
+        'min_rating': min_rating,
+        'weight_mode': weight_mode
+    }
+    
+    # ============================================================
+    # 8. Экспорт в Excel
+    # ============================================================
+    from .excel_export import TeacherSearchExcelExporter
+    
+    # Получаем экспертные сравнения для отчета
+    criteria_comparisons = []
+    alternative_comparisons = {}
+    
+    if use_expert:
+        try:
+            settings = FuzzyComparisonSettings.objects.first()
+            if settings:
+                if settings.criteria_comparisons:
+                    criteria_comparisons = json.loads(settings.criteria_comparisons)
+                if settings.alternative_comparisons:
+                    alternative_comparisons = json.loads(settings.alternative_comparisons)
+        except:
+            pass
+    
+    exporter = TeacherSearchExcelExporter(
+        model=bz_model,
+        results=results,
+        alternatives_data=alternatives_data,
+        teacher_ids=teacher_ids,
+        user_location=(user_lat, user_lon),
+        criteria_weights=criteria_weights,
+        consistency_report=consistency_report,
+        user_filters=filters,
+        use_expert_weights=use_expert,
+        criteria_comparisons=criteria_comparisons,
+        alternative_comparisons=alternative_comparisons
+    )
+    
+    # Экспортируем
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    mode_str = "expert" if use_expert else "user"
+    filename = f"teacher_search_{mode_str}_{timestamp}.xlsx"
+    
+    excel_data = exporter.export_to_bytesio()
+    
+    # Формируем HTTP ответ
+    response = HttpResponse(
+        excel_data.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    print(f"=== EXPORT_COMPLETE: {filename} ===")
+    print(f"Weights used: {criteria_weights}")
+    print("=" * 80)
+    
+    return response

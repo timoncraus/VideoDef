@@ -838,6 +838,21 @@
                                 <button type="button" class="btn-search" onclick="submitSearch()">🔍 Применить фильтры</button>
                                 <button type="button" class="btn-reset" onclick="resetFilters()">↺ Сбросить фильтры</button>
                             </form>
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">Результаты поиска</h5>
+                                        <a href="{% url 'resume:export_search_results_excel' %}?{{ request.GET.urlencode }}" 
+                                        class="btn btn-success">
+                                            <i class="fas fa-file-excel"></i> 📊 Экспорт в Excel (с детальными вычислениями)
+                                        </a>
+                                    </div>
+                                    <p class="text-muted mt-2">
+                                        Экспорт включает: исходные данные, матрицы сравнений, нечеткие множества, 
+                                        веса критериев, пошаговый расчет μD, финальное ранжирование и проверку согласованности.
+                                    </p>
+                                </div>
+                            </div>
                             <input type="hidden" name="ordering" id="ordering-input" value="{{ request.GET.ordering|default:'rank' }}">
                         </div>
                     </div>
@@ -889,11 +904,13 @@
                                     <button class="btn-analysis" onclick="toggleFuzzyDetails('details-{{ result.resume.pk }}')">📊 Анализ Беллмана-Заде</button>
                                 </div>
                                 <div class="fuzzy-details" id="details-{{ result.resume.pk }}">
+                                    {% load resume_filters %}
+
                                     <h4>📐 Детальный нечеткий анализ</h4>
                                     <p class="consistency-info mb-3">Степени принадлежности по критериям</p>
                                     {% for criterion, mu in result.memberships.items %}
                                         <div class="criterion-row">
-                                            <span class="criterion-name">{{ criterion|upper }}</span>
+                                            <span class="criterion-name">{{ criterion|translate_criterion }}</span>
                                             <div class="criterion-bar-wrap"><div class="criterion-bar-fill" style="width: 0%" data-width="{{ mu|fix_float }}%"></div></div>
                                             <span class="criterion-value">{{ mu|floatformat:1 }}%</span>
                                         </div>

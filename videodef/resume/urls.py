@@ -27,4 +27,5 @@ urlpatterns = [
     path('weights/settings/', views.user_weights_settings, name='user_weights_settings'),
 
     path('verification/', views.verification_report, name='verification_report'),
+    path('export-excel/', views.export_search_results_excel, name='export_search_results_excel'),
 ]

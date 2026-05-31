@@ -1,59 +1,107 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block page_name %}Верификация метода Беллмана-Заде{% endblock %}
+{% block title %}Верификация метода Беллмана-Заде{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1>📊 Верификация метода Беллмана-Заде</h1>
-    <p class="text-muted">Сравнение с эталонными данными из учебного пособия</p>
+    <h1 class="mb-4">Верификация метода Беллмана-Заде</h1>
     
-    <div class="alert alert-success">
-        <strong>✅ Результаты верификации:</strong>
-        <ul class="mb-0 mt-2">
-            <li>✓ Ранжирование альтернатив: P4 (лучший) > P3 > P2 > P1 (худший)</li>
-            <li>✓ Лучшая альтернатива определена верно (P4)</li>
-            <li>✓ Формула (2.35) работает корректно (погрешность в пределах 5%)</li>
-            <li>✓ Автокоррекция матриц работает</li>
-        </ul>
-    </div>
-    
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">📊 Веса критериев (α-коэффициенты)</h5>
-                </div>
-                <div class="card-body text-center">
-                    <img src="data:image/png;base64,{{ plots.weights_chart }}" 
-                         class="img-fluid" 
-                         alt="Веса критериев">
-                </div>
+    <!-- Статус верификации -->
+    <div class="alert {% if verification_passed %}alert-success{% else %}alert-warning{% endif %} mb-4">
+        <h4 class="alert-heading">
+            {% if verification_passed %}
+            ✅ Результаты верификации: УСПЕШНО
+            {% else %}
+            ⚠️ Результаты верификации: ТРЕБУЕТ ВНИМАНИЯ
+            {% endif %}
+        </h4>
+        <hr>
+        <div class="row">
+            <div class="col-md-6">
+                <strong>Ранжирование альтернатив:</strong><br>
+                {{ ranking_text|default:"Нет данных" }}
             </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">📈 Финальное решение μD</h5>
-                </div>
-                <div class="card-body text-center">
-                    <img src="data:image/png;base64,{{ plots.solution_chart }}" 
-                         class="img-fluid" 
-                         alt="Финальное решение μD">
-                    <p class="text-muted mt-2">* Меньшее значение = лучшая альтернатива</p>
-                </div>
+            <div class="col-md-6">
+                <strong>Лучшая альтернатива:</strong><br>
+                {{ best_alternative }} 
+                {% if best_correct %}
+                <span class="badge bg-success">✓ Определена верно (P4)</span>
+                {% else %}
+                <span class="badge bg-warning">⚠ Отличается от эталона</span>
+                {% endif %}
             </div>
         </div>
     </div>
     
-    <div class="card">
-        <div class="card-header bg-info text-white">
+    <!-- График весов критериев -->
+    {% if plots.weights_chart %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📊 Веса критериев (α-коэффициенты)</h5>
+        </div>
+        <div class="card-body text-center">
+            <img src="data:image/png;base64,{{ plots.weights_chart }}" 
+                 class="img-fluid" 
+                 alt="Веса критериев"
+                 style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- График финального решения -->
+    {% if plots.solution_chart %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📈 Финальное решение μD (меньше = лучше)</h5>
+        </div>
+        <div class="card-body text-center">
+            <img src="data:image/png;base64,{{ plots.solution_chart }}" 
+                 class="img-fluid" 
+                 alt="Финальное решение μD"
+                 style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Сравнение с эталоном -->
+    {% if plots.comparison_chart %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">🔄 Сравнение с эталонными данными</h5>
+        </div>
+        <div class="card-body text-center">
+            <img src="data:image/png;base64,{{ plots.comparison_chart }}" 
+                 class="img-fluid" 
+                 alt="Сравнение с эталоном"
+                 style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Погрешность -->
+    {% if plots.errors_chart %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">⚠️ Относительная погрешность</h5>
+        </div>
+        <div class="card-body text-center">
+            <img src="data:image/png;base64,{{ plots.errors_chart }}" 
+                 class="img-fluid" 
+                 alt="Погрешность вычислений"
+                 style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Таблица весов критериев -->
+    <div class="card mb-4">
+        <div class="card-header">
             <h5 class="mb-0">📝 Детальные результаты расчетов</h5>
         </div>
         <div class="card-body">
             <h6>Веса критериев:</h6>
-            <table class="table table-sm">
+            <table class="table table-sm table-bordered">
                 <thead>
                     <tr>
                         <th>Критерий</th>
@@ -70,32 +118,61 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-             </table>
+            </table>
             
             <h6 class="mt-3">Финальное решение μD:</h6>
-            <table class="table table-sm">
+            <table class="table table-sm table-bordered">
                 <thead>
                     <tr>
                         <th>Альтернатива</th>
                         <th>μD (расчет)</th>
                         <th>Ранг</th>
+                        {% if expected_mu %}<th>μD (эталон)</th><th>Погрешность</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for alt, mu in solution.items %}
-                    <tr {% if forloop.first %}class="table-success"{% endif %}>
-                        <td><strong>{{ alt }}</strong></td>
-                        <td>{{ mu|floatformat:3 }} ({{ mu|floatformat:1 }}%)</td>
-                        <td>{{ forloop.counter }}</td>
-                     </tr>
+                    <tr>
+                        <td>{{ alt }}</td>
+                        <td>{{ mu|floatformat:3 }}</td>
+                        <td>
+                            {% for a, m in solution.items %}
+                                {% if m < mu %}
+                                    {% with counter=forloop.counter %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% endfor %}
+                            {% with rank_list=solution.items|dictsort:1 %}
+                                {% for item in rank_list %}
+                                    {% if item.0 == alt %}
+                                        {{ forloop.counter }}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                        </td>
+                        {% if expected_mu %}
+                        <td>
+                            {% for exp_alt, exp_mu in expected_mu.items %}
+                                {% if exp_alt == alt %}
+                                    {{ exp_mu|floatformat:3 }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for err_alt, err_data in errors.items %}
+                                {% if err_alt == alt %}
+                                    <span class="{% if err_data.relative_error < 5 %}text-success{% elif err_data.relative_error < 10 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ err_data.relative_error|floatformat:1 }}%
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        {% endif %}
+                    </tr>
                     {% endfor %}
                 </tbody>
-             </table>
+            </table>
         </div>
-    </div>
-    
-    <div class="mt-3">
-        <a href="{% url 'resume:public_resume_list' %}" class="btn btn-secondary">← Вернуться к поиску</a>
     </div>
 </div>
 {% endblock %}

@@ -141,6 +141,12 @@ class Profile(models.Model):
             return f"{self.location_lat}, {self.location_lon}"
         return ""
 
+    def get_full_name(self):
+        """Возвращает полное имя пользователя"""
+        if self.patronymic:
+            return f"{self.last_name} {self.first_name} {self.patronymic}"
+        return f"{self.last_name} {self.first_name}"
+
     def __str__(self):
         return f"{self.role_display} {self.last_name} {self.first_name} {self.patronymic or ''}".strip()
 
