@@ -856,13 +856,24 @@ def get_child_violations(request):
     violations = list(child.violation_types.values('id', 'name'))
     return JsonResponse({'violations': violations})
 
-
 def is_parent(user):
-    return user.is_authenticated and user.profile.role and user.profile.role.name == 'Родитель'
+    if not user.is_authenticated:
+        return False
+    if not hasattr(user, 'profile') or user.profile is None:
+        return False
+    if not user.profile.role:
+        return False
+    return user.profile.role.name == 'Родитель'
 
 
 def is_teacher(user):
-    return user.is_authenticated and user.profile.role and user.profile.role.name == 'Преподаватель'
+    if not user.is_authenticated:
+        return False
+    if not hasattr(user, 'profile') or user.profile is None:
+        return False
+    if not user.profile.role:
+        return False
+    return user.profile.role.name == 'Преподаватель'
 
 @login_required
 @user_passes_test(is_parent, login_url='account:home')

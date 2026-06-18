@@ -119,7 +119,7 @@
             </div>
             
             <!-- Форма отзыва -->
-            {% if request.user.is_authenticated and request.user.profile.role.name == 'Родитель' and request.user != resume.user %}
+            {% if request.user.is_authenticated and request.user.profile and request.user.profile.role and request.user.profile.role.name == 'Родитель' and request.user != resume.user %}
                 <div class="card">
                     <div class="card-header bg-info text-white">
                         <h4 class="mb-0">✍️ Оставить отзыв</h4>
