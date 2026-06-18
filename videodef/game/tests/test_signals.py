@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock  # <-- ДОБАВЛЯЕМ MagicMock
 from game.models import UserGame, UserPuzzle
 from game.tests.utils import GameTestBase
 
@@ -29,10 +29,9 @@ class SignalsTests(GameTestBase):
         self.user_puzzle.save()
         
         # Удаляем игру
-        self.user_game.delete()
-        
-        # Проверяем, что delete был вызван
-        mock_image.delete.assert_called_once_with(save=False)
+        with patch.object(mock_image, 'delete') as mock_delete:
+            self.user_game.delete()
+            mock_delete.assert_called_once_with(save=False)
         
         # Проверяем, что print был вызван
         mock_print.assert_any_call("SIGNAL: Файл пазла 'test_image.jpg' удален.")
