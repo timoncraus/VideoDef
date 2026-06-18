@@ -125,10 +125,9 @@ class GameViewsTest(GameTestBase):
         )
 
     def test_update_puzzle_view_success(self):
-        # Используем числовой ID
         url = reverse(
             "game:update_puzzle", 
-            kwargs={"game_id": self.user_puzzle.game.pk}  # <-- числовой ID
+            kwargs={"game_id": self.user_puzzle.game.game_id}  # строка
         )
         
         from django.test.client import encode_multipart, BOUNDARY

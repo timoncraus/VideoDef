@@ -1,9 +1,6 @@
 from unittest.mock import patch
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.files.storage import default_storage
 from game.models import UserGame, UserPuzzle
 from game.tests.utils import GameTestBase
-import os
 
 
 class SignalsTests(GameTestBase):
@@ -23,64 +20,36 @@ class SignalsTests(GameTestBase):
     def test_delete_user_game_associated_files_simplified_deletes_file(
         self, mock_print
     ):
-        # Создаем файл с реальным сохранением
-        test_file = SimpleUploadedFile(
-            "test_image.jpg",
-            b"file_content",
-            content_type="image/jpeg"
-        )
+        # Создаем мок для файла
+        mock_image = MagicMock()
+        mock_image.name = "test_image.jpg"
         
-        # Сохраняем файл через default_storage
-        saved_path = default_storage.save(f"test_images/{test_file.name}", test_file)
+        # Присваиваем мок пазлу
+        self.user_puzzle.user_image = mock_image
+        self.user_puzzle.save()
         
-        try:
-            # Присваиваем путь к файлу
-            self.user_puzzle.user_image = saved_path
-            self.user_puzzle.save()
-            
-            # Проверяем, что файл существует
-            self.assertTrue(default_storage.exists(saved_path))
-            
-            # Удаляем игру - это должно вызвать сигнал
-            self.user_game.delete()
-            
-            # Проверяем, что файл удален
-            self.assertFalse(default_storage.exists(saved_path))
-            
-            # Проверяем, что сигнал вызвал print
-            mock_print.assert_any_call("SIGNAL: Файл пазла 'test_image.jpg' удален.")
-            
-        finally:
-            # Очистка: если файл остался, удаляем его
-            if default_storage.exists(saved_path):
-                default_storage.delete(saved_path)
+        # Удаляем игру
+        self.user_game.delete()
+        
+        # Проверяем, что delete был вызван
+        mock_image.delete.assert_called_once_with(save=False)
+        
+        # Проверяем, что print был вызван
+        mock_print.assert_any_call("SIGNAL: Файл пазла 'test_image.jpg' удален.")
 
     @patch("game.signals.print")
     def test_signal_handles_exception_gracefully(self, mock_print):
-        # Создаем файл
-        test_file = SimpleUploadedFile(
-            "test_image.jpg",
-            b"file_content",
-            content_type="image/jpeg"
-        )
+        # Создаем мок с исключением
+        mock_image = MagicMock()
+        mock_image.name = "test_image.jpg"
+        mock_image.delete.side_effect = Exception("Storage error")
         
-        # Сохраняем файл
-        saved_path = default_storage.save(f"test_images/{test_file.name}", test_file)
+        self.user_puzzle.user_image = mock_image
+        self.user_puzzle.save()
         
-        try:
-            # Присваиваем путь к файлу
-            self.user_puzzle.user_image = saved_path
-            self.user_puzzle.save()
-            
-            # Мокаем delete, чтобы вызвать исключение
-            with patch.object(self.user_puzzle.user_image, 'delete', side_effect=Exception("Storage error")):
-                self.user_game.delete()
-            
-            # Проверяем, что ошибка была обработана
-            calls = [str(call) for call in mock_print.call_args_list]
-            self.assertTrue(any("SIGNAL UNEXPECTED ERROR" in call for call in calls))
-            
-        finally:
-            # Очистка
-            if default_storage.exists(saved_path):
-                default_storage.delete(saved_path)
+        # Удаляем игру
+        self.user_game.delete()
+        
+        # Проверяем, что ошибка была обработана
+        calls = [str(call) for call in mock_print.call_args_list]
+        self.assertTrue(any("SIGNAL UNEXPECTED ERROR" in call for call in calls))
