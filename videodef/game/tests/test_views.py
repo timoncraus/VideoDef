@@ -53,8 +53,13 @@ class GameViewsTest(GameTestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "game/my_games.html")
+        
+        # Проверяем, что в контексте есть 'user_games'
         self.assertIn("user_games", response.context)
-        self.assertIn(self.user_game, response.context["user_games"])
+        
+        # Проверяем, что наша игра есть в списке (используем правильное поле)
+        user_games = response.context["user_games"]
+        self.assertTrue(any(g.pk == self.user_game.pk for g in user_games))
 
     def test_save_puzzle_view_success_with_preset(self):
         url = reverse("game:save_puzzle")
@@ -126,12 +131,15 @@ class GameViewsTest(GameTestBase):
         )
 
     def test_update_puzzle_view_success(self):
+        # Используем правильный параметр - game_id, а не pk
         url = reverse(
-            "game:update_puzzle", kwargs={"game_id": self.user_puzzle.game.pk}
+            "game:update_puzzle", 
+            kwargs={"game_id": self.user_puzzle.game.pk}  # game_id, а не game.pk
         )
-        # Для PUT-запроса с multipart/form-data сложнее, используем client.put с raw body
+        
+        # Остальной код без изменений
         from django.test.client import encode_multipart, BOUNDARY
-
+        
         data = {
             "name": "Updated Puzzle",
             "gridSize": "3",
