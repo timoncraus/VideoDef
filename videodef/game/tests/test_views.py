@@ -125,7 +125,7 @@ class GameViewsTest(GameTestBase):
         )
 
     def test_update_puzzle_view_success(self):
-        # ВАЖНО: используем game_id (это строка, primary key)
+        # Используем правильный game_id (это строка, primary key)
         url = reverse(
             "game:update_puzzle", 
             kwargs={"game_id": self.user_puzzle.game.game_id}  # <-- правильный ID
