@@ -126,14 +126,17 @@ def my_games_view(request):
 
 @login_required
 @require_http_methods(["DELETE"])
+@csrf_exempt  # Добавляем для DELETE запросов
 def delete_game_view(request, game_id):
     """
     Удаляет игру с указанным game_id, принадлежащую текущему пользователю.
     """
     try:
-        game_to_delete = get_object_or_404(UserGame.objects.select_related(
-            'puzzle_details', 'memory_game_details'
-        ), pk=game_id, user=request.user)
+        game_to_delete = get_object_or_404(
+            UserGame.objects.select_related('puzzle_details', 'memory_game_details'), 
+            pk=game_id, 
+            user=request.user
+        )
         
         display_name = game_to_delete.game_id
         if hasattr(game_to_delete, 'puzzle_details') and game_to_delete.puzzle_details:
@@ -143,12 +146,23 @@ def delete_game_view(request, game_id):
 
         game_to_delete.delete()
         
-        return JsonResponse({'status': 'success', 'message': f'Игра "{display_name}" успешно удалена.'})
-    except UserGame.DoesNotExist: 
-        return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
+        return JsonResponse({
+            'status': 'success', 
+            'message': f'Игра "{display_name}" успешно удалена.'
+        })
+        
+    except UserGame.DoesNotExist:
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Игра не найдена или у вас нет прав на ее удаление.'
+        }, status=404)
+        
     except Exception as e:
         print(f"Ошибка при удалении игры {game_id}: {e}")
-        return JsonResponse({'status': 'error', 'message': 'Ошибка при удалении.'}, status=500)
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Произошла ошибка при удалении игры.'
+        }, status=500)
     
 @login_required
 @require_POST

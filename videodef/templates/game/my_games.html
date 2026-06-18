@@ -4,8 +4,8 @@
 {% block page_name %}Мои игры{% endblock %}
 
 {% block style %}
-<link rel="stylesheet" href="{% static 'css\game\my_games.css' %}">
-<link rel="stylesheet" href="{% static 'css\game\game_delete_window.css' %}">
+<link rel="stylesheet" href="{% static 'css/game/my_games.css' %}">
+<link rel="stylesheet" href="{% static 'css/game/game_delete_window.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -15,8 +15,8 @@
         {% if user_games %}
             <div class="my-saved-games-grid">
                 {% for game in user_games %}
-                <div class="saved-game-item-wrapper" data-game-id-wrapper="{{ game.pk }}"> <!-- Обертка для удобного удаления -->
-                    <a href="#" class="saved-game-item">
+                <div class="saved-game-item-wrapper" data-game-id-wrapper="{{ game.pk }}">
+                    <div class="saved-game-item">
                         <article class="saved-game-card">
                             <div class="saved-game-card__image-wrapper">
                                 {% if game.display_image_url %}
@@ -34,18 +34,21 @@
                                 <p class="saved-game-card__info"><small>Обновлена: {{ game.updated_at|date:"d.m.y" }}</small></p>
                             </div>
                             <div class="saved-game-card__actions">
-                                <button href="{% url 'game:delete_game' game.id %}" class="button button--danger delete-game-btn" data-game-id="{{ game.pk }}" title="Удалить игру">
+                                <!-- Используем кнопку с data-атрибутом для удаления -->
+                                <button class="button button--danger delete-game-btn" 
+                                        data-game-id="{{ game.pk }}" 
+                                        data-game-name="{{ game.display_name }}"
+                                        title="Удалить игру">
                                     Удалить
                                 </button>
-                                <!-- Можно добавить кнопку "Редактировать" или "Играть" сюда же -->
                             </div>
                         </article>
-                    </a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         {% else %}
-            <div class="alert alert-info" id="no-games-message"> <!-- Добавлен ID -->
+            <div class="alert alert-info" id="no-games-message">
                 У вас пока нет сохраненных игр.
             </div>
         {% endif %}
@@ -95,7 +98,7 @@
 <!-- Модальное окно подтверждения удаления -->
 <div id="deleteConfirmationModal" class="modal" style="display:none;">
     <div class="modal-content">
-        <span class="modal-close-btn">×</span>
+        <span class="modal-close-btn">&times;</span>
         <h2>Подтверждение удаления</h2>
         <p>Вы уверены, что хотите удалить игру "<strong id="gameNameToDelete"></strong>"?</p>
         <p><small>Это действие нельзя будет отменить.</small></p>
@@ -109,4 +112,99 @@
 
 {% block scripts %}
 <script src="{% static 'js/game/my_games.bundle.js' %}"></script>
+<script>
+    // Простой JavaScript для обработки удаления
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-game-btn');
+        const modal = document.getElementById('deleteConfirmationModal');
+        const gameNameSpan = document.getElementById('gameNameToDelete');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const cancelBtn = document.getElementById('cancelDeleteBtn');
+        const closeBtn = document.querySelector('.modal-close-btn');
+        let currentGameId = null;
+
+        function getCSRFToken() {
+            const cookieValue = document.cookie.match(/csrftoken=([^;]+)/);
+            return cookieValue ? cookieValue[1] : '';
+        }
+
+        function deleteGame(gameId) {
+            const url = `/games/api/delete-game/${gameId}/`;
+            
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Удаляем карточку игры из DOM
+                    const gameItem = document.querySelector(`[data-game-id-wrapper="${gameId}"]`);
+                    if (gameItem) {
+                        gameItem.remove();
+                    }
+                    // Проверяем, остались ли игры
+                    const remainingGames = document.querySelectorAll('.saved-game-item-wrapper');
+                    if (remainingGames.length === 0) {
+                        const mainContent = document.querySelector('.my-games-main-content');
+                        mainContent.innerHTML = '<div class="alert alert-info">У вас пока нет сохраненных игр.</div>';
+                    }
+                    // Закрываем модальное окно
+                    modal.style.display = 'none';
+                } else {
+                    alert('Ошибка при удалении игры: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при удалении игры.');
+            });
+        }
+
+        // Открытие модального окна
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const gameId = this.dataset.gameId;
+                const gameName = this.dataset.gameName || 'Без названия';
+                currentGameId = gameId;
+                gameNameSpan.textContent = gameName;
+                modal.style.display = 'block';
+            });
+        });
+
+        // Подтверждение удаления
+        confirmBtn.addEventListener('click', function() {
+            if (currentGameId) {
+                deleteGame(currentGameId);
+            }
+        });
+
+        // Отмена удаления
+        cancelBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+            currentGameId = null;
+        });
+
+        // Закрытие по клику на крестик
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+                currentGameId = null;
+            });
+        }
+
+        // Закрытие по клику вне модального окна
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                currentGameId = null;
+            }
+        });
+    });
+</script>
 {% endblock %}
