@@ -15,7 +15,8 @@ class GameTestBase(TestCase):
         self.user = User.objects.create_user(
             username='user1',
             email='user1@example.com',
-            password='pass1234'
+            password='pass1234',
+            phone_number='+71234567890'  # Короткий номер
         )
         
         # Создаем жанр

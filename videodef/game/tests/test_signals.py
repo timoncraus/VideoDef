@@ -1,6 +1,5 @@
 from unittest.mock import patch, MagicMock
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 import tempfile
 import os
 
@@ -29,11 +28,12 @@ class SignalsTests(GameTestBase):
         with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
             tmp_file.write(b'file_content')
             tmp_file_path = tmp_file.name
+            file_name = os.path.basename(tmp_file_path)
         
         try:
             # Создаем SimpleUploadedFile
             test_file = SimpleUploadedFile(
-                os.path.basename(tmp_file_path),
+                file_name,
                 b'file_content',
                 content_type='image/jpeg'
             )
@@ -45,10 +45,10 @@ class SignalsTests(GameTestBase):
             # Удаляем игру
             self.user_game.delete()
             
-            # Проверяем, что print был вызван
-            mock_print.assert_any_call(
-                f"SIGNAL: Файл пазла '{os.path.basename(tmp_file_path)}' удален."
-            )
+            # Проверяем, что print был вызван с правильным сообщением
+            expected_message = f"SIGNAL: Файл пазла '{file_name}' удален."
+            mock_print.assert_any_call(expected_message)
+            
         finally:
             # Удаляем временный файл если он существует
             if os.path.exists(tmp_file_path):
@@ -56,17 +56,18 @@ class SignalsTests(GameTestBase):
 
     @patch("game.signals.print")
     def test_signal_handles_exception_gracefully(self, mock_print):
-        # Создаем мок для изображения
+        # Создаем мок для изображения, который вызывает исключение при удалении
         mock_image = MagicMock()
         mock_image.name = "test.jpg"
-        mock_image.delete.side_effect = Exception("Storage error")
         
         # Присваиваем мок пазлу
         self.user_puzzle.user_image = mock_image
         self.user_puzzle.save()
         
-        # Удаляем игру
-        self.user_game.delete()
+        # Мокаем метод delete, чтобы вызвать исключение
+        with patch.object(mock_image, 'delete', side_effect=Exception("Storage error")):
+            # Удаляем игру
+            self.user_game.delete()
         
         # Проверяем, что ошибка была обработана
         calls = [str(call) for call in mock_print.call_args_list]

@@ -10,13 +10,13 @@ User = get_user_model()
 class ResumeTestBase(TestCase):
     def setUp(self):
         super().setUp()
-        # Используем уникальный phone_number для каждого теста
+        # Используем короткий уникальный номер (не более 15 символов)
         unique_id = str(uuid.uuid4())[:8]
         self.user = User.objects.create_user(
             username=f'testuser_{unique_id}',
             email=f'test_{unique_id}@example.com',
             password='testpass123',
-            phone_number=f'+7{unique_id}1234567'
+            phone_number=f'+7{unique_id}'  # Короткий номер
         )
         self.client.login(username=self.user.username, password='testpass123')
         
