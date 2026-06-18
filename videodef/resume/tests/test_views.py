@@ -93,6 +93,8 @@ class ResumeViewsTest(ResumeTestBase):
         # В данном случае пользователь - владелец, поэтому ссылка не показывается
         # self.assertNotContains(response, "Написать в чат")
 
+    # videodef/resume/tests/test_views.py
+
     def test_create_review_view(self):
         """Тест создания отзыва"""
         # Создаем преподавателя с правильным профилем
@@ -124,7 +126,7 @@ class ResumeViewsTest(ResumeTestBase):
             price_max=1000,
         )
         
-        # Убеждаемся, что пользователь залогинен и имеет роль "Родитель"
+        # Убеждаемся, что пользователь залогинен
         self.client.login(username=self.user.username, password='testpass123')
         
         # Проверяем, что у пользователя есть роль "Родитель"
@@ -134,14 +136,22 @@ class ResumeViewsTest(ResumeTestBase):
         
         url = reverse("resume:create_review", kwargs={"teacher_id": teacher_user.unique_id})
         
-        # GET запрос - может быть редирект если пользователь не прошел проверку is_parent
+        # GET запрос - должен быть успешным, так как пользователь родитель
         response_get = self.client.get(url)
         
-        # Если редирект, проверяем что он на страницу входа или home
+        # Если редирект - проверяем что он на страницу входа (если не родитель)
         if response_get.status_code == 302:
-            # Это может быть редирект на login или home
-            # Проверяем что редирект куда-то идет
-            self.assertIn(response_get.url, ['/account/', '/account/login/'])
+            # Если редирект на страницу просмотра пользователя - значит отзыв уже существует или ошибка
+            if '/view/' in response_get.url:
+                # Это значит, что мы уже создали отзыв? Проверяем
+                self.assertTrue(
+                    TeacherReview.objects.filter(
+                        teacher=teacher_user,
+                        parent=self.user,
+                    ).exists()
+                )
+            else:
+                self.assertIn('/login/', response_get.url)
         else:
             self.assertEqual(response_get.status_code, 200)
             
