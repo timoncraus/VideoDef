@@ -816,7 +816,17 @@ class ResumeDetailView(DetailView):
     model = Resume
     template_name = "resume/public_resume_detail.html"
     context_object_name = "resume"
-
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        resume = self.get_object()
+        
+        # Получаем отзывы
+        from .models import TeacherReview
+        context['reviews'] = TeacherReview.objects.filter(teacher=resume.user).order_by('-created_at')
+        
+        return context
 
 @login_required
 @require_POST

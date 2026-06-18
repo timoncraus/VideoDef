@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from game.models import Genre, UserGame
+from game.models import Genre
 
 User = get_user_model()
 
@@ -11,12 +11,12 @@ class GameTestBase(TestCase):
     def setUp(self):
         super().setUp()
         
-        # Создаем пользователя
+        # Создаем пользователя с коротким номером
         self.user = User.objects.create_user(
             username='user1',
             email='user1@example.com',
             password='pass1234',
-            phone_number='+71234567890'  # Короткий номер
+            phone_number='+7123456789'
         )
         
         # Создаем жанр
