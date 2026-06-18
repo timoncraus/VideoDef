@@ -1,22 +1,31 @@
 from django.test import TestCase
-
-from account.models import User
+from django.contrib.auth import get_user_model
+from document.models import Document
 from resume.models import ViolationType
-from document.models import Document, DocumentVerificationStatus
+import uuid
+
+User = get_user_model()
 
 
 class ResumeTestBase(TestCase):
     def setUp(self):
-        self.violation = ViolationType.objects.create(name="Нарушение слуха")
+        super().setUp()
+        # Используем уникальный phone_number для каждого теста
+        unique_id = str(uuid.uuid4())[:8]
         self.user = User.objects.create_user(
-            username="teacher", email="teacher@example.com", password="pass123"
+            username=f'testuser_{unique_id}',
+            email=f'test_{unique_id}@example.com',
+            password='testpass123',
+            phone_number=f'+7{unique_id}1234567'
         )
-
-        self.ver_status = DocumentVerificationStatus.objects.create(name="На проверке")
+        self.client.login(username=self.user.username, password='testpass123')
+        
+        # Создаем тестовые данные
         self.document = Document.objects.create(
             user=self.user,
-            name="Диплом",
-            info="Диплом с отличием о высшем образовании",
-            ver_status=self.ver_status,
+            name="Test Document",
+            info="Test info"
         )
-        self.client.login(username="teacher", password="pass123")
+        self.violation = ViolationType.objects.create(
+            name="Test Violation"
+        )

@@ -10,14 +10,7 @@ User = get_user_model()
 class ResumeViewsTest(ResumeTestBase):
     def setUp(self):
         super().setUp()
-        # Создаем пользователя с правильными параметрами
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
-        # Логинимся через клиент
-        self.client.login(username='testuser', password='testpass123')
+        # Пользователь уже создан в ResumeTestBase
         
         # Создаем резюме с обязательными полями
         self.resume = Resume.objects.create(
@@ -27,6 +20,8 @@ class ResumeViewsTest(ResumeTestBase):
             status=Resume.DRAFT,
             education_level=5,
             experience_years=3,
+            price_min=500,
+            price_max=1000,
         )
 
     def test_list_view(self):
@@ -41,6 +36,8 @@ class ResumeViewsTest(ResumeTestBase):
             "status": Resume.DRAFT,
             "education_level": 5,
             "experience_years": 5,
+            "price_min": 600,
+            "price_max": 1200,
         }
         response = self.client.post(reverse("resume:create_my_resume"), data)
         self.assertEqual(response.status_code, 302)
@@ -49,12 +46,10 @@ class ResumeViewsTest(ResumeTestBase):
     def test_update_view(self):
         url = reverse("resume:edit_my_resume", kwargs={"pk": self.resume.pk})
         
-        # GET запрос
         response_get = self.client.get(url)
         self.assertEqual(response_get.status_code, 200)
         self.assertContains(response_get, "Резюме")
         
-        # POST запрос с обновленными данными
         response_post = self.client.post(
             url,
             {
@@ -63,6 +58,8 @@ class ResumeViewsTest(ResumeTestBase):
                 "status": Resume.ACTIVE,
                 "education_level": 8,
                 "experience_years": 7,
+                "price_min": 400,
+                "price_max": 900,
             },
             follow=True
         )
@@ -77,7 +74,6 @@ class ResumeViewsTest(ResumeTestBase):
         self.assertFalse(Resume.objects.filter(pk=self.resume.pk).exists())
 
     def test_public_list_view(self):
-        # Создаем активное резюме для публичного просмотра
         active_resume = Resume.objects.create(
             user=self.user,
             short_info="Публичное резюме",
@@ -85,9 +81,10 @@ class ResumeViewsTest(ResumeTestBase):
             status=Resume.ACTIVE,
             education_level=5,
             experience_years=5,
+            price_min=500,
+            price_max=1000,
         )
         
-        # Выходим из системы для просмотра публичной страницы
         self.client.logout()
         
         response = self.client.get(reverse("resume:public_resume_list"))
@@ -95,7 +92,6 @@ class ResumeViewsTest(ResumeTestBase):
         self.assertContains(response, "Публичное резюме")
 
     def test_public_detail_view(self):
-        # Создаем активное резюме
         active_resume = Resume.objects.create(
             user=self.user,
             short_info="Детальное резюме",
@@ -103,9 +99,10 @@ class ResumeViewsTest(ResumeTestBase):
             status=Resume.ACTIVE,
             education_level=5,
             experience_years=5,
+            price_min=500,
+            price_max=1000,
         )
         
-        # Выходим из системы
         self.client.logout()
         
         url = reverse("resume:public_resume_detail", kwargs={"pk": active_resume.pk})

@@ -12,7 +12,8 @@ class ResumeFormTest(TestCase):
         self.user = User.objects.create_user(
             username='testuser',
             email='test@example.com',
-            password='testpass123'
+            password='testpass123',
+            phone_number='+1234567890'
         )
 
     def test_valid_form(self):
@@ -22,6 +23,8 @@ class ResumeFormTest(TestCase):
             'education_level': 5,
             'experience_years': 5,
             'status': Resume.DRAFT,
+            'price_min': 500,   # Добавляем обязательное поле
+            'price_max': 1000,  # Добавляем обязательное поле
         }
         form = ResumeForm(data=form_data)
         self.assertTrue(form.is_valid(), f"Form errors: {form.errors}")
@@ -34,6 +37,8 @@ class ResumeFormTest(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('education_level', form.errors)
         self.assertIn('experience_years', form.errors)
+        self.assertIn('price_min', form.errors)
+        self.assertIn('price_max', form.errors)
 
     def test_form_save(self):
         form_data = {
@@ -42,9 +47,11 @@ class ResumeFormTest(TestCase):
             'education_level': 3,
             'experience_years': 3,
             'status': Resume.DRAFT,
+            'price_min': 500,
+            'price_max': 1000,
         }
         form = ResumeForm(data=form_data)
-        self.assertTrue(form.is_valid())
+        self.assertTrue(form.is_valid(), f"Form errors: {form.errors}")
         
         resume = form.save(commit=False)
         resume.user = self.user
@@ -54,3 +61,5 @@ class ResumeFormTest(TestCase):
         self.assertEqual(resume.user, self.user)
         self.assertEqual(resume.education_level, 3)
         self.assertEqual(resume.experience_years, 3)
+        self.assertEqual(resume.price_min, 500)
+        self.assertEqual(resume.price_max, 1000)
