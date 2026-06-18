@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
+from django.views.decorators.csrf import csrf_exempt  # <-- Добавляем этот импорт
 from django.core.exceptions import ValidationError
 from django.db import transaction, InternalError
 from django.core.files.uploadhandler import MemoryFileUploadHandler, TemporaryFileUploadHandler
