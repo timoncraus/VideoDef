@@ -3,13 +3,13 @@ from django.db import transaction
 
 from game.models import Genre
 
-
 class Command(BaseCommand):
     help = "Создание жанров игры"
 
     def handle(self, *args, **kwargs):
         genres = [
             (1, "Пазл", "PZL"),
+            (2, "Поиск пар", "MEM"),
         ]
 
         with transaction.atomic():
@@ -19,3 +19,4 @@ class Command(BaseCommand):
                 Genre.objects.create(id=gid, name=gname, code=gcode)
 
         self.stdout.write(self.style.SUCCESS("Жанры игры успешно созданы."))
+

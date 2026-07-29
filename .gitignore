@@ -3,6 +3,7 @@ child_images/
 resume_images/
 document_images/
 puzzle_images/
+memory_game_images/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -5,6 +5,8 @@ from game.tests.utils import GameTestBase
 
 
 class SignalsTests(GameTestBase):
+    """Тесты для сигналов модуля game."""
+    
     def setUp(self):
         super().setUp()
         self.user_game = UserGame.objects.create(user=self.user, genre=self.genre)
@@ -17,10 +19,9 @@ class SignalsTests(GameTestBase):
             user_image=None,
         )
 
-    @patch("game.signals.print")
-    def test_delete_user_game_associated_files_simplified_deletes_file(
-        self, mock_print
-    ):
+    @patch("game.signals.logger")
+    def test_delete_user_game_associated_files_deletes_file(self, mock_logger):
+        """Тест проверяет, что сигнал удаляет файл пазла при удалении игры."""
         # Создаем реальный файл
         test_file = SimpleUploadedFile(
             "test_image.jpg",
@@ -38,15 +39,16 @@ class SignalsTests(GameTestBase):
         # Удаляем игру
         self.user_game.delete()
         
-        # Проверяем, что print был вызван хотя бы один раз
-        mock_print.assert_called()
+        # Проверяем, что logger.info был вызван
+        mock_logger.info.assert_called()
         
         # Проверяем, что в сообщении есть слово "удален"
-        calls = [str(call) for call in mock_print.call_args_list]
+        calls = [str(call) for call in mock_logger.info.call_args_list]
         self.assertTrue(any("удален" in call for call in calls))
 
-    @patch("game.signals.print")
-    def test_signal_handles_exception_gracefully(self, mock_print):
+    @patch("game.signals.logger")
+    def test_signal_handles_exception_gracefully(self, mock_logger):
+        """Тест проверяет, что сигнал корректно обрабатывает исключения."""
         # Создаем реальный файл
         test_file = SimpleUploadedFile(
             "test_image.jpg",
@@ -61,6 +63,9 @@ class SignalsTests(GameTestBase):
         with patch.object(self.user_puzzle.user_image, 'delete', side_effect=Exception("Storage error")):
             self.user_game.delete()
         
-        # Проверяем, что ошибка была обработана
-        calls = [str(call) for call in mock_print.call_args_list]
+        # Проверяем, что ошибка была залогирована
+        mock_logger.error.assert_called()
+        
+        # Проверяем, что в сообщении есть "SIGNAL UNEXPECTED ERROR"
+        calls = [str(call) for call in mock_logger.error.call_args_list]
         self.assertTrue(any("SIGNAL UNEXPECTED ERROR" in call for call in calls))

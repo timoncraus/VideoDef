@@ -25,7 +25,7 @@ BEGIN
           AND up.game_id <> NEW.game_id;
 
         IF existing_puzzle_count > 0 THEN
-            RAISE EXCEPTION 'Пазл с названием "%" и размером сетки %x% уже существует.', NEW.name, NEW.grid_size, NEW.grid_size
+            RAISE EXCEPTION 'Пазл с названием "%" и размером сетки %x% уже существует.', NEW.name, NEW.grid_size, NEW.grid_size;
         END IF;
 
     END IF;

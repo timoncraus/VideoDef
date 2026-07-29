@@ -1,5 +1,5 @@
-import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+
 
 class PuzzleOnBoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -8,7 +8,6 @@ class PuzzleOnBoardConsumer(AsyncWebsocketConsumer):
         
         # Уникальное имя группы для каждого экземпляра пазла на конкретной доске
         self.puzzle_instance_group_name = f'puzzle_on_board_{self.board_room_name}_{self.game_id}'
-
         await self.channel_layer.group_add(
             self.puzzle_instance_group_name,
             self.channel_name
@@ -34,10 +33,18 @@ class PuzzleOnBoardConsumer(AsyncWebsocketConsumer):
                     'sender_channel_name': self.channel_name
                 }
             )
-
+    
     async def puzzle_event(self, event):
+        if event.get('sender_channel_name') == self.channel_name:
+            return
+        
         message = event['message']
-        await self.send(text_data=message)
+        
+        try:
+            await self.send(text_data=message)
+        except Exception:
+            pass
+
 
 class MemoryGameOnBoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -46,7 +53,6 @@ class MemoryGameOnBoardConsumer(AsyncWebsocketConsumer):
 
         # Уникальное имя группы для каждого экземпляра игры "Поиск пар" на доске
         self.memory_game_instance_group_name = f'memory_game_on_board_{self.board_room_name}_{self.game_id}'
-
         await self.channel_layer.group_add(
             self.memory_game_instance_group_name,
             self.channel_name
@@ -74,8 +80,15 @@ class MemoryGameOnBoardConsumer(AsyncWebsocketConsumer):
             )
 
     async def memory_game_event(self, event):
+        if event.get('sender_channel_name') == self.channel_name:
+            return
+        
         message = event['message']
-        await self.send(text_data=message)
+        
+        try:
+            await self.send(text_data=message)
+        except Exception:
+            pass
 
 
 class WhiteboardConsumer(AsyncWebsocketConsumer):
@@ -83,14 +96,13 @@ class WhiteboardConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         # Имя группы, к которой подключаются все пользователи доски
         self.room_group_name = f'whiteboard_{self.room_name}'
-
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
         print(f"WhiteboardConsumer: Пользователь {self.channel_name} подключен к комнате {self.room_group_name}")
 
     async def disconnect(self, close_code):
         # Отсоединяемся от группы комнаты
-        if hasattr(self, 'room_group_name'): # Проверка на случай, если connect не завершился успешно
+        if hasattr(self, 'room_group_name'):  # Проверка на случай, если connect не завершился успешно
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
             print(f"WhiteboardConsumer: Пользователь {self.channel_name} отключен от комнаты {self.room_group_name}")
 
@@ -107,5 +119,12 @@ class WhiteboardConsumer(AsyncWebsocketConsumer):
             )
 
     async def broadcast_message(self, event):
+        if event.get('sender_channel_name') == self.channel_name:
+            return
+        
         message = event['message']
-        await self.send(text_data=message)
+        
+        try:
+            await self.send(text_data=message)
+        except Exception:
+            pass
