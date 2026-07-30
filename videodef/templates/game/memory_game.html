@@ -77,20 +77,19 @@
     const isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
     const loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
     const presetImagesBasePath = "{% static 'images/memory_game_presets/' %}"; 
-    const saveMemoryGameUrl = "{% url 'game:save_memory_game' %}";  // Add game: prefix
-    const loadMemoryGamesUrl = "{% url 'game:load_memory_games' %}";  // Add game: prefix
-    const updateMemoryGameBaseUrl = "{% url 'game:update_memory_game' game_id=0 %}";  // Add game: prefix
+    const saveMemoryGameUrl = "{% url 'game:save_memory_game' %}";
+    const loadMemoryGamesUrl = "{% url 'game:load_memory_games' %}";
+    const updateMemoryGameBaseUrl = "{% url 'game:update_memory_game' game_id=0 %}"; 
     const csrfToken = "{{ csrf_token }}";
 </script>
 <script src="{% static 'js/game/memory_game.bundle.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        if (typeof window.MemoryGameModule !== 'undefined' && typeof window.MemoryGameModule.createMemoryGameSeparately === 'function') {
-            window.MemoryGameModule.createMemoryGameSeparately();
+        if (typeof window.createMemoryGameSeparately === 'function') {
+            window.createMemoryGameSeparately();
         } else {
             console.error("Функция createMemoryGameSeparately не найдена.");
         }
     });
 </script>
 {% endblock %}
-

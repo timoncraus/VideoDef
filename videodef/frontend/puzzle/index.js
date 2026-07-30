@@ -1,345 +1,439 @@
-import { getPuzzleParts, placePieces, createPuzzle, updatePuzzleImage, handlePieceClick, applyRemotePieceInteraction } from './puzzle-logic.js';
+/**
+ * Главный модуль игры "Пазл".
+ * Инициализирует интерфейс и логику для отдельной страницы и доски.
+ */
 
-window.createPuzzleSeparately = createPuzzleSeparately;
+import { getPuzzleParts, createPuzzle, applyRemotePieceInteraction } from './logic.js';
+import { displayPuzzleList, preparePuzzleSaveData, createPuzzleFormData } from './save-load.js';
+import { SaveLoadManager } from '../common/save-load.js';
+import { PuzzleGame } from './game-class.js';
 
 /**
- * Конвертирует строку Data URL в объект Blob.
- * Необходимо для отправки пользовательских изображений на сервер через FormData.
- * @param {string} dataURL - Строка Data URL
- * @returns {Blob|null} - Объект Blob или null в случае ошибки.
+ * Инициализирует интерфейс и логику для отдельной страницы пазла.
+ * Эта функция назначается на window.createPuzzleSeparately в конце файла.
  */
-function dataURLtoBlob(dataURL) {
-    try {
-        // Разделяем строку на метаданные (MIME-тип) и данные Base64
-        const parts = dataURL.split(';base64,');
-        const contentType = parts[0].split(':')[1];
-        // Декодируем Base64 строку в бинарную строку
-        const raw = window.atob(parts[1]);
-        const rawLength = raw.length;
-        // Создаем массив 8-битных беззнаковых целых чисел
-        const uInt8Array = new Uint8Array(rawLength);
-        for (let i = 0; i < rawLength; ++i) {
-            uInt8Array[i] = raw.charCodeAt(i);
-        }
-        // Создаем и возвращаем Blob с указанным MIME-типом
-        return new Blob([uInt8Array], { type: contentType });
-    } catch (error) {
-        console.error("Ошибка конвертации Data URL в Blob:", error);
-        return null;
-    }
-}
-
-/**
- * Отображает список сохраненных пазлов в указанном контейнере.
- * @param {HTMLElement} container - DOM-элемент (например, div), куда будет добавлен список.
- * @param {Array<object>} puzzles - Массив объектов, каждый из которых представляет сохраненный пазл.
- */
-function displayPuzzleList(container, puzzles) {
-    if (puzzles.length === 0) {
-        container.innerHTML = '<p>У вас пока нет сохраненных пазлов.</p>';
+function createPuzzleSeparately() {
+    const [localPuzzleParams, puzzleContainer, message] = getPuzzleParts();
+    localPuzzleParams.onWhiteboard = false;
+    localPuzzleParams.name = "";
+    localPuzzleParams.id = null;
+    localPuzzleParams.ws = null;
+    
+    const wrapper = document.getElementById('puzzle-wrapper');
+    if (!wrapper) {
+        console.error("#puzzle-wrapper not found!");
         return;
     }
-
-    const ul = document.createElement('ul');
-    // Проходим по каждому объекту пазла в массиве
-    puzzles.forEach(puzzle => {
-        const li = document.createElement('li');
-        let imageInfo = puzzle.has_user_image ? "(свое фото)" : "(пресет)";
-        li.textContent = `${puzzle.name} (${puzzle.grid_size}x${puzzle.grid_size}) ${imageInfo}`;
-        // Сохраняем полные данные пазла в data-атрибут 'puzzleData' в виде JSON строки.
-        li.dataset.puzzleData = JSON.stringify(puzzle);
-        li.dataset.id = puzzle.id;
-        ul.appendChild(li);
+    
+    wrapper.innerHTML = '';
+    wrapper.appendChild(puzzleContainer);
+    wrapper.appendChild(message);
+    
+    const customInput = document.getElementById('custom-image');
+    const difficultySelect = document.getElementById('difficulty');
+    const presetsNodeList = document.querySelectorAll('.preset');
+    const startBtn = document.getElementById('start-game');
+    const puzzleNameInput = document.getElementById('puzzle-name');
+    const saveButton = document.getElementById('save-puzzle-btn');
+    const loadButton = document.getElementById('load-puzzle-btn');
+    const loadModal = document.getElementById('load-puzzle-modal');
+    const loadListContainer = document.getElementById('load-list-container');
+    const loadConfirmBtn = document.getElementById('load-confirm-btn');
+    const loadCancelBtn = document.getElementById('load-cancel-btn');
+    
+    if (!customInput || !difficultySelect || !presetsNodeList?.length || !startBtn || !puzzleNameInput || !saveButton || !loadButton || !loadModal) {
+        console.error("Элементы управления на странице пазлов не найдены!");
+        return;
+    }
+    
+    const presets = Array.from(presetsNodeList);
+    
+    setupPuzzleControls({
+        customInput, presets, difficultySelect, startBtn,
+        puzzleParams: localPuzzleParams,
+        puzzleContainer, message,
+        instantUpdate: false,
+        onStateChange: (params) => {
+            if (params && typeof params.name !== 'undefined') {
+                puzzleNameInput.value = params.name;
+            }
+        },
+        saveBtnRef: saveButton
     });
-    container.innerHTML = '';
-    container.appendChild(ul);
+    
+    const getPuzzleState = () => {
+        localPuzzleParams.name = puzzleNameInput.value.trim();
+        return preparePuzzleSaveData(localPuzzleParams, presets, customInput);
+    };
+    
+    const applyLoadedState = (puzzleData) => {
+        localPuzzleParams.id = puzzleData.id;
+        localPuzzleParams.gridSize = puzzleData.grid_size;
+        localPuzzleParams.piecePositions = puzzleData.piece_positions || [];
+        localPuzzleParams.name = puzzleData.name;
+        localPuzzleParams.selectedImage = puzzleData.image_url;
+        localPuzzleParams.isPreset = !!puzzleData.preset_path;
+        
+        difficultySelect.value = puzzleData.grid_size;
+        puzzleNameInput.value = puzzleData.name;
+        customInput.value = '';
+        
+        const previewContainer = document.getElementById('image-preview-container');
+        if (previewContainer) previewContainer.style.display = 'none';
+        
+        presets.forEach(p => p.classList.remove('selected'));
+        
+        if (localPuzzleParams.isPreset) {
+            let found = false;
+            presets.forEach(preset => {
+                const presetSrcRelative = (preset.dataset.src || preset.src).replace(window.location.origin, '');
+                const loadedUrlRelative = puzzleData.image_url.replace(window.location.origin, '');
+                if (presetSrcRelative === loadedUrlRelative) {
+                    preset.classList.add('selected');
+                    found = true;
+                }
+            });
+            if (!found) console.warn("Загруженное предустановленное изображение не найдено.");
+        } else {
+            const previewImg = document.getElementById('image-preview');
+            const previewText = document.getElementById('image-preview-text');
+            if (previewContainer && previewImg && previewText && puzzleData.image_url) {
+                previewImg.src = puzzleData.image_url;
+                previewText.textContent = `Загружено: ${puzzleData.name}`;
+                previewContainer.style.display = 'block';
+            }
+        }
+        
+        if (saveButton) {
+            saveButton.textContent = 'Обновить пазл';
+            saveButton.dataset.action = 'update';
+            saveButton.dataset.puzzleId = puzzleData.id;
+        }
+        
+        alert(`Пазл "${puzzleData.name}" загружен. Нажмите "Начать игру".`);
+        puzzleContainer.innerHTML = '<p>Пазл загружен. Нажмите "Начать игру".</p>';
+        message.style.display = 'none';
+    };
+    
+    // Проверка наличия глобальных URL, определенных в HTML шаблоне
+    const saveUrl = typeof savePuzzleUrl !== 'undefined' ? savePuzzleUrl : '/games/api/save-puzzle/';
+    const loadUrl = typeof loadPuzzlesUrl !== 'undefined' ? loadPuzzlesUrl : '/games/api/load-puzzles/';
+    const updateTemplate = typeof updatePuzzleBaseUrl !== 'undefined' ? updatePuzzleBaseUrl + '{gameId}/' : '/games/api/update-puzzle/{gameId}/';
+
+    const saveLoadManager = new SaveLoadManager({
+        saveUrl: saveUrl,
+        loadUrl: loadUrl,
+        updateUrlTemplate: updateTemplate,
+        getState: getPuzzleState,
+        applyState: applyLoadedState,
+        controls: { saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn }
+    });
+    
+    saveLoadManager.displayGameList = (puzzles) => displayPuzzleList(loadListContainer, puzzles);
+    saveLoadManager.formatGameListItem = (puzzle) => `${puzzle.name} (${puzzle.grid_size}x${puzzle.grid_size})`;
+    
+    saveLoadManager.prepareFormData = (gameState) => {
+        return createPuzzleFormData(gameState);
+    };
+    
+    if (presets.length > 0 && !localPuzzleParams.selectedImage) {
+        presets[0].click();
+    }
+    
+    puzzleContainer.innerHTML = '<p>Выберите настройки и нажмите "Начать игру"</p>';
+    message.style.display = 'none';
+    
+    console.log("Страница пазла инициализирована");
 }
 
 /**
- * Инициализирует общую логику сохранения и загрузки пазлов.
- * @param {function} getPuzzleState - Функция, возвращающая объект с текущим состоянием пазла для сохранения
- * @param {function} applyLoadedState - Функция, принимающая загруженные данные пазла и применяющая их к текущему экземпляру.
- * @param {object} controls - Объект с DOM-элементами управления { saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn }
+ * Создает интерактивный пазл внутри игрового контейнера на доске.
+ * 
+ * @param {HTMLElement} gameWrapper - Родительский контейнер для пазла
+ * @param {string | null} boardRoomName - Имя комнаты доски
+ * @param {string} gameInstanceId - Уникальный ID этого экземпляра пазла
  */
-function initSaveLoadFeatures(getPuzzleState, applyLoadedState, controls) {
-    const { saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn } = controls;
-
-    // Проверка наличия всех необходимых элементов управления для сохранения и загрузки
-    if (!saveButton || !loadButton || !loadModal || !loadListContainer || !loadConfirmBtn || !loadCancelBtn) {
-        console.error("Ошибка сохранения/загрузки: отсутствует один или несколько элементов управления.");
-        if (loadModal) {
-             console.error("Отсутствуют элементы:", { saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn });
-        } else {
-            console.warn("Модальное окно загрузки не найдено, загрузка может быть ограничена");
-            if (!saveButton) {
-                 console.error("Кнопка сохранения также отсутствует.");
-                 return;
-            }
-        }
+function createPuzzleOnBoard(gameWrapper, boardRoomName, gameInstanceId) {
+    // Создаём экземпляр класса PuzzleGame (наследник GameBase)
+    const puzzleGame = new PuzzleGame({
+        container: gameWrapper,
+        gameId: gameInstanceId,
+        boardRoomName: boardRoomName,
+        name: `Пазл ${gameInstanceId.split('-')[1] || ''}`,
+        gridSize: 2,
+        type: 'puzzle',
+        onWhiteboard: true
+    });
+    
+    // Сохраняем экземпляр класса для доступа из других функций
+    gameWrapper.puzzleGame = puzzleGame;
+    
+    // Для обратной совместимости сохраняем ссылку на параметры
+    gameWrapper.puzzleParams = puzzleGame.params;
+    gameWrapper.puzzleContainer = puzzleGame.puzzleContainer;
+    gameWrapper.puzzleMessage = puzzleGame.messageElement;
+    
+    const closeButton = gameWrapper.querySelector('.paste-game-close');
+    const resizeHandle = gameWrapper.querySelector('.resize-handle');
+    gameWrapper.innerHTML = '';
+    
+    if (closeButton) gameWrapper.appendChild(closeButton);
+    if (resizeHandle) gameWrapper.appendChild(resizeHandle);
+    gameWrapper.appendChild(puzzleGame.puzzleContainer);
+    gameWrapper.appendChild(puzzleGame.messageElement);
+    
+    puzzleGame.puzzleContainer.innerHTML = '<p style="text-align: center; padding: 20px;">Активируйте пазл и выберите настройки в панели справа.</p>';
+    puzzleGame.messageElement.style.display = 'none';
+    
+    // Инициализация WebSocket через метод базового класса
+    if (boardRoomName && gameInstanceId) {
+        puzzleGame.initWebSocket();
+        gameWrapper.puzzleWebSocket = puzzleGame.ws;
+        puzzleGame.params.ws = puzzleGame.ws;
+    } else {
+        console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] Running in local mode (no WebSocket).`);
     }
+    
+    console.log(`Экземпляр пазла ${gameInstanceId} инициализирован на доске.`);
+}
 
-    let selectedPuzzleToLoad = null;
-
-    // --- Обработчик нажатия кнопки "Сохранить" ---
-    const saveHandler = async () => {
-        if (typeof isAuthenticated === 'undefined' || typeof loginUrl === 'undefined') {
-            console.error("Ошибка: Переменные isAuthenticated или loginUrl не определены. Проверьте HTML-шаблон.");
-            alert("Произошла ошибка конфигурации. Невозможно проверить статус пользователя.");
-            return;
-        }
-        if (!isAuthenticated) {
-            alert("Чтобы сохранить игру, пожалуйста, войдите в свой аккаунт.");
-            window.location.href = loginUrl; // Перенаправляем на страницу входа
-            return;
-        }
-
-        const currentState = getPuzzleState();
-        if (!currentState) return;
-
-        // Извлекаем необходимые данные из полученного состояния
-        const { name, gridSize, piecePositions, selectedImage, presetElements, customImageInputEl } = currentState;
-
-        // Получаем puzzleId из dataset кнопки. Если его нет, это создание новой игры.
-        const puzzleId = saveButton.dataset.puzzleId;
-        const action = puzzleId ? 'update' : 'create';
-
-        // --- Валидация данных перед сохранением ---
-        if (!name) {
-            alert("Пожалуйста, введите название для сохранения.");
-            return;
-        }
-        if (!selectedImage) {
-            alert("Пожалуйста, выберите или загрузите изображение.");
-            return;
-        }
-        if (!piecePositions || piecePositions.length !== gridSize * gridSize) {
-            alert("Ошибка: Некорректные данные о позициях элементов.");
-            console.error("Недопустимые позиции элементов для сохранения", piecePositions, "Grid size:", gridSize);
-            return;
-        }
-
-        // --- Формирование данных для отправки на сервер с использованием FormData ---
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('gridSize', gridSize);
-        formData.append('piecePositions', JSON.stringify(piecePositions));
-
-        // Определяем, используется ли изображение-пресет или пользовательское изображение
-        let isPreset = false;
-
-        if (presetElements && presetElements.length > 0) {
-            presetElements.forEach(preset => {
-                const presetSrc = preset.dataset.src || preset.src;
-                if (presetSrc === selectedImage) {
-                    isPreset = true;
-                    let presetPath = selectedImage.replace(window.location.origin, '');
-                    if (presetPath.startsWith('/static/')) {
-                        presetPath = presetPath.substring('/static/'.length);
-                    }
-                    formData.append('preset_image_path', presetPath);
+/**
+ * Настраивает контролы и Save/Load для активного пазла на доске.
+ * 
+ * @param {HTMLElement} activeGameWrapper - Активный игровой контейнер пазла
+ */
+function setupWhiteboardPuzzleSaveLoad(activeGameWrapper) {
+    if (!activeGameWrapper || !activeGameWrapper.puzzleGame) {
+        console.warn("Активный пазл на доске не найден или не инициализирован.");
+        return;
+    }
+    
+    const puzzleGame = activeGameWrapper.puzzleGame;
+    const activePuzzleParams = puzzleGame.params;
+    const settingsPanel = document.querySelector('.settings-panel');
+    
+    if (!settingsPanel) {
+        console.error("Панель настроек не найдена.");
+        return;
+    }
+    
+    const puzzleNameInput = settingsPanel.querySelector('#puzzle-name');
+    const customInput = settingsPanel.querySelector('#custom-image');
+    const difficultySelect = settingsPanel.querySelector('#difficulty');
+    const presetsNodeList = settingsPanel.querySelectorAll('.preset');
+    const saveButton = settingsPanel.querySelector('#save-puzzle-btn');
+    const loadButton = settingsPanel.querySelector('#load-puzzle-btn');
+    const startBtnOnPanel = settingsPanel.querySelector('#start-game');
+    const loadModal = document.getElementById('load-game-modal');
+    const loadListContainer = document.getElementById('load-list-container');
+    const loadConfirmBtn = document.getElementById('load-confirm-btn');
+    const loadCancelBtn = document.getElementById('load-cancel-btn');
+    
+    if (!puzzleNameInput || !customInput || !difficultySelect || !presetsNodeList?.length || !saveButton || !loadButton) {
+        console.error("Ключевые элементы управления пазлом отсутствуют.");
+        return;
+    }
+    
+    const presets = Array.from(presetsNodeList);
+    
+    if (startBtnOnPanel) {
+        startBtnOnPanel.style.display = 'none';
+    }
+    
+    if (activePuzzleParams.id && saveButton) {
+        saveButton.textContent = "Обновить пазл";
+        saveButton.dataset.action = 'update';
+        saveButton.dataset.puzzleId = activePuzzleParams.id;
+    } else if (saveButton) {
+        saveButton.textContent = "Сохранить";
+        saveButton.dataset.action = 'create';
+        delete saveButton.dataset.puzzleId;
+    }
+    
+    const handlePuzzleStateChangeForBoard = (changedParams) => {
+        if (changedParams.onWhiteboard && changedParams.ws && changedParams.ws.readyState === WebSocket.OPEN) {
+            changedParams.ws.send(JSON.stringify({
+                type: 'puzzle_state_change',
+                puzzleState: {
+                    gridSize: changedParams.gridSize,
+                    piecePositions: changedParams.piecePositions,
+                    selectedImage: changedParams.selectedImage,
+                    isPreset: changedParams.isPreset,
+                    name: changedParams.name,
+                    id: changedParams.id
                 }
-            });
+            }));
         }
-
-        if (!isPreset && selectedImage.startsWith('data:image')) {
-            // Пользователь загрузил новый файл (или пере-загрузил тот же, но он теперь data:URL)
-            const imageBlob = dataURLtoBlob(selectedImage);
-            if (imageBlob) {
-                const filename = (customImageInputEl && customImageInputEl.files.length > 0)
-                    ? customImageInputEl.files[0].name
-                    : `upload.${imageBlob.type.split('/')[1] || 'png'}`;
-                formData.append('user_image_file', imageBlob, filename);
-            } else {
-                alert("Ошибка конвертации пользовательского изображения для сохранения/обновления."); return;
-            }
-            // Если загружен новый файл, изображение точно указано/изменилось
-        } else if (!isPreset && action === 'create') {
-            if (selectedImage && (selectedImage.includes('/media/puzzle_images/') || selectedImage.includes('/static/'))) {
-                alert("Для создания нового пазла: выбранное изображение было загружено ранее. Пожалуйста, выберите пресет или загрузите изображение заново.");
-                console.warn("Попытка создать пазл с существующим URL пользовательского изображения:", selectedImage);
-                return;
-            } else if (selectedImage) {
-                alert("Не удалось определить источник изображения для создания пазла. Выберите пресет или загрузите свое изображение.");
-                console.warn("Невозможно создать пазл с источником изображения:", selectedImage);
-                return;
-            } else {
-                alert("Изображение не выбрано для создания пазла.");
-                return;
-            }
-        }
-
-        // --- Отправка запроса на сервер для сохранения/обновления пазла ---
-        let url = (action === 'update' && puzzleId) ? updatePuzzleBaseUrl + puzzleId + '/' : savePuzzleUrl;
-        let method = (action === 'update' && puzzleId) ? 'PUT' : 'POST';
-
-        saveButton.textContent = (action === 'update') ? 'Обновление...' : 'Сохранение...';
-        saveButton.disabled = true;
-
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'X-CSRFToken': csrfToken, 'Accept': 'application/json' },
-                body: formData,
-            });
-            const result = await response.json();
-            if (response.ok && result.status === 'success') {
-                alert(result.message || (action === 'update' ? 'Пазл обновлен!' : 'Пазл сохранен!'));
-            } else {
-                alert(`Ошибка ${action === 'update' ? 'обновления' : 'сохранения'}: ${result.message || response.statusText}`);
-            }
-        } catch (error) {
-            alert(`Сетевая ошибка при ${action === 'update' ? 'обновлении' : 'сохранении'}.`);
-            console.error(`Ошибка ${action === 'update' ? 'обновления' : 'сохранения'}:`, error);
-        } finally {
-            const finalPuzzleId = saveButton.dataset.puzzleId;
-            if (finalPuzzleId) { // Если puzzleId все еще есть, значит, мы в режиме обновления
-                 saveButton.textContent = saveButton.dataset.originalTextUpdate || 'Обновить пазл';
-            } else { // Иначе - в режиме создания
-                 saveButton.textContent = saveButton.dataset.originalTextCreate || 'Сохранить';
-            }
-            saveButton.disabled = false;
+        
+        if (puzzleNameInput && typeof changedParams.name !== 'undefined') {
+            puzzleNameInput.value = changedParams.name;
         }
     };
-
-    // --- Назначение обработчика на кнопку "Сохранить" ---
-    if (saveButton) {
-        if (!saveButton.dataset.originalTextCreate) {
-            saveButton.dataset.originalTextCreate = saveButton.textContent;
+    
+    setupPuzzleControls({
+        customInput, presets, difficultySelect, startBtn: null,
+        puzzleParams: activePuzzleParams,
+        puzzleContainer: activeGameWrapper.puzzleContainer,
+        message: activeGameWrapper.puzzleMessage,
+        instantUpdate: true,
+        onStateChange: handlePuzzleStateChangeForBoard,
+        saveBtnRef: saveButton
+    });
+    
+    puzzleNameInput.value = activePuzzleParams.name || '';
+    difficultySelect.value = activePuzzleParams.gridSize;
+    customInput.value = '';
+    
+    const previewContainer = settingsPanel.querySelector('#image-preview-container');
+    const previewImg = settingsPanel.querySelector('#image-preview');
+    const previewText = settingsPanel.querySelector('#image-preview-text');
+    presets.forEach(p => p.classList.remove('selected'));
+    
+    if (previewContainer) previewContainer.style.display = 'none';
+    
+    if (activePuzzleParams.isPreset && activePuzzleParams.selectedImage) {
+        const selectedPresetElement = presets.find(p => (p.dataset.src || p.src) === activePuzzleParams.selectedImage);
+        if (selectedPresetElement) selectedPresetElement.classList.add('selected');
+    } else if (!activePuzzleParams.isPreset && activePuzzleParams.selectedImage) {
+        if (previewContainer && previewImg && previewText) {
+            previewImg.src = activePuzzleParams.selectedImage;
+            previewText.textContent = activePuzzleParams.imageFile ? `Загружено: ${activePuzzleParams.imageFile.name}` : (activePuzzleParams.name || 'Загруженное изображение');
+            previewContainer.style.display = 'block';
         }
-
-        saveButton.dataset.action = 'create';
-
-        saveButton.removeEventListener('click', saveButton.clickHandler);
-        saveButton.addEventListener('click', saveHandler);
-        saveButton.clickHandler = saveHandler;
     }
-
-
-    // --- Логика Загрузки ---
-    if (loadButton && loadModal && loadListContainer && loadConfirmBtn && loadCancelBtn) {
-        // --- Обработчик нажатия кнопки "Загрузить" ---
-        const loadHandler = async () => {
-            if (typeof isAuthenticated === 'undefined' || typeof loginUrl === 'undefined') {
-                console.error("Ошибка: Переменные isAuthenticated или loginUrl не определены. Проверьте HTML-шаблон.");
-                alert("Произошла ошибка конфигурации. Невозможно проверить статус пользователя.");
-                return;
+    
+    const getPuzzleStateForWhiteboard = () => {
+        const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
+        
+        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleGame) {
+            alert("Активный пазл изменился или не найден. Сохранение отменено.");
+            return null;
+        }
+        
+        const params = currentActiveWrapper.puzzleGame.params;
+        params.name = puzzleNameInput.value.trim();
+        
+        if (!params.name) {
+            alert("Введите название для сохранения.");
+            puzzleNameInput.focus();
+            return null;
+        }
+        
+        if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
+            createPuzzle(currentActiveWrapper.puzzleContainer, params, currentActiveWrapper.puzzleMessage, false);
+        }
+        
+        if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
+            alert("Ошибка: Не удалось инициализировать элементы пазла для сохранения.");
+            return null;
+        }
+        
+        return preparePuzzleSaveData(params, presets, customInput, true);
+    };
+    
+    const applyLoadedStateForWhiteboard = (loadedDbPuzzleData) => {
+        const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
+        
+        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleGame) {
+            alert("Активный пазл изменился или не найден. Загрузка отменена.");
+            return;
+        }
+        
+        const targetParams = currentActiveWrapper.puzzleGame.params;
+        
+        targetParams.id = loadedDbPuzzleData.id;
+        targetParams.name = loadedDbPuzzleData.name;
+        targetParams.gridSize = loadedDbPuzzleData.grid_size;
+        targetParams.piecePositions = loadedDbPuzzleData.piece_positions || [];
+        targetParams.selectedImage = loadedDbPuzzleData.image_url;
+        targetParams.isPreset = !!loadedDbPuzzleData.preset_path;
+        targetParams.imageFile = null;
+        
+        puzzleNameInput.value = targetParams.name;
+        difficultySelect.value = targetParams.gridSize;
+        customInput.value = '';
+        
+        const currentSettingsPanel = document.querySelector('.settings-panel');
+        if (currentSettingsPanel) {
+            const currentSaveButton = currentSettingsPanel.querySelector('#save-puzzle-btn');
+            if (currentSaveButton) {
+                currentSaveButton.textContent = 'Обновить пазл';
+                currentSaveButton.dataset.action = 'update';
+                currentSaveButton.dataset.puzzleId = loadedDbPuzzleData.id;
             }
-            if (!isAuthenticated) {
-                alert("Чтобы загрузить сохраненные игры, пожалуйста, войдите в свой аккаунт.");
-                window.location.href = loginUrl; // Перенаправляем на страницу входа
-                return;
-            }
+        }
+        
+        createPuzzle(currentActiveWrapper.puzzleContainer, targetParams, currentActiveWrapper.puzzleMessage, true);
+        
+        if (targetParams.onWhiteboard && targetParams.ws && targetParams.ws.readyState === WebSocket.OPEN) {
+            targetParams.ws.send(JSON.stringify({
+                type: 'puzzle_state_change',
+                puzzleState: {
+                    gridSize: targetParams.gridSize,
+                    piecePositions: targetParams.piecePositions,
+                    selectedImage: targetParams.selectedImage,
+                    isPreset: targetParams.isPreset,
+                    name: targetParams.name,
+                    id: targetParams.id
+                }
+            }));
+        }
+        
+        alert(`Пазл "${loadedDbPuzzleData.name}" загружен в активный контейнер.`);
+    };
+    
+    const saveUrl = typeof savePuzzleUrl !== 'undefined' ? savePuzzleUrl : '/games/api/save-puzzle/';
+    const loadUrl = typeof loadPuzzlesUrl !== 'undefined' ? loadPuzzlesUrl : '/games/api/load-puzzles/';
+    const updateTemplate = typeof updatePuzzleBaseUrl !== 'undefined' ? updatePuzzleBaseUrl + '{gameId}/' : '/games/api/update-puzzle/{gameId}/';
 
-             loadListContainer.innerHTML = '<p>Загрузка...</p>';
-             loadConfirmBtn.disabled = true;
-             selectedPuzzleToLoad = null;
-             loadModal.style.display = 'flex';
-
-             try {
-                 const response = await fetch(loadPuzzlesUrl, {
-                     method: 'GET', headers: { 'Accept': 'application/json' }
-                 });
-                 const result = await response.json();
-                 if (response.ok && result.status === 'success') {
-                     displayPuzzleList(loadListContainer, result.puzzles);
-                 } else {
-                     loadListContainer.innerHTML = `<p>Ошибка: ${result.message || 'Не удалось загрузить.'}</p>`;
-                 }
-             } catch (error) {
-                 loadListContainer.innerHTML = '<p>Сетевая ошибка при загрузке.</p>';
-                 console.error("Ошибка в списке загрузки:", error);
-             }
-        };
-        loadButton.removeEventListener('click', loadButton.clickHandler);
-        loadButton.addEventListener('click', loadHandler);
-        loadButton.clickHandler = loadHandler;
-
-        // --- Обработчики Модального окна ---
-        const cancelHandler = () => { loadModal.style.display = 'none'; };
-        loadCancelBtn.removeEventListener('click', loadCancelBtn.clickHandler);
-        loadCancelBtn.addEventListener('click', cancelHandler);
-        loadCancelBtn.clickHandler = cancelHandler;
-
-        const listClickHandler = (event) => {
-            const target = event.target;
-            if (target.tagName === 'LI') {
-                 loadListContainer.querySelectorAll('li').forEach(item => item.classList.remove('selected'));
-                 target.classList.add('selected');
-                 try {
-                     selectedPuzzleToLoad = JSON.parse(target.dataset.puzzleData);
-                     loadConfirmBtn.disabled = false;
-                 } catch (e) {
-                     console.error("Ошибка парсинга данных пазла:", e);
-                     selectedPuzzleToLoad = null;
-                     loadConfirmBtn.disabled = true;
-                 }
-            }
-        };
-        loadListContainer.removeEventListener('click', loadListContainer.clickHandler);
-        loadListContainer.addEventListener('click', listClickHandler);
-        loadListContainer.clickHandler = listClickHandler;
-
-        const confirmHandler = () => {
-             if (!selectedPuzzleToLoad) return;
-             applyLoadedState(selectedPuzzleToLoad);
-             loadModal.style.display = 'none';
-        };
-        loadConfirmBtn.removeEventListener('click', loadConfirmBtn.clickHandler);
-        loadConfirmBtn.addEventListener('click', confirmHandler);
-        loadConfirmBtn.clickHandler = confirmHandler;
-
-    } else if (loadButton) {
-        loadButton.disabled = true;
-        loadButton.title = "Модальное окно для загрузки не найдено";
-        console.warn("Кнопка загрузки найдена, но отсутствуют элементы модального окна.");
-    }
-
-    console.log("Функции сохранения/загрузки инициализированны");
+    const saveLoadManager = new SaveLoadManager({
+        saveUrl: saveUrl,
+        loadUrl: loadUrl,
+        updateUrlTemplate: updateTemplate,
+        getState: getPuzzleStateForWhiteboard,
+        applyState: applyLoadedStateForWhiteboard,
+        controls: { saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn }
+    });
+    
+    saveLoadManager.displayGameList = (puzzles) => displayPuzzleList(loadListContainer, puzzles);
+    saveLoadManager.formatGameListItem = (puzzle) => `${puzzle.name} (${puzzle.grid_size}x${puzzle.grid_size})`;
+    
+    saveLoadManager.prepareFormData = (gameState) => {
+        return createPuzzleFormData(gameState);
+    };
+    
+    console.log("UI и Save/Load для активного пазла на доске успешно настроены.");
 }
 
 /**
  * Назначает обработчики для пользовательского изображения, пресетов и сложности.
- * @param {object} options - Объект с параметрами настройки.
- * @param {HTMLInputElement} options.customInput - Поле для загрузки пользовательского фото.
- * @param {Array<HTMLElement>} options.presets - Массив HTML-элементов, представляющих пресеты изображений.
- * @param {HTMLSelectElement} options.difficultySelect - Выпадающий список для выбора сложности (размера сетки).
- * @param {HTMLButtonElement} [options.startBtn] - Кнопка "Начать игру"
- * @param {object} options.puzzleParams - Объект параметров текущего пазла
- * @param {HTMLElement} options.puzzleContainer - Контейнер для кусочков пазла
- * @param {HTMLElement} options.message - Элемент для сообщений
- * @param {boolean} [options.instantUpdate=false] - Обновлять ли пазл сразу
- * @param {function} [options.onStateChange] - Колбэк при изменении состояния (для отправки по WS или обновления UI)
- * @param {HTMLButtonElement} [options.saveBtnRef] - Ссылка на кнопку сохранения (для обновления ее текста/data-атрибутов)
+ * 
+ * @param {Object} options - Объект с параметрами настройки
  */
-function setupPuzzleControls({
-    customInput,
-    presets,
-    difficultySelect,
-    startBtn,
-    puzzleParams,
-    puzzleContainer,
-    message,
-    instantUpdate = false,
-    onStateChange,
-    saveBtnRef
-}) {
-    // Проверка наличия обязательных элементов и параметров
+function setupPuzzleControls(options) {
+    const {
+        customInput, presets, difficultySelect, startBtn,
+        puzzleParams, puzzleContainer, message,
+        instantUpdate = false, onStateChange, saveBtnRef
+    } = options;
+    
     if (!customInput || !presets || !difficultySelect || !puzzleParams || !puzzleContainer || !message) {
-        console.error("настройка элементов управления пазлом: отсутствуют необходимые элементы или параметры.");
+        console.error("Настройка элементов управления: отсутствуют необходимые элементы.");
         return;
     }
-
+    
     const resetToCreateModeIfNeeded = () => {
         if (puzzleParams.id && saveBtnRef) {
-            console.log("Ключевые настройки изменены после загрузки. Переход в режим создания нового пазла.");
+            if (!saveBtnRef.dataset.originalTextCreate) {
+                saveBtnRef.dataset.originalTextCreate = saveBtnRef.textContent;
+            }
             puzzleParams.id = null;
             delete saveBtnRef.dataset.puzzleId;
             saveBtnRef.dataset.action = 'create';
             saveBtnRef.textContent = saveBtnRef.dataset.originalTextCreate || 'Сохранить';
         }
     };
-
-    // Пользовательское изображение
+    
     const customImageHandler = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -352,542 +446,111 @@ function setupPuzzleControls({
                 puzzleParams.isPreset = false;
                 puzzleParams.imageFile = file;
                 presets.forEach(p => p.classList.remove('selected'));
+                
                 const previewContainer = document.getElementById('image-preview-container');
                 const previewImg = document.getElementById('image-preview');
                 const previewText = document.getElementById('image-preview-text');
-                 if(previewContainer && previewImg && previewText) {
-                      previewImg.src = reader.result;
-                      previewText.textContent = `Используется: ${file.name}`;
-                      previewContainer.style.display = 'block';
-                 }
-
+                
+                if (previewContainer && previewImg && previewText) {
+                    previewImg.src = reader.result;
+                    previewText.textContent = `Используется: ${file.name}`;
+                    previewContainer.style.display = 'block';
+                }
+                
                 if (instantUpdate) {
                     createPuzzle(puzzleContainer, puzzleParams, message, false);
                 }
+                
                 if (onStateChange) onStateChange(puzzleParams);
             };
             reader.readAsDataURL(file);
         } else {
-             if (puzzleParams.selectedImage && puzzleParams.selectedImage.startsWith('data:image')) {
-                 puzzleParams.selectedImage = null;
-                 puzzleParams.imageFile = null;
-                 const previewContainer = document.getElementById('image-preview-container');
-                 if(previewContainer) previewContainer.style.display = 'none';
-                 if (instantUpdate) puzzleContainer.innerHTML = '<p>Выберите изображение</p>';
-             }
-             if (onStateChange) onStateChange(puzzleParams);
+            if (puzzleParams.selectedImage && puzzleParams.selectedImage.startsWith('data:image')) {
+                puzzleParams.selectedImage = null;
+                puzzleParams.imageFile = null;
+                const previewContainer = document.getElementById('image-preview-container');
+                if (previewContainer) previewContainer.style.display = 'none';
+                if (instantUpdate) puzzleContainer.innerHTML = '<p>Выберите изображение</p>';
+            }
+            if (onStateChange) onStateChange(puzzleParams);
         }
     };
+    
     customInput.removeEventListener('change', customInput.changeHandler);
     customInput.addEventListener('change', customImageHandler);
     customInput.changeHandler = customImageHandler;
-
-    // Пресеты
+    
     presets.forEach(preset => {
         const presetClickHandler = () => {
             presets.forEach(p => p.classList.remove('selected'));
             preset.classList.add('selected');
+            
             if (puzzleParams.selectedImage !== preset.dataset.src) {
-                 resetToCreateModeIfNeeded();
+                resetToCreateModeIfNeeded();
             }
+            
             puzzleParams.selectedImage = preset.dataset.src;
             puzzleParams.isPreset = true;
             puzzleParams.imageFile = null;
             customInput.value = '';
+            
             const previewContainer = document.getElementById('image-preview-container');
-            if(previewContainer) previewContainer.style.display = 'none';
-
+            if (previewContainer) previewContainer.style.display = 'none';
+            
             if (instantUpdate) {
                 createPuzzle(puzzleContainer, puzzleParams, message, false);
             }
+            
             if (onStateChange) onStateChange(puzzleParams);
         };
+        
         preset.removeEventListener('click', preset.clickHandler);
         preset.addEventListener('click', presetClickHandler);
         preset.clickHandler = presetClickHandler;
     });
-
-    // Сложность (размер сетки)
+    
     const difficultyHandler = (e) => {
         const newSize = parseInt(e.target.value, 10);
         if (newSize !== puzzleParams.gridSize) {
             resetToCreateModeIfNeeded();
             puzzleParams.gridSize = newSize;
             puzzleParams.piecePositions = [];
-            console.log(`Размер сетки изменен на ${newSize}, позиции очищены.`);
+            
             if (instantUpdate) {
-                 createPuzzle(puzzleContainer, puzzleParams, message, false);
+                createPuzzle(puzzleContainer, puzzleParams, message, false);
             }
+            
             if (onStateChange) onStateChange(puzzleParams);
         }
     };
+    
     difficultySelect.removeEventListener('change', difficultySelect.changeHandler);
     difficultySelect.addEventListener('change', difficultyHandler);
     difficultySelect.changeHandler = difficultyHandler;
-
-    // Кнопка "Начать игру"
+    
     if (startBtn) {
         const startHandler = () => {
             if (!puzzleParams.selectedImage) {
                 alert("Пожалуйста, выберите или загрузите изображение.");
                 return;
             }
+            
             const useLoadedPositions = puzzleParams.piecePositions && puzzleParams.piecePositions.length === puzzleParams.gridSize * puzzleParams.gridSize;
             createPuzzle(puzzleContainer, puzzleParams, message, useLoadedPositions);
-            if (onStateChange){
-                onStateChange(puzzleParams); 
+            
+            if (onStateChange) {
+                onStateChange(puzzleParams);
             }
         };
+        
         startBtn.removeEventListener('click', startBtn.clickHandler);
         startBtn.addEventListener('click', startHandler);
         startBtn.clickHandler = startHandler;
     }
-
-    console.log("Настройка элементов управления пазлом завершена.");
 }
 
-/**
- * Инициализирует интерфейс и логику для отдельной страницы пазла.
- * Эта функция находит все необходимые элементы управления на странице, настраивает их
- * с помощью `setupPuzzleControls` и инициализирует функции сохранения/загрузки
- * с помощью `initSaveLoadFeatures`. Пазл создается по нажатию кнопки "Начать игру".
- */
-function createPuzzleSeparately() {
-    const [localPuzzleParams, puzzleContainer, message] = getPuzzleParts();
-    localPuzzleParams.onWhiteboard = false;
-    localPuzzleParams.name = "";
-    localPuzzleParams.id = null;
-    localPuzzleParams.ws = null;
+// Делаем функцию доступной глобально для вызова из HTML
+window.createPuzzleSeparately = createPuzzleSeparately;
 
-    const wrapper = document.getElementById('puzzle-wrapper');
-    if (!wrapper) { console.error("#puzzle-wrapper not found!"); return; }
-    wrapper.innerHTML = '';
-    wrapper.appendChild(puzzleContainer);
-    wrapper.appendChild(message);
-
-    // Находим контролы на странице игры
-    const customInput = document.getElementById('custom-image');
-    const difficultySelect = document.getElementById('difficulty');
-    const presetsNodeList = document.querySelectorAll('.preset');
-    const startBtn = document.getElementById('start-game');
-    const puzzleNameInput = document.getElementById('puzzle-name');
-    const saveButton = document.getElementById('save-puzzle-btn');
-    const loadButton = document.getElementById('load-puzzle-btn');
-    const loadModal = document.getElementById('load-puzzle-modal');
-    const loadListContainer = document.getElementById('load-list-container');
-    const loadConfirmBtn = document.getElementById('load-confirm-btn');
-    const loadCancelBtn = document.getElementById('load-cancel-btn');
-
-    if (!customInput || !difficultySelect || !presetsNodeList?.length || !startBtn || !puzzleNameInput || !saveButton || !loadButton || !loadModal) {
-        console.error("Элементы управления на странице пазлов не найдены!"); return;
-    }
-    const presets = Array.from(presetsNodeList);
-
-    // Настройка обработчиков
-    setupPuzzleControls({
-        customInput, presets, difficultySelect, startBtn,
-        puzzleParams: localPuzzleParams,
-        puzzleContainer, message,
-        instantUpdate: false,
-        onStateChange: (params) => {
-             if (params && typeof params.name !== 'undefined') {
-                 puzzleNameInput.value = params.name;
-             }
-        },
-        saveBtnRef: saveButton
-    });
-
-    // Собираем текущее состояние пазла данной страницы для сохранения
-    const getPuzzleStateForSeparatePage = () => {
-        localPuzzleParams.name = puzzleNameInput.value.trim();
-        return {
-            name: localPuzzleParams.name,
-            gridSize: localPuzzleParams.gridSize,
-            piecePositions: localPuzzleParams.piecePositions,
-            selectedImage: localPuzzleParams.selectedImage,
-            presetElements: presets,
-            customImageInputEl: customInput
-        };
-    };
-
-    // Применяем загруженное состояние пазла к странице
-    const applyLoadedStateForSeparatePage = (puzzleData) => {
-        console.log("Применение загруженного состояния к отдельной странице:", puzzleData);
-        localPuzzleParams.id = puzzleData.id;
-        localPuzzleParams.gridSize = puzzleData.grid_size;
-        localPuzzleParams.piecePositions = puzzleData.piece_positions || [];
-        localPuzzleParams.name = puzzleData.name;
-        localPuzzleParams.selectedImage = puzzleData.image_url;
-        localPuzzleParams.isPreset = !!puzzleData.preset_path;
-
-        difficultySelect.value = puzzleData.grid_size;
-        puzzleNameInput.value = puzzleData.name;
-        customInput.value = '';
-         const previewContainer = document.getElementById('image-preview-container');
-         if(previewContainer) previewContainer.style.display = 'none';
-
-        presets.forEach(p => p.classList.remove('selected'));
-        if (localPuzzleParams.isPreset) {
-            let found = false;
-            presets.forEach(preset => {
-                 const presetSrcRelative = (preset.dataset.src || preset.src).replace(window.location.origin, '');
-                 const loadedUrlRelative = puzzleData.image_url.replace(window.location.origin, '');
-                 if (presetSrcRelative === loadedUrlRelative) {
-                     preset.classList.add('selected');
-                     found = true;
-                 }
-            });
-            if (!found) console.warn("Загруженное предустановленное изображение не найдено:", puzzleData.image_url);
-        } else {
-            // Показываем превью для загруженного пользовательского фото
-             const previewImg = document.getElementById('image-preview');
-             const previewText = document.getElementById('image-preview-text');
-             if(previewContainer && previewImg && previewText && puzzleData.image_url) {
-                 previewImg.src = puzzleData.image_url;
-                 previewText.textContent = `Загружено: ${puzzleData.name}`;
-                 previewContainer.style.display = 'block';
-             } else {
-                 console.log("Загруженное пользовательское изображение:", puzzleData.image_url);
-             }
-        }
-
-        // Обновляем кнопку "Сохранить"
-        if (saveButton) {
-            saveButton.textContent = 'Обновить пазл';
-            saveButton.dataset.action = 'update';
-            saveButton.dataset.puzzleId = puzzleData.id;
-            if (!saveButton.dataset.originalTextCreate) {
-                saveButton.dataset.originalTextCreate = "Сохранить";
-            }
-            saveButton.dataset.originalTextUpdate = "Обновить пазл";
-        }
-
-        alert(`Пазл "${puzzleData.name}" (${puzzleData.grid_size}x${puzzleData.grid_size}) загружен. Нажмите "Начать игру", чтобы собрать его.`);
-        puzzleContainer.innerHTML = '<p>Пазл загружен. Нажмите "Начать игру".</p>';
-        message.style.display = 'none';
-    };
-
-    // Инициализируем Save/Load
-    initSaveLoadFeatures(getPuzzleStateForSeparatePage, applyLoadedStateForSeparatePage, {
-        saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn
-    });
-
-    if (presets.length > 0 && !localPuzzleParams.selectedImage) {
-        presets[0].click();
-    }
-    puzzleContainer.innerHTML = '<p>Выберите настройки и нажмите "Начать игру"</p>';
-    message.style.display = 'none';
-
-    console.log("Страница пазла инициализирована");
-}
-
-/**
- * Создает интерактивный пазл внутри игрового контейнера на доске.
- * @param {HTMLElement} gameWrapper - Родительский контейнер для пазла
- * @param {string | null} boardRoomName - Имя комнаты доски (для URL WebSocket)
- * @param {string} gameInstanceId - Уникальный ID этого экземпляра пазла на доске
- */
-export function createPuzzleOnBoard(gameWrapper, boardRoomName, gameInstanceId) {
-    const [localPuzzleParams, puzzleContainer, message] = getPuzzleParts();
-    
-    // Устанавливаем параметры по умолчанию для нового пазла на доске
-    localPuzzleParams.onWhiteboard = true;
-    localPuzzleParams.gameId = gameInstanceId;
-    localPuzzleParams.id = null; // ID из БД (для сохранения/загрузки)
-    localPuzzleParams.boardRoomName = boardRoomName;
-    localPuzzleParams.name = `Пазл ${gameInstanceId.split('-')[1] || ''}`;
-    localPuzzleParams.gridSize = 2;
-    localPuzzleParams.selectedImage = null;
-    localPuzzleParams.isPreset = false;
-    localPuzzleParams.piecePositions = [];
-
-    gameWrapper.puzzleParams = localPuzzleParams;
-    gameWrapper.puzzleContainer = puzzleContainer;
-    gameWrapper.puzzleMessage = message;
-
-    const closeButton = gameWrapper.querySelector('.paste-game-close');
-    const resizeHandle = gameWrapper.querySelector('.resize-handle');
-    gameWrapper.innerHTML = '';
-    if (closeButton) gameWrapper.appendChild(closeButton);
-    if (resizeHandle) gameWrapper.appendChild(resizeHandle);
-
-    gameWrapper.appendChild(puzzleContainer);
-    gameWrapper.appendChild(message);
-    puzzleContainer.innerHTML = '<p style="text-align: center; padding: 20px;">Активируйте пазл и выберите настройки в панели справа.</p>';
-    message.style.display = 'none';
-
-    // Инициация WebSocket для этого экземпляра пазла, если boardRoomName предоставлен (т.е. доска синхронизируется)
-    if (boardRoomName && gameInstanceId) {
-        const puzzleWsUrl = `ws://${window.location.host}/ws/puzzle_on_board/${boardRoomName}/${gameInstanceId}/`;
-        const puzzleWs = new WebSocket(puzzleWsUrl);
-        localPuzzleParams.ws = puzzleWs; // Сохраняем WebSocket в параметрах этого пазла
-        gameWrapper.puzzleWebSocket = puzzleWs; // Сохраняем в gameWrapper для доступа из whiteboard.js (для закрытия)
-
-        puzzleWs.onopen = () => {
-            console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] WebSocket connected to ${puzzleWsUrl}`);
-        };
-
-        puzzleWs.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] WS Received:`, data);
-
-            if (data.type === 'puzzle_piece_click') {
-                applyRemotePieceInteraction(
-                    gameWrapper.puzzleContainer,
-                    gameWrapper.puzzleParams,
-                    data.pieceIndex,
-                    gameWrapper.puzzleMessage
-                );
-            } else if (data.type === 'puzzle_state_change') {
-                // Применяем полное состояние, полученное от другого клиента
-                Object.assign(gameWrapper.puzzleParams, data.puzzleState); // Обновляем локальные параметры
-                
-                // Обновить UI панели настроек, если этот пазл сейчас активен
-                const activeBoardGame = document.querySelector('.paste-game-wrapper.active-game');
-                if (activeBoardGame === gameWrapper) {
-                    const settingsPanel = document.querySelector('.settings-panel');
-                    const puzzleNameInput = settingsPanel?.querySelector('#puzzle-name');
-                    const difficultySelect = settingsPanel?.querySelector('#difficulty');
-                    if (puzzleNameInput) puzzleNameInput.value = gameWrapper.puzzleParams.name || '';
-                    if (difficultySelect) difficultySelect.value = gameWrapper.puzzleParams.gridSize;
-                }
-                
-                // Перерисовываем сам пазл с новым состоянием
-                createPuzzle(gameWrapper.puzzleContainer, gameWrapper.puzzleParams, gameWrapper.puzzleMessage, true); // true - use existing positions
-            }
-        };
-
-        puzzleWs.onclose = (event) => {
-            console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
-        };
-        puzzleWs.onerror = (error) => {
-            console.error(`[PUZZLE INSTANCE: ${gameInstanceId}] WebSocket error:`, error);
-        };
-    } else {
-        // Локальный режим для этого экземпляра пазла (доска не синхронизируется или это локальное добавление)
-        localPuzzleParams.ws = null;
-        gameWrapper.puzzleWebSocket = null;
-        console.log(`[PUZZLE INSTANCE: ${gameInstanceId}] Running in local mode (no WebSocket).`);
-    }
-    console.log(`Экземпляр пазла ${gameInstanceId} инициализирован на доске.`);
-}
-
-/**
- * Настраивает контролы и Save/Load для активного пазла на доске.
- * Вызывается из whiteboard.js, когда пазл на доске получает фокус.
- * @param {HTMLElement} activeGameWrapper - Активный игровой контейнер пазла.
- */
-export function setupWhiteboardPuzzleSaveLoad(activeGameWrapper) {
-    console.log("Настройка UI и Save/Load для активного пазла на доске:", activeGameWrapper?.dataset?.id);
-
-    if (!activeGameWrapper || !activeGameWrapper.puzzleParams || !activeGameWrapper.puzzleContainer || !activeGameWrapper.puzzleMessage) {
-        console.warn("Активный пазл на доске не найден или не инициализирован (отсутствуют puzzleParams). Настройка UI пропущена.");
-        return;
-    }
-
-    const activePuzzleParams = activeGameWrapper.puzzleParams;
-
-    const settingsPanel = document.querySelector('.settings-panel');
-    if (!settingsPanel) {
-        console.error("Панель настроек не найдена. Не удается настроить пазл на доске.");
-        return;
-    }
-
-    // Находим контролы на панели настроек доски
-    const puzzleNameInput = settingsPanel.querySelector('#puzzle-name');
-    const customInput = settingsPanel.querySelector('#custom-image');
-    const difficultySelect = settingsPanel.querySelector('#difficulty');
-    const presetsNodeList = settingsPanel.querySelectorAll('.preset');
-    const saveButton = settingsPanel.querySelector('#save-puzzle-btn');
-    const loadButton = settingsPanel.querySelector('#load-puzzle-btn');
-    const startBtnOnPanel = settingsPanel.querySelector('#start-game'); // Кнопка "Начать игру" на панели
-
-    const loadModal = document.getElementById('load-game-modal'); // Глобальное модальное окно
-    const loadListContainer = document.getElementById('load-list-container');
-    const loadConfirmBtn = document.getElementById('load-confirm-btn');
-    const loadCancelBtn = document.getElementById('load-cancel-btn');
-
-    if (!puzzleNameInput || !customInput || !difficultySelect || !presetsNodeList?.length || !saveButton || !loadButton) {
-        console.error("Ключевые элементы управления пазлом отсутствуют на панели настроек доски!");
-        return;
-    }
-    const presets = Array.from(presetsNodeList);
-
-    // Кнопка "Начать игру" на панели настроек не нужна, т.к. пазл обновляется мгновенно (instantUpdate=true)
-    if (startBtnOnPanel) {
-        startBtnOnPanel.style.display = 'none';
-    }
-    
-    // Устанавливаем текст кнопки "Сохранить" в зависимости от того, загружен ли пазл
-    if (activePuzzleParams.id && saveButton) { // Если есть ID из БД
-        if (!saveButton.dataset.originalTextUpdate) saveButton.dataset.originalTextUpdate = "Обновить пазл";
-        saveButton.textContent = saveButton.dataset.originalTextUpdate;
-        saveButton.dataset.action = 'update';
-        saveButton.dataset.puzzleId = activePuzzleParams.id;
-    } else if (saveButton) { // Новый пазл
-        if (!saveButton.dataset.originalTextCreate) saveButton.dataset.originalTextCreate = "Сохранить";
-        saveButton.textContent = saveButton.dataset.originalTextCreate;
-        saveButton.dataset.action = 'create';
-        delete saveButton.dataset.puzzleId;
-    }
-
-
-    const handlePuzzleStateChangeForBoard = (changedParams) => {
-        console.log(`Параметры пазла ${changedParams.gameId} изменены через UI:`, changedParams);
-        // Отправляем полное состояние через WebSocket этого пазла
-        if (changedParams.onWhiteboard && changedParams.ws && changedParams.ws.readyState === WebSocket.OPEN) {
-            changedParams.ws.send(JSON.stringify({
-                type: 'puzzle_state_change',
-                puzzleState: { // Отправляем только необходимые данные
-                    gridSize: changedParams.gridSize,
-                    piecePositions: changedParams.piecePositions,
-                    selectedImage: changedParams.selectedImage,
-                    isPreset: changedParams.isPreset,
-                    name: changedParams.name,
-                    id: changedParams.id
-                }
-            }));
-        } else if (changedParams.onWhiteboard && !changedParams.ws) {
-            console.log(`[Локальный режим доски] Состояние пазла ${changedParams.gameId} изменено, WS не используется для этого экземпляра.`);
-        }
-        // Обновляем поле имени на панели, если оно изменилось
-        if (puzzleNameInput && typeof changedParams.name !== 'undefined') {
-             puzzleNameInput.value = changedParams.name;
-        }
-    };
-
-    // Настраиваем контролы на панели (картинка, сложность)
-    setupPuzzleControls({
-        customInput, presets, difficultySelect, startBtn: null,
-        puzzleParams: activePuzzleParams, // Передаем параметры активного пазла
-        puzzleContainer: activeGameWrapper.puzzleContainer,
-        message: activeGameWrapper.puzzleMessage,
-        instantUpdate: true, // Изменения настроек применяются и отправляются сразу
-        onStateChange: handlePuzzleStateChangeForBoard,
-        saveBtnRef: saveButton
-    });
-
-    // Инициализируем значения контролов на панели из текущих параметров активного пазла
-    puzzleNameInput.value = activePuzzleParams.name || '';
-    difficultySelect.value = activePuzzleParams.gridSize;
-    customInput.value = '';
-
-    const previewContainer = settingsPanel.querySelector('#image-preview-container');
-    const previewImg = settingsPanel.querySelector('#image-preview');
-    const previewText = settingsPanel.querySelector('#image-preview-text');
-
-    presets.forEach(p => p.classList.remove('selected'));
-    if(previewContainer) previewContainer.style.display = 'none';
-
-    if (activePuzzleParams.isPreset && activePuzzleParams.selectedImage) {
-        const selectedPresetElement = presets.find(p => (p.dataset.src || p.src) === activePuzzleParams.selectedImage);
-        if (selectedPresetElement) selectedPresetElement.classList.add('selected');
-    } else if (!activePuzzleParams.isPreset && activePuzzleParams.selectedImage) {
-        if (previewContainer && previewImg && previewText) {
-            previewImg.src = activePuzzleParams.selectedImage;
-            previewText.textContent = activePuzzleParams.imageFile ? `Загружено: ${activePuzzleParams.imageFile.name}` : (activePuzzleParams.name || 'Загруженное изображение');
-            previewContainer.style.display = 'block';
-        }
-    }
-
-
-    // --- Логика Сохранения/Загрузки для пазла на доске ---
-    const getPuzzleStateForWhiteboard = () => {
-        const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
-        // Убедимся, что мы работаем с тем же активным пазлом
-        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleParams) {
-            alert("Активный пазл изменился или не найден. Сохранение отменено.");
-            return null;
-        }
-        const params = currentActiveWrapper.puzzleParams;
-        params.name = puzzleNameInput.value.trim(); // Берем имя с панели
-
-        if (!params.name) { alert("Введите название для сохранения."); puzzleNameInput.focus(); return null; }
-        
-        // Если пазл еще не создан (нет piecePositions), создаем его перед сохранением
-        // Это также отправит 'puzzle_state_change' с новыми piecePositions
-        if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
-            console.log("Пазл не инициализирован, создаем его перед сохранением...");
-            createPuzzle(currentActiveWrapper.puzzleContainer, params, currentActiveWrapper.puzzleMessage, false);
-        }
-        // Проверка еще раз, на случай если createPuzzle не сработал или не установил piecePositions
-        if (!params.piecePositions || params.piecePositions.length !== params.gridSize * params.gridSize) {
-             alert("Ошибка: Не удалось инициализировать элементы пазла для сохранения.");
-             return null;
-        }
-
-        return { // Данные, необходимые для API сохранения
-            id: params.id,
-            name: params.name,
-            gridSize: params.gridSize,
-            piecePositions: params.piecePositions, // массив индексов
-            selectedImage: params.selectedImage, // URL или DataURL
-            // presetElements и customImageInputEl нужны для initSaveLoadFeatures, чтобы определить тип файла
-            presetElements: presets, // Элементы пресетов с панели настроек
-            customImageInputEl: customInput // Элемент input type=file с панели
-        };
-    };
-
-    const applyLoadedStateForWhiteboard = (loadedDbPuzzleData) => {
-        const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
-        if (!currentActiveWrapper || currentActiveWrapper !== activeGameWrapper || !currentActiveWrapper.puzzleParams) {
-            alert("Активный пазл изменился или не найден. Загрузка отменена.");
-            return;
-        }
-        const targetParams = currentActiveWrapper.puzzleParams;
-
-        console.log("Применение загруженного состояния (из БД) к пазлу на доске:", loadedDbPuzzleData);
-
-        targetParams.id = loadedDbPuzzleData.id;
-        targetParams.name = loadedDbPuzzleData.name;
-        targetParams.gridSize = loadedDbPuzzleData.grid_size;
-        targetParams.piecePositions = loadedDbPuzzleData.piece_positions || [];
-        targetParams.selectedImage = loadedDbPuzzleData.image_url; // Полный URL изображения
-        targetParams.isPreset = !!loadedDbPuzzleData.preset_path;
-        targetParams.imageFile = null; // Сбрасываем файл, т.к. грузим из БД
-
-        // Обновляем UI панели настроек
-        puzzleNameInput.value = targetParams.name;
-        difficultySelect.value = targetParams.gridSize;
-        customInput.value = '';
-
-        // Обновляем кнопку "Сохранить" на панели, чтобы она была "Обновить"
-        const currentSettingsPanel = document.querySelector('.settings-panel');
-        if (currentSettingsPanel) {
-            const currentSaveButton = currentSettingsPanel.querySelector('#save-puzzle-btn');
-            if (currentSaveButton) {
-                currentSaveButton.textContent = currentSaveButton.dataset.originalTextUpdate || 'Обновить пазл';
-                currentSaveButton.dataset.action = 'update';
-                currentSaveButton.dataset.puzzleId = loadedDbPuzzleData.id;
-            }
-        }
-
-        createPuzzle(currentActiveWrapper.puzzleContainer, targetParams, currentActiveWrapper.puzzleMessage, true); // true - use existing (loaded) positions
-
-        if (targetParams.onWhiteboard && targetParams.ws && targetParams.ws.readyState === WebSocket.OPEN) {
-            console.log(`[APPLY LOADED] Отправка загруженного состояния пазла ${targetParams.gameId}`);
-            targetParams.ws.send(JSON.stringify({
-                type: 'puzzle_state_change',
-                puzzleState: {
-                    gridSize: targetParams.gridSize,
-                    piecePositions: targetParams.piecePositions,
-                    selectedImage: targetParams.selectedImage,
-                    isPreset: targetParams.isPreset,
-                    name: targetParams.name,
-                    id: targetParams.id
-                }
-            }));
-        } else if (targetParams.onWhiteboard && !targetParams.ws) {
-            console.log(`[APPLY LOADED - Локальный режим доски] Состояние пазла ${targetParams.gameId} загружено.`);
-            // Локальное обновление уже произошло через createPuzzle.
-        }
-    
-        alert(`Пазл "${loadedDbPuzzleData.name}" загружен в активный контейнер.`);
-    };
-
-    initSaveLoadFeatures(getPuzzleStateForWhiteboard, applyLoadedStateForWhiteboard, {
-        saveButton, loadButton, loadModal, loadListContainer, loadConfirmBtn, loadCancelBtn
-    });
-
-    console.log("UI и Save/Load для активного пазла на доске успешно настроены.");
-}
+// Экспорт для использования в whiteboard
+export { createPuzzleOnBoard, setupWhiteboardPuzzleSaveLoad };

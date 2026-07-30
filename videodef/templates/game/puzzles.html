@@ -88,12 +88,10 @@
     const images = "{% static 'images' %}";
 </script>
 <script src="{% static 'js/game/puzzle.bundle.js' %}"></script>
-<!-- Инициализация игры после загрузки DOM -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Убедитесь, что эта функция существует в puzzle.bundle.js
-        if(typeof createPuzzleSeparately === 'function') {
-            createPuzzleSeparately();
+        if(typeof window.createPuzzleSeparately === 'function') {
+            window.createPuzzleSeparately();
         } else {
             console.error("Функция createPuzzleSeparately не найдена.");
         }

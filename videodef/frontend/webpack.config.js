@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
     entry: {
-        whiteboard: './whiteboard.js',
+        whiteboard: './whiteboard/index.js',
         puzzle: './puzzle/index.js',
         memory_game: './memory_game/index.js',
         my_games: './my-games.js'
