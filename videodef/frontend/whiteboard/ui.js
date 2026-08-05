@@ -127,8 +127,8 @@ export class WhiteboardUI {
         
         if (gamesBtn && gameMenu) {
             const rect = gamesBtn.getBoundingClientRect();
-            gameMenu.style.top = `${rect.bottom + window.scrollY}px`;
-            gameMenu.style.left = `${rect.left + window.scrollX}px`;
+            gameMenu.style.top = `${rect.bottom}px`;
+            gameMenu.style.left = `${rect.left}px`;
         }
     }
     

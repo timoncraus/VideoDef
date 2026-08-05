@@ -1,39 +1,270 @@
-/* Общий контейнер для доски */
-
+/* ==========================================================================
+   ИНТЕРАКТИВНАЯ ДОСКА (whiteboard.html)
+   Холст, панель инструментов, игровые элементы на доске
+   ========================================================================== */
+/* --- Основной контейнер доски --- */
 .board-container {
     display: flex;
-    justify-content: flex-start;
-    height: 100vh;
+    justify-content: center;
+    height: calc(100vh - 250px);
     width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
 }
 
-
-/* Область для рисования и панели инструментов */
-
+/* --- Область рисования (toolbar + canvas) --- */
 .drawing-area {
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100%;
+    background: #ffffff;
+    border-radius: var(--game-border-radius, 15px);
+    box-shadow: var(--game-shadow-md, 0 5px 15px rgba(0, 0, 0, 0.08));
     overflow: hidden;
+    border: 1px solid #e9ecef;
 }
 
+/* ==========================================================================
+   ПАНЕЛЬ ИНСТРУМЕНТОВ (TOOLBAR)
+   ========================================================================== */
+.toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    background-color: var(--game-bg-light, #f8f9fa);
+    border-bottom: 1px solid #dee2e6;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+    min-height: 60px;
+    z-index: 100;
+}
 
-/* Холст для рисования */
+/* Стилизация горизонтального скроллбара */
+.toolbar::-webkit-scrollbar {
+    height: 8px;
+}
 
+.toolbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.toolbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.toolbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Для Firefox */
+.toolbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f1f1;
+}
+
+/* --- Кнопки инструментов --- */
+.toolbar .tool {
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0.4rem 0.8rem !important;
+    background-color: #ffffff !important;
+    color: #333 !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px !important;
+    cursor: pointer;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+    height: 36px !important;
+    box-sizing: border-box;
+}
+
+.toolbar .tool:hover {
+    background-color: #e7f1ff !important;
+    border-color: var(--game-primary, #4D8CF2) !important;
+    color: var(--game-primary, #4D8CF2) !important;
+}
+
+.toolbar .tool.active {
+    background-color: var(--game-primary, #4D8CF2) !important;
+    color: white !important;
+    border-color: var(--game-primary, #4D8CF2) !important;
+}
+
+/* --- Кнопка "Игры" --- */
+.toolbar #games_btn {
+    background-color: var(--game-primary, #4D8CF2) !important;
+    color: white !important;
+    border-color: var(--game-primary, #4D8CF2) !important;
+    padding: 0.4rem 0.9rem !important;
+}
+
+.toolbar #games_btn:hover {
+    background-color: var(--game-primary-hover, #3b6fc0) !important;
+    border-color: var(--game-primary-hover, #3b6fc0) !important;
+    color: white !important;
+}
+
+/* --- Кнопка "Настройки" --- */
+.toolbar #toggle-settings-btn {
+    background-color: #ffffff !important;
+    color: #333 !important;
+    border: 1px solid #ced4da !important;
+}
+
+.toolbar #toggle-settings-btn:hover {
+    background-color: #e7f1ff !important;
+    border-color: var(--game-primary, #4D8CF2) !important;
+    color: var(--game-primary, #4D8CF2) !important;
+}
+
+/* --- Кнопка очистки --- */
+.toolbar #clear_btn {
+    color: var(--game-danger, #dc3545) !important;
+    border-color: var(--game-danger, #dc3545) !important;
+    margin-left: auto !important;
+}
+
+.toolbar #clear_btn:hover {
+    background-color: var(--game-danger, #dc3545) !important;
+    color: white !important;
+    border-color: var(--game-danger, #dc3545) !important;
+}
+
+/* --- Лейблы в toolbar --- */
+.toolbar label {
+    font-size: 0.9rem !important;
+    font-weight: 600;
+    color: #495057;
+    margin: 0 !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+    width: auto !important;
+}
+
+/* --- Color picker --- */
+.toolbar #colorPicker {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 2px !important;
+    margin: 0 !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px !important;
+    cursor: pointer;
+    background: white !important;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.toolbar #colorPicker:hover {
+    border-color: var(--game-primary, #4D8CF2) !important;
+}
+
+/* --- Толщина кисти --- */
+.toolbar #thickness {
+    width: 100px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* --- Разделитель в toolbar --- */
+.toolbar-divider {
+    width: 1px;
+    height: 30px;
+    background: #dee2e6;
+    margin: 0 0.3rem;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWN МЕНЮ ИГР
+   ========================================================================== */
+.dropdown {
+    position: static;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.dropdown-content {
+    display: none;
+    position: fixed;
+    z-index: 1002;
+    background-color: #ffffff;
+    min-width: 220px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-content .game-option {
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.dropdown-content .game-option:last-child {
+    border-bottom: none;
+}
+
+.dropdown-content .game-option:hover {
+    background-color: #e7f1ff;
+    color: var(--game-primary, #4D8CF2);
+}
+
+/* ==========================================================================
+   ХОЛСТ ДЛЯ РИСОВАНИЯ
+   ========================================================================== */
 .canvas-wrapper {
     position: relative;
-    height: calc(100% - 115px);
+    flex-grow: 1;
     width: 100%;
+    background-color: #ffffff;
+    cursor: crosshair;
+    overflow: hidden;
 }
 
 canvas {
     display: block;
     width: 100%;
     height: 100%;
-    border: 1px solid #ccc;
-    background-color: white;
-    cursor: crosshair;
     touch-action: none;
 }
 
@@ -43,204 +274,88 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    display: block;
-    border: 1px solid #ccc;
-    background-color: transparent;
-    touch-action: none;
-    cursor: crosshair;
 }
 
-
-/* Панель инструментов */
-
-.toolbar {
-    display: flex;
-    gap: 10px;
-    padding: 10px;
-    height: 115px;
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #ccc;
-    align-items: center;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-}
-
-.tool {
-    padding: 8px 4px;
-    background-color: #fff;
-    color: black;
-    border: 1px solid #999;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    max-width: 100px;
-    transition: background-color 0.2s, border-color 0.2s;
-    white-space: nowrap;
-}
-
-.tool:hover {
-    background-color: #e6f0ff;
-    border-color: #007bff;
-}
-
-.tool.active {
-    background-color: #d0eaff;
-    border-color: #007bff;
-}
-
-#thickness {
-    width: 120px;
-}
-
-#img-upload {
-    padding: 5px;
-    font-size: 14px;
-    max-width: 500px;
-    cursor: pointer;
-}
-
-#colorPicker {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    border-radius: 4px;
-    padding: 0;
-    cursor: pointer;
-    background-color: #fff;
-}
-
-#clear_btn {
-    max-width: 200px;
-}
-
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-#games_btn {
-    position: relative;
-    background-color: #2980b9;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    white-space: nowrap;
-}
-
-#games_btn:hover {
-    background-color: #3498db;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 10;
-}
-
-.dropdown-content.show {
-    display: block;
-    opacity: 1;
-    pointer-events: auto;
-}
-
-#games_btn {
-    background-color: #2980b9;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    white-space: nowrap;
-    min-width: 120px;
-}
-
-#games_btn:hover {
-    background-color: #3498db;
-}
-
-.dropdown-content .game-option {
-    padding: 8px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    background-color: white;
-    min-width: 100%;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    z-index: 10;
-}
-
-.dropdown-content .game-option:hover {
-    background-color: #f0f0f0;
-}
-
-.dropdown.open #game-menu {
-    display: block;
-}
-
-
-/* Панель настроек */
-
+/* ==========================================================================
+   ПАНЕЛЬ НАСТРОЕК
+   ========================================================================== */
 .settings-panel {
-    position: relative;
-    top: 0;
-    right: 0;
-    width: 500px;
-    background-color: #f9f9f9;
-    border-left: 1px solid #ccc;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-    padding: 15px;
+    position: fixed;
+    top: 160px;
+    right: 20px;
+    width: 380px;
+    max-height: calc(100vh - 200px);
+    background-color: #ffffff;
+    border-left: 4px solid var(--game-primary, #4D8CF2);
+    box-shadow: -5px 5px 20px rgba(0, 0, 0, 0.12);
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    z-index: 2;
+    gap: 1rem;
+    z-index: 900;
     overflow-y: auto;
+    border-radius: 12px 0 0 12px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    transform: translateX(0);
+    opacity: 1;
 }
 
 .settings-panel.hidden {
-    display: none;
+    transform: translateX(calc(100% + 30px));
+    opacity: 0;
+    pointer-events: none;
 }
 
-.settings-panel-content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+.settings-panel h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--game-primary, #4D8CF2);
+    font-size: 1.2rem;
+    font-weight: 700;
+    border-bottom: 2px solid var(--game-bg-light, #f8f9fa);
+    padding-bottom: 0.6rem;
 }
 
+/* Кнопки внутри панели настроек */
 .panel-button {
-    padding: 8px 12px;
-    background-color: #2980b9;
+    padding: 0.6rem 1rem;
+    background-color: var(--game-primary, #4D8CF2);
     color: white;
     border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 0.95rem;
     cursor: pointer;
     width: 100%;
     text-align: left;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.2s;
+    font-weight: 500;
 }
 
 .panel-button:hover {
-    background-color: #3498db;
+    background-color: var(--game-primary-hover, #3b6fc0);
+    transform: translateX(3px);
 }
 
+/* Динамические настройки игр внутри панели */
+.dynamic-setting {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
 
-/* Добавленные игры и дополнительные элементы */
-
+/* ==========================================================================
+   ИГРОВЫЕ ЭЛЕМЕНТЫ НА ДОСКЕ
+   ========================================================================== */
 .paste-game-wrapper {
     position: absolute;
-    border: 2px solid #ccc;
+    border: 2px solid transparent;
     border-radius: 8px;
-    z-index: 15;
+    z-index: 50;
     cursor: grab;
-    display: flex;
-    background-color: #f0f0f0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    transition: box-shadow 0.2s, border-color 0.2s;
+    overflow: visible;
 }
 
 .paste-game-wrapper:active {
@@ -248,56 +363,111 @@ canvas {
 }
 
 .paste-game-wrapper.active-game {
-    border: 2px solid #00bfff;
-    box-shadow: 0 0 10px #00bfff;
+    border: 2px solid var(--game-primary, #4D8CF2);
+    box-shadow: 0 0 0 3px rgba(77, 140, 242, 0.2), 0 8px 25px rgba(0, 0, 0, 0.2);
     z-index: 100;
 }
 
+/* Кнопка закрытия игровой обёртки */
 .paste-game-close {
     position: absolute;
-    top: -23px;
-    right: -14px;
-    z-index: 25;
-    width: 26px;
-    height: 26px;
+    top: -12px;
+    right: -12px;
+    z-index: 110;
+    width: 24px;
+    height: 24px;
+    margin: 0 !important;
+    padding: 0 !important;
     border-radius: 50%;
-    background-color: #e74c3c;
+    background-color: var(--game-danger, #dc3545);
     border: 2px solid white;
     color: white;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    font-family: 'Arial', sans-serif;
-    font-size: 18px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-size: 12px;
     font-weight: bold;
-    line-height: 22px;
-    text-align: center;
+    line-height: 1;
     cursor: pointer;
-    padding: 0;
-    outline: none;
-    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 }
 
-.paste-game-close:hover,
-.paste-game-close:focus {
-    background-color: #c0392b;
+.paste-game-close:hover {
+    background-color: var(--game-danger-hover, #bb2d3b);
     transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
 
+/* Ручка изменения размера */
 .resize-handle {
     position: absolute;
-    right: -7px;
-    bottom: -7px;
-    z-index: 25;
-    width: 14px;
-    height: 14px;
+    right: -12px;
+    bottom: -12px;
+    z-index: 110;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: #007bff;
+    background: var(--game-primary, #4D8CF2);
     border: 2px solid white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     cursor: se-resize;
     transition: transform 0.2s ease;
 }
 
 .resize-handle:hover {
-    transform: scale(1.2);
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   АДАПТИВНОСТЬ
+   ========================================================================== */
+@media (max-width: 768px) {
+    .board-container {
+        height: calc(100vh - 200px);
+        padding: 0 0.5rem;
+    }
+    
+    .toolbar {
+        padding: 0.6rem 0.8rem;
+        gap: 0.4rem;
+        min-height: 50px;
+    }
+    
+    .toolbar .tool {
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.85rem !important;
+        height: 32px !important;
+    }
+    
+    .toolbar #thickness {
+        width: 80px !important;
+    }
+    
+    .settings-panel {
+        width: 300px;
+        right: 10px;
+        top: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .toolbar {
+        gap: 0.3rem;
+        padding: 0.5rem;
+    }
+    
+    .toolbar .tool {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.8rem !important;
+        height: 30px !important;
+    }
+    
+    .toolbar #thickness {
+        width: 60px !important;
+    }
+    
+    .settings-panel {
+        width: 260px;
+        padding: 1rem;
+    }
 }

@@ -140,7 +140,7 @@ function createPuzzleSeparately() {
         presets[0].click();
     }
     
-    puzzleContainer.innerHTML = '<p>Выберите настройки и нажмите "Начать игру"</p>';
+    puzzleContainer.innerHTML = '<p class="initial-message">Выберите настройки и нажмите "Начать игру"</p>';
     message.style.display = 'none';
     
     console.log("Страница пазла инициализирована");

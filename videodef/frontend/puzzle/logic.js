@@ -53,7 +53,7 @@ export function createPuzzle(puzzleContainer, puzzleParams, message, useExisting
     message.style.display = 'none';
     
     if (!puzzleParams.selectedImage) {
-        puzzleContainer.innerHTML = '<p style="text-align: center; padding: 10px;">Выберите изображение в настройках.</p>';
+        puzzleContainer.innerHTML = '<p class="initial-message">Выберите изображение в настройках.</p>';
         return;
     }
     
@@ -178,16 +178,22 @@ export function handlePieceClick(puzzleContainer, puzzleParams, pieceDomElement,
     // Выполняем локальное действие (Optimistic UI)
     if (!puzzleParams.selectedPiece) {
         puzzleParams.selectedPiece = pieceDomElement;
-        pieceDomElement.style.outline = '2px solid red';
+        pieceDomElement.style.boxShadow = '0 0 0 3px #dc3545, 0 5px 15px rgba(220, 53, 69, 0.4)';
+        pieceDomElement.style.transform = 'scale(1.03)';
+        pieceDomElement.style.zIndex = '30';
     } else if (puzzleParams.selectedPiece === pieceDomElement) {
-        pieceDomElement.style.outline = '';
+        pieceDomElement.style.boxShadow = '';
+        pieceDomElement.style.transform = '';
+        pieceDomElement.style.zIndex = '';
         puzzleParams.selectedPiece = null;
     } else {
         swapPiecesAndUpdate(puzzleContainer, puzzleParams, puzzleParams.selectedPiece, pieceDomElement);
         checkVictory(puzzleParams, message);
         
         if (puzzleParams.selectedPiece) {
-            puzzleParams.selectedPiece.style.outline = '';
+            puzzleParams.selectedPiece.style.boxShadow = '';
+            puzzleParams.selectedPiece.style.transform = '';
+            puzzleParams.selectedPiece.style.zIndex = '';
         }
         puzzleParams.selectedPiece = null;
     }
@@ -236,13 +242,19 @@ export function applyRemotePieceInteraction(puzzleContainer, puzzleParams, piece
     
     if (!puzzleParams.remoteSelectedPiece) {
         puzzleParams.remoteSelectedPiece = targetPieceDom;
-        targetPieceDom.style.outline = '2px solid blue';
+        targetPieceDom.style.boxShadow = '0 0 0 3px #4D8CF2, 0 5px 15px rgba(77, 140, 242, 0.4)';
+        targetPieceDom.style.transform = 'scale(1.03)';
+        targetPieceDom.style.zIndex = '30';
     } else if (puzzleParams.remoteSelectedPiece === targetPieceDom) {
-        targetPieceDom.style.outline = '';
+        targetPieceDom.style.boxShadow = '';
+        targetPieceDom.style.transform = '';
+        targetPieceDom.style.zIndex = '';
         puzzleParams.remoteSelectedPiece = null;
     } else {
-        if (puzzleParams.remoteSelectedPiece) {
-            puzzleParams.remoteSelectedPiece.style.outline = '';
+        if (puzzleParams.remoteSelectedPiece){
+            puzzleParams.remoteSelectedPiece.style.boxShadow = '';
+            puzzleParams.remoteSelectedPiece.style.transform = '';
+            puzzleParams.remoteSelectedPiece.style.zIndex = '';
         }
         swapPiecesAndUpdate(puzzleContainer, puzzleParams, puzzleParams.remoteSelectedPiece, targetPieceDom);
         puzzleParams.remoteSelectedPiece = null;

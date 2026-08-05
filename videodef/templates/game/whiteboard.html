@@ -1,11 +1,11 @@
 {% extends 'base.html' %} 
 {% load static %}
+
 {% block style %}
-<link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
-<link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
-<link rel="stylesheet" href="{% static 'css/game/memory_game.css' %}" />
-<link rel="stylesheet" href="{% static 'css/game/game_settings_panel.css' %}" />
-<link rel="stylesheet" href="{% static 'css/game/game_load_window.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game/game_common.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game/memory_game.css' %}" />
 {% endblock %}
 
 {% block page_name %}Интерактивная доска{% endblock %}
@@ -17,27 +17,33 @@
         <div class="toolbar">
             <button id="pen_btn" class="tool active">✏️ Кисть</button>
             <button id="eraser_btn" class="tool">🧽 Ластик</button>
-
-            <label for="colorPicker">Цвет:</label>
-            <input type="color" id="colorPicker" value="#000000">
-
-            <label for="thickness">Толщина:</label>
-            <input type="range" id="thickness" min="1" max="20" value="2">
-
+            
+            <div style="width: 1px; height: 30px; background: #dee2e6; margin: 0 0.5rem;"></div>
+            
+            <label for="colorPicker" style="margin: 0; font-weight: 600; color: #555;">Цвет:</label>
+            <input type="color" id="colorPicker" value="#000000" title="Выберите цвет">
+            
+            <label for="thickness" style="margin: 0; font-weight: 600; color: #555;">Толщина:</label>
+            <input type="range" id="thickness" min="1" max="20" value="2" title="Толщина линии">
+            
+            <div style="width: 1px; height: 30px; background: #dee2e6; margin: 0 0.5rem;"></div>
+            
             <div class="dropdown">
                 <button id="games_btn" class="tool">🎮 Игры ▼</button>
+                <div class="dropdown-content" id="game-menu">
+                    <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
+                    <div class="game-option" data-name="memory-game">🔍 Поиск пар</div>
+                    <div class="game-option" data-name="cut-images">✂️ Разрезные картинки</div>
+                    <div class="game-option" data-name="grid-draw">📐 Дорисовать по клеточкам</div>
+                </div>
             </div>
-            <div class="dropdown-content" id="game-menu">
-                <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
-                <div class="game-option" data-name="memory-game">🔍 Поиск пар</div>
-                <div class="game-option" data-name="cut-images">✂️ Разрезные картинки</div>
-                <div class="game-option" data-name="grid-draw">📐 Дорисовать по клеточкам</div>
-            </div>
-
-            <button id="toggle-settings-btn">Открыть настройки</button>
-
-            <input type="file" id="img-upload" title="Загрузить изображение">
-            <button id="clear_btn">🗑️ Очистить холст</button>
+            
+            <div style="flex-grow: 1;"></div>
+            
+            <button id="toggle-settings-btn" class="tool">⚙️ Настройки</button>
+            <input type="file" id="img-upload" title="Загрузить изображение" style="display: none;">
+            <button class="tool" onclick="document.getElementById('img-upload').click()">🖼️ Загрузить картинку</button>
+            <button id="clear_btn" class="tool" style="color: #dc3545; border-color: #dc3545;">🗑️ Очистить</button>
         </div>
 
         <!-- Холст для рисования -->
@@ -49,27 +55,26 @@
 </div>
 
 <!-- Модальное окно для загрузки игр -->
-<div id="load-game-modal" class="modal-overlay" style="display: none;">
+<div id="load-game-modal" class="modal-overlay">
     <div class="modal-container">
+        <span class="modal-close-btn" id="load-cancel-btn">&times;</span>
         <h2>Выберите сохраненную игру</h2>
-        <div id="load-list-container">
-            <p>Загрузка...</p>
+        <div id="load-list-container" style="flex-grow: 1; overflow-y: auto; margin: 1rem 0; border: 1px solid #eee; border-radius: 8px; padding: 0.5rem;">
+            <p class="text-center text-muted">Загрузка...</p>
         </div>
-        <div class="modal-buttons">
-            <button id="load-confirm-btn" disabled>Загрузить выбранный</button>
-            <button id="load-cancel-btn">Отмена</button>
+        <div class="d-flex justify-content-end gap-2">
+            <button id="load-cancel-btn" class="game-btn game-btn-secondary">Отмена</button>
+            <button id="load-confirm-btn" class="game-btn game-btn-primary" disabled>Загрузить выбранный</button>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block horizontal_right %}
 <!-- Панель настроек -->
 <div class="settings-panel hidden">
-    <h3>Настройки</h3>
-    <button class="panel-button">Сохранить холст</button>
-    <button class="panel-button">Загрузить холст</button>
+    <h3 style="margin-top: 0; color: #4D8CF2; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">Настройки</h3>
+    <!-- Сюда JS будет вставлять .dynamic-setting -->
 </div>
 {% endblock %}
 
@@ -82,12 +87,10 @@
     const savePuzzleUrl = "{% url 'game:save_puzzle' %}";
     const updatePuzzleBaseUrl = "{% url 'game:update_puzzle' game_id="0" %}".replace('/0/', '/'); 
     const loadPuzzlesUrl = "{% url 'game:load_puzzles' %}";
-
     const presetImagesBasePath = "{% static 'images/memory_game_presets/' %}";
     const saveMemoryGameUrl = "{% url 'game:save_memory_game' %}";
     const loadMemoryGamesUrl = "{% url 'game:load_memory_games' %}";
     const updateMemoryGameBaseUrl = "{% url 'game:update_memory_game' game_id=0 %}"; 
-
     const csrfToken = "{{ csrf_token }}";
 </script>
 <script src="{% static 'js/game/whiteboard.bundle.js' %}"></script>

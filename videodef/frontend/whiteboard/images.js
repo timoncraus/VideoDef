@@ -3,6 +3,20 @@
  * Управляет загрузкой, перемещением, изменением размера и удалением изображений.
  */
 
+const COLORS = {
+    primary: '#4D8CF2',
+    accent: '#00bfff',
+    selectionStroke: '#4D8CF2',
+    handleFill: '#4D8CF2',
+    handleStroke: '#ffffff',
+    shadowColor: 'rgba(77, 140, 242, 0.35)'
+};
+
+// Размеры элементов выделения
+const SELECTION_LINE_WIDTH = 1.5;
+const HANDLE_RADIUS = 5;
+const CORNER_RADIUS = 6;
+
 /**
  * Класс для управления изображениями на canvas.
  */
@@ -29,10 +43,11 @@ export class ImageManager {
         
         this.isDragging = false;
         this.isResizing = false;
+        this.activeHandle = null; // 'tl' | 'tr' | 'bl' | 'br' — какой угол тянем
         this.dragOffset = { x: 0, y: 0 };
         
         // Флаг для синхронизации отправки с частотой кадров браузера (requestAnimationFrame).
-        // Предотвращает спам сети сообщениями при движении мыши (60+ раз в секунду), 
+        // Предотвращает спам сети сообщениями при движении мыши (60+ раз в секунду)
         this.imageUpdateScheduled = false;
         
         // Слушатели добавляются в Whiteboard.setupCanvasEventListeners для избежания конфликтов
@@ -66,7 +81,7 @@ export class ImageManager {
             if (this.isDragging) {
                 return 'grabbing';
             } else if (this.isResizing) {
-                return 'nwse-resize';
+                return this.getResizeCursorForHandle(this.activeHandle);
             }
         } 
         
@@ -189,14 +204,47 @@ export class ImageManager {
     }
     
     /**
-     * Проверяет, находится ли курсор над маркером изменения размера.
+     * Возвращает координаты 4 угловых маркеров для заданного изображения.
+     * @param {Object} imgObj - Объект изображения
+     * @returns {Object} Координаты центров маркеров { tl, tr, bl, br }
      */
-    overResizeHandle(x, y, imgObj) {
-        const size = 10;
-        const handleX = imgObj.x + imgObj.width - size / 2;
-        const handleY = imgObj.y + imgObj.height - size / 2;
-        return x >= handleX && x <= handleX + size &&
-               y >= handleY && y <= handleY + size;
+    getHandlePositions(imgObj) {
+        return {
+            tl: { x: imgObj.x, y: imgObj.y },
+            tr: { x: imgObj.x + imgObj.width, y: imgObj.y },
+            bl: { x: imgObj.x, y: imgObj.y + imgObj.height },
+            br: { x: imgObj.x + imgObj.width, y: imgObj.y + imgObj.height }
+        };
+    }
+    
+    /**
+     * Определяет, какой угловой маркер находится под курсором.
+     * @param {number} x - Координата X курсора
+     * @param {number} y - Координата Y курсора
+     * @param {Object} imgObj - Объект изображения
+     * @returns {string|null} Идентификатор маркера ('tl'|'tr'|'bl'|'br') или null
+     */
+    getHandleAtPosition(x, y, imgObj) {
+        const handles = this.getHandlePositions(imgObj);
+        const hitRadius = HANDLE_RADIUS + 4;
+        
+        for (const [key, pos] of Object.entries(handles)) {
+            const dx = x - pos.x;
+            const dy = y - pos.y;
+            if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+                return key;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Возвращает CSS-курсор в зависимости от угла resize.
+     */
+    getResizeCursorForHandle(handleKey) {
+        if (handleKey === 'tl' || handleKey === 'br') return 'nwse-resize';
+        if (handleKey === 'tr' || handleKey === 'bl') return 'nesw-resize';
+        return 'nwse-resize';
     }
     
     /**
@@ -223,8 +271,10 @@ export class ImageManager {
     startDrag(x, y) {
         if (!this.activeImage) return false;
         
-        if (this.overResizeHandle(x, y, this.activeImage)) {
+        const handleKey = this.getHandleAtPosition(x, y, this.activeImage);
+        if (handleKey) {
             this.isResizing = true;
+            this.activeHandle = handleKey;
             this.dragOffset = {
                 startX: x,
                 startY: y,
@@ -234,14 +284,15 @@ export class ImageManager {
                 startHeight: this.activeImage.height
             };
             return 'resize';
-        } else {
-            this.isDragging = true;
-            this.dragOffset = {
-                x: x - this.activeImage.x,
-                y: y - this.activeImage.y
-            };
-            return 'drag';
         }
+
+        this.isDragging = true;
+        this.activeHandle = null;
+        this.dragOffset = {
+            x: x - this.activeImage.x,
+            y: y - this.activeImage.y
+        };
+        return 'drag';
     }
     
     /**
@@ -266,10 +317,42 @@ export class ImageManager {
         }
         
         if (this.isResizing && this.activeImage) {
-            let newWidth = this.dragOffset.startWidth + (x - this.dragOffset.startX);
-            let newHeight = this.dragOffset.startHeight + (y - this.dragOffset.startY);
-            this.activeImage.width = Math.max(20, newWidth);
-            this.activeImage.height = Math.max(20, newHeight);
+            const dx = x - this.dragOffset.startX;
+            const dy = y - this.dragOffset.startY;
+            const MIN_SIZE = 40;
+            
+            // В зависимости от того, какой угол тянем, пересчитываем x/y/width/height
+            switch (this.activeHandle) {
+                case 'br': {
+                    this.activeImage.width = Math.max(MIN_SIZE, this.dragOffset.startWidth + dx);
+                    this.activeImage.height = Math.max(MIN_SIZE, this.dragOffset.startHeight + dy);
+                    break;
+                }
+                case 'bl': {
+                    const newWidth = Math.max(MIN_SIZE, this.dragOffset.startWidth - dx);
+                    this.activeImage.x = this.dragOffset.startImageX + this.dragOffset.startWidth - newWidth;
+                    this.activeImage.width = newWidth;
+                    this.activeImage.height = Math.max(MIN_SIZE, this.dragOffset.startHeight + dy);
+                    break;
+                }
+                case 'tr': {
+                    this.activeImage.width = Math.max(MIN_SIZE, this.dragOffset.startWidth + dx);
+                    const newHeight = Math.max(MIN_SIZE, this.dragOffset.startHeight - dy);
+                    this.activeImage.y = this.dragOffset.startImageY + this.dragOffset.startHeight - newHeight;
+                    this.activeImage.height = newHeight;
+                    break;
+                }
+                case 'tl': {
+                    const newWidth = Math.max(MIN_SIZE, this.dragOffset.startWidth - dx);
+                    const newHeight = Math.max(MIN_SIZE, this.dragOffset.startHeight - dy);
+                    this.activeImage.x = this.dragOffset.startImageX + this.dragOffset.startWidth - newWidth;
+                    this.activeImage.y = this.dragOffset.startImageY + this.dragOffset.startHeight - newHeight;
+                    this.activeImage.width = newWidth;
+                    this.activeImage.height = newHeight;
+                    break;
+                }
+            }
+            
             this.redraw();
             
             if (this.onImageResizeUpdate && !this.imageUpdateScheduled) {
@@ -321,6 +404,7 @@ export class ImageManager {
                 dataURL: this.activeImage.dataURL
             };
             this.isResizing = false;
+            this.activeHandle = null;
         }
         
         this.imageUpdateScheduled = false;
@@ -333,9 +417,10 @@ export class ImageManager {
     getCursorForPosition(x, y, currentTool) {
         const hoveredImage = this.getImageAt(x, y);
         
-        if (hoveredImage && currentTool !== 'pen' && currentTool !== 'eraser') {
-            if (this.overResizeHandle(x, y, hoveredImage)) {
-                return 'nwse-resize';
+        if (hoveredImage) {
+            const handle = this.getHandleAtPosition(x, y, hoveredImage);
+            if (handle) {
+                return this.getResizeCursorForHandle(handle);
             }
             return 'move';
         }
@@ -344,7 +429,24 @@ export class ImageManager {
     }
     
     /**
-     * Перерисовывает все изображения.
+     * Рисует скруглённый прямоугольник
+     */
+    drawRoundedRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+    
+    /**
+     * Перерисовывает все изображения и элементы выделения.
      */
     redraw() {
         this.imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
@@ -352,30 +454,60 @@ export class ImageManager {
         const prevOp = this.imageCtx.globalCompositeOperation;
         this.imageCtx.globalCompositeOperation = 'source-over';
         
+        // Рисуем сами изображения
         this.imagesList.forEach(imgObj => {
             this.imageCtx.drawImage(imgObj.img, imgObj.x, imgObj.y, imgObj.width, imgObj.height);
-            
-            if (this.activeImage && this.activeImage.id === imgObj.id) {
-                this.imageCtx.strokeStyle = 'blue';
-                this.imageCtx.lineWidth = 2;
-                this.imageCtx.strokeRect(imgObj.x - 1, imgObj.y - 1, imgObj.width + 2, imgObj.height + 2);
-                this.drawResizeHandle(imgObj);
-            }
         });
         
+        // Рисуем выделение поверх активного изображения
+        if (this.activeImage) {
+            const img = this.activeImage;
+            const ctx = this.imageCtx;
+            
+            // Сохраняем состояние, чтобы тень не влияла на другие отрисовки
+            ctx.save();
+            
+            // Рамка выделения
+            ctx.shadowColor = COLORS.shadowColor;
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.strokeStyle = COLORS.selectionStroke;
+            ctx.lineWidth = SELECTION_LINE_WIDTH;
+            
+            const pad = SELECTION_LINE_WIDTH / 2 + 1;
+            this.drawRoundedRect(
+                ctx,
+                img.x - pad,
+                img.y - pad,
+                img.width + pad * 2,
+                img.height + pad * 2,
+                CORNER_RADIUS
+            );
+            ctx.stroke();
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Угловые маркеры
+            const handles = this.getHandlePositions(img);
+            for (const pos of Object.values(handles)) {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, HANDLE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = COLORS.handleFill;
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = COLORS.handleStroke;
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+        
         this.imageCtx.globalCompositeOperation = prevOp;
-    }
-    
-    /**
-     * Рисует маркер изменения размера.
-     */
-    drawResizeHandle(imgObj) {
-        const size = 10;
-        this.imageCtx.fillStyle = '#007bff';
-        this.imageCtx.strokeStyle = 'white';
-        this.imageCtx.lineWidth = 1;
-        this.imageCtx.fillRect(imgObj.x + imgObj.width - size / 2, imgObj.y + imgObj.height - size / 2, size, size);
-        this.imageCtx.strokeRect(imgObj.x + imgObj.width - size / 2, imgObj.y + imgObj.height - size / 2, size, size);
     }
     
     /**
@@ -386,6 +518,7 @@ export class ImageManager {
         this.imagesList = [];
         this.activeImage = null;
         this.nextImageId = 0;
+        this.activeHandle = null;
     }
     
     /**

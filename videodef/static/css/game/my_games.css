@@ -1,179 +1,188 @@
-/* Общий контейнер страницы "Мои игры" */
+/* ==========================================================================
+   СТРАНИЦА "МОИ ИГРЫ" (my_games.html)
+   Отображает сохраненные игры пользователя с фильтрами и сортировкой
+   ========================================================================== */
+/* --- Основной контейнер страницы (Grid Layout) --- */
 .my-games-page-wrapper {
     display: grid;
-    grid-template-columns: 1fr; 
+    grid-template-columns: 1fr;
     grid-template-areas:
         "main"
         "sidebar";
-    gap: 1.5rem; 
-    padding: 1rem;
-    max-width: 1300px; 
-    margin-left: auto;
-    margin-right: auto;
+    gap: 2rem;
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 992px) {
     .my-games-page-wrapper {
-        grid-template-columns: 1fr 300px;
-        grid-template-areas:
-            "main sidebar";
-        padding: 1.5rem;
+        grid-template-columns: 1fr 320px;
+        grid-template-areas: "main sidebar";
+        padding: 2rem;
     }
 }
 
-/* Основной контент (сетка игр) */
+/* --- Основной контент (сетка игр) --- */
 .my-games-main-content {
-    grid-area: main; 
-    min-width: 0; 
+    grid-area: main;
+    min-width: 0; /* Предотвращает переполнение grid */
 }
 
-/* Сайдбар с фильтрами */
+/* --- Сайдбар с фильтрами --- */
 .my-games-sidebar {
-    grid-area: sidebar; 
-    padding: 1.25rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 0.375rem;
-    background-color: #f9f9f9;
-    height: fit-content; 
+    grid-area: sidebar;
+    padding: 1.5rem;
+    border-radius: var(--game-border-radius, 15px);
+    background-color: #ffffff;
+    box-shadow: var(--game-shadow-md, 0 5px 15px rgba(0, 0, 0, 0.08));
+    height: fit-content;
     width: 100%;
     box-sizing: border-box;
+    border: 1px solid #e9ecef;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 992px) {
     .my-games-sidebar {
+        position: sticky;
+        top: 2rem;
         width: auto;
     }
 }
 
+/* --- Заголовок сайдбара --- */
 .my-games-sidebar__title {
     text-align: center;
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.3rem;
+    font-weight: 700;
     margin-top: 0;
-    margin-bottom: 1.25rem; 
-    color: #333;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    border-bottom: 2px solid var(--game-bg-light, #f8f9fa);
+    padding-bottom: 0.8rem;
 }
 
+/* --- Группа контролов (фильтр, сортировка) --- */
 .my-games-sidebar .control-group {
-    margin-bottom: 1rem;
-}
-.my-games-sidebar .control-group:last-of-type { 
-    margin-bottom: 1.5rem; 
+    margin-bottom: 1.2rem;
 }
 
+.my-games-sidebar .control-group:last-of-type {
+    margin-bottom: 1.5rem;
+}
+
+/* --- Лейблы форм --- */
 .my-games-sidebar .form-label {
     display: block;
-    font-weight: 500;
-    margin-bottom: 0.3rem;
-    font-size: 0.875rem;
-    color: #454545;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+    color: #495057;
 }
 
-.my-games-sidebar select,
-.my-games-sidebar .button {
+/* --- Select элементы (фильтры) --- */
+.my-games-sidebar select {
     width: 100%;
-    padding: 0.6rem 0.75rem; 
-    font-size: 0.9rem;     
-    line-height: 1.5;
-    color: #212529;
+    padding: 0.6rem 0.8rem;
+    font-size: 1rem;
+    color: #333;
     background-color: #fff;
-    background-clip: padding-box;
     border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    border-radius: var(--game-border-radius-sm, 8px);
+    transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
 }
+
 .my-games-sidebar select:focus {
-    border-color: #86b7fe;
+    border-color: var(--game-accent, #00bfff);
     outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.15);
 }
 
+/* --- Группа кнопок (Применить/Сбросить) --- */
 .my-games-sidebar .button-group {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.6rem; 
-}
-.my-games-sidebar .button-group .button {
-    flex-grow: 1;
-    min-width: 120px;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 1.5rem;
 }
 
-.my-games-sidebar .button {
-    display: inline-block;
-    font-weight: bold; 
+@media (min-width: 992px) {
+    .my-games-sidebar .button-group {
+        flex-direction: row;
+    }
+}
+
+.my-games-sidebar .button-group .button,
+.my-games-sidebar .button-group button,
+.my-games-sidebar .button-group a.button,
+.my-games-sidebar .button-group a {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
     text-align: center;
-    vertical-align: middle;
-    cursor: pointer;
-    user-select: none;
-    border: 1px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-decoration: none;
+    box-sizing: border-box;
+    line-height: 1.5;
 }
 
-.my-games-sidebar .button--primary {
-    color: #fff;
-    background-color: #00ca0a;
-    border-color: #00ca0a;
-}
-.my-games-sidebar .button--primary:hover {
-    background-color: #00ad03;
-    border-color: #00ad03;
-}
-
-.my-games-sidebar .button--secondary {
-    color: #fff;
-    background-color: #fd0d0d;
-    border-color: #fd0d0d;
-}
-.my-games-sidebar .button--secondary:hover {
-    background-color: #d70b0b;
-    border-color: #d70b0b;
-}
-
-/* Сетка игр */
+/* ==========================================================================
+   СЕТКА КАРТОЧЕК ИГР
+   ========================================================================== */
+/* --- Контейнер сетки --- */
 .my-saved-games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1rem; 
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
 }
 
-/* Стили для одной карточки игры */
-.saved-game-item { 
-    text-decoration: none;
-    color: inherit;
-    display: flex; 
-    
-    min-width: 160px;
-    max-width: 280px;
+/* --- Обертка карточки --- */
+.saved-game-item-wrapper {
+    display: flex;
 }
 
-.saved-game-card { 
+.saved-game-item {
+    width: 100%;
+    display: flex;
+}
+
+/* --- Карточка игры --- */
+.saved-game-card {
     display: flex;
     flex-direction: column;
-    width: 100%; 
-    height: 100%; 
-    border: 2px solid #e0e0e0;
-    border-radius: 0.25rem;
+    width: 100%;
+    border-radius: var(--game-border-radius, 15px);
     background-color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+    box-shadow: var(--game-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+}
+
+/* --- Hover эффект на карточке --- */
+.saved-game-item:hover .saved-game-card {
+    transform: translateY(-5px);
+    box-shadow: var(--game-shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.12));
+}
+
+/* --- Контейнер изображения --- */
+.saved-game-card__image-wrapper {
+    width: 100%;
+    padding-top: 60%;
+    position: relative;
+    background-color: var(--game-bg-light, #f8f9fa);
     overflow: hidden;
 }
 
-.saved-game-item:hover .saved-game-card {
-    transform: translateY(-10px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.07); 
-}
-
-.saved-game-card__image-wrapper {
-    width: 100%;
-    padding-top: 75%; 
-    position: relative;
-    background-color: #f0f2f5;
-    flex-shrink: 0; 
-}
-
+/* --- Изображение карточки --- */
 .saved-game-card__image {
     position: absolute;
     top: 0;
@@ -181,46 +190,205 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
 }
 
+/* --- Zoom изображения при hover --- */
+.saved-game-item:hover .saved-game-card__image {
+    transform: scale(1.05);
+}
+
+/* --- Плейсхолдер --- */
 .saved-game-card__image-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    height: 100%;
     color: #adb5bd;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    background-color: var(--game-bg-light, #f8f9fa);
 }
 
+/* --- Тело карточки (информация) --- */
 .saved-game-card__body {
-    padding: 0.75rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
-    flex-grow: 1; 
-    border-top: 2px solid #e0e0e0;
+    flex-grow: 1;
 }
 
+/* --- Заголовок игры --- */
 .saved-game-card__title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 0.3rem 0;
-    color: #212529;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.saved-game-card__info {
-    font-size: 1.0rem;
-    color: #6c757d;
-    margin-bottom: 0.15rem;
     line-height: 1.3;
 }
+
+/* --- Информационные строки --- */
+.saved-game-card__info {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
 .saved-game-card__info:last-child {
     margin-bottom: 0;
 }
 
 .saved-game-card__info strong {
     color: #495057;
+    font-weight: 600;
 }
+
+/* --- Действия карточки (кнопка удаления) --- */
+.saved-game-card__actions {
+    padding: 0.8rem 1rem;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    background-color: var(--game-bg-light, #f8f9fa);
+}
+
+/* ==========================================================================
+   ПУСТОЕ СОСТОЯНИЕ (когда нет игр)
+   ========================================================================== */
+#no-games-message {
+    text-align: center;
+    padding: 3rem 2rem;
+    background-color: #ffffff;
+    border-radius: var(--game-border-radius, 15px);
+    box-shadow: var(--game-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
+    border: 2px dashed #dee2e6;
+}
+
+#no-games-message h4 {
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+#no-games-message p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   АДАПТИВНОСТЬ
+   ========================================================================== */
+@media (max-width: 768px) {
+    .my-games-page-wrapper {
+        padding: 1rem;
+        gap: 1.5rem;
+    }
+    
+    .my-games-sidebar {
+        padding: 1.2rem;
+    }
+    
+    .my-games-sidebar__title {
+        font-size: 1.2rem;
+    }
+    
+    .my-saved-games-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.2rem;
+    }
+    
+    .saved-game-card__title {
+        font-size: 1.1rem;
+    }
+    
+    .saved-game-card__body {
+        padding: 0.9rem;
+    }
+    
+    .saved-game-card__actions {
+        padding: 0.7rem 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .my-games-page-wrapper {
+        padding: 0.8rem;
+        gap: 1rem;
+    }
+    
+    .my-games-sidebar {
+        padding: 1rem;
+    }
+    
+    .my-games-sidebar__title {
+        font-size: 1.1rem;
+        margin-bottom: 1.2rem;
+    }
+    
+    .my-games-sidebar .control-group {
+        margin-bottom: 1rem;
+    }
+    
+    .my-saved-games-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .saved-game-card__image-wrapper {
+        padding-top: 55%;
+    }
+    
+    .saved-game-card__title {
+        font-size: 1.05rem;
+    }
+    
+    .saved-game-card__info {
+        font-size: 0.85rem;
+    }
+    
+    .saved-game-card__body {
+        padding: 0.8rem;
+    }
+    
+    .saved-game-card__actions {
+        padding: 0.6rem 0.8rem;
+    }
+}
+
+/* ==========================================================================
+   АНИМАЦИИ
+   ========================================================================== */
+/* --- Плавное появление карточек --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.saved-game-item-wrapper {
+    animation: fadeInUp 0.4s ease-out backwards;
+}
+
+/* --- Задержка для каждой карточки --- */
+.saved-game-item-wrapper:nth-child(1) { animation-delay: 0.05s; }
+.saved-game-item-wrapper:nth-child(2) { animation-delay: 0.1s; }
+.saved-game-item-wrapper:nth-child(3) { animation-delay: 0.15s; }
+.saved-game-item-wrapper:nth-child(4) { animation-delay: 0.2s; }
+.saved-game-item-wrapper:nth-child(5) { animation-delay: 0.25s; }
+.saved-game-item-wrapper:nth-child(6) { animation-delay: 0.3s; }
+.saved-game-item-wrapper:nth-child(7) { animation-delay: 0.35s; }
+.saved-game-item-wrapper:nth-child(8) { animation-delay: 0.4s; }
+.saved-game-item-wrapper:nth-child(9) { animation-delay: 0.45s; }
+.saved-game-item-wrapper:nth-child(10) { animation-delay: 0.5s; }
