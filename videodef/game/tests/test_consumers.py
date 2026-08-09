@@ -20,21 +20,27 @@ class PuzzleOnBoardConsumerTest(TransactionTestCase):
 
         board_room_name = "board123"
         game_id = "game456"
-        communicator = WebsocketCommunicator(
-            application,
-            f"/ws/puzzle_on_board/{board_room_name}/{game_id}/",
-        )
+        url = f"/ws/puzzle_on_board/{board_room_name}/{game_id}/"
+        
+        communicator1 = WebsocketCommunicator(application, url)
+        communicator2 = WebsocketCommunicator(application, url)
 
-        connected, _ = await communicator.connect()
-        self.assertTrue(connected)
+        connected1, _ = await communicator1.connect()
+        connected2, _ = await communicator2.connect()
+        self.assertTrue(connected1)
+        self.assertTrue(connected2)
 
         test_message = json.dumps({"action": "move_piece", "piece": 1})
-        await communicator.send_to(text_data=test_message)
+        
+        # Первый отправляет сообщение
+        await communicator1.send_to(text_data=test_message)
 
-        response = await communicator.receive_from()
+        # Второй получает (первый своё сообщение игнорирует)
+        response = await communicator2.receive_from()
         self.assertEqual(response, test_message)
 
-        await communicator.disconnect()
+        await communicator1.disconnect()
+        await communicator2.disconnect()
 
 
 class WhiteboardConsumerTest(TransactionTestCase):
@@ -49,18 +55,24 @@ class WhiteboardConsumerTest(TransactionTestCase):
         )
 
         room_name = "room123"
-        communicator = WebsocketCommunicator(
-            application,
-            f"/ws/whiteboard/{room_name}/",
-        )
+        url = f"/ws/whiteboard/{room_name}/"
+        
+        communicator1 = WebsocketCommunicator(application, url)
+        communicator2 = WebsocketCommunicator(application, url)
 
-        connected, _ = await communicator.connect()
-        self.assertTrue(connected)
+        connected1, _ = await communicator1.connect()
+        connected2, _ = await communicator2.connect()
+        self.assertTrue(connected1)
+        self.assertTrue(connected2)
 
         test_message = json.dumps({"draw": "line", "points": [[0, 0], [1, 1]]})
-        await communicator.send_to(text_data=test_message)
+        
+        # Первый отправляет сообщение
+        await communicator1.send_to(text_data=test_message)
 
-        response = await communicator.receive_from()
+        # Второй получает
+        response = await communicator2.receive_from()
         self.assertEqual(response, test_message)
 
-        await communicator.disconnect()
+        await communicator1.disconnect()
+        await communicator2.disconnect()

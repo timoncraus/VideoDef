@@ -42,12 +42,15 @@ def parse_and_validate_puzzle_data(post_data: dict, files_data: dict = None) -> 
         raise ValueError("Название не может быть пустым.")
         
     grid_size_str = post_data.get('gridSize')
+    if not grid_size_str:
+        raise ValueError("Неверный или отсутствующий размер сетки.")
     try:
         grid_size = int(grid_size_str)
-        if grid_size < 2:
-            raise ValueError("Размер сетки слишком мал.")
     except (TypeError, ValueError):
         raise ValueError("Неверный или отсутствующий размер сетки.")
+        
+    if grid_size < 2:
+        raise ValueError("Размер сетки слишком мал.")
         
     piece_positions_str = post_data.get('piecePositions')
     if not piece_positions_str:
@@ -101,12 +104,16 @@ def parse_and_validate_memory_game_data(post_data: dict, files_data: dict = None
     if not name:
         raise ValueError("Название не может быть пустым.")
         
+    pair_count_str = post_data.get('pairCount')
+    if not pair_count_str:
+        raise ValueError("Неверное или отсутствующее количество пар.")
     try:
-        pair_count = int(post_data.get('pairCount', 0))
-        if not (2 <= pair_count <= 50):
-            raise ValueError("Неверное количество пар.")
+        pair_count = int(pair_count_str)
     except (TypeError, ValueError):
         raise ValueError("Неверное или отсутствующее количество пар.")
+
+    if not (2 <= pair_count <= 50):
+        raise ValueError("Неверное количество пар.")
         
     card_layout_str = post_data.get('cardLayout', '[]')
     try:

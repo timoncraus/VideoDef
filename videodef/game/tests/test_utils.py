@@ -190,7 +190,7 @@ class HandleDbIntegrityErrorTests(TestCase):
         response = handle_db_integrity_error(error, 'puzzle', 'Test', 'и размером сетки 3x3')
         
         self.assertEqual(response.status_code, 400)
-        self.assertIn('уже существует', response.json()['message'])
+        self.assertIn('уже существует', json.loads(response.content)['message'])
 
     def test_memory_game_duplicate_error(self):
         """Тест проверяет обработку ошибки дубликата "Поиска пар"."""
@@ -199,7 +199,7 @@ class HandleDbIntegrityErrorTests(TestCase):
         response = handle_db_integrity_error(error, 'memory_game', 'Test', 'и количеством пар 4')
         
         self.assertEqual(response.status_code, 400)
-        self.assertIn('уже существует', response.json()['message'])
+        self.assertIn('уже существует', json.loads(response.content)['message'])
 
     def test_unexpected_db_error(self):
         """Тест проверяет обработку непредвиденной ошибки БД."""
@@ -208,7 +208,7 @@ class HandleDbIntegrityErrorTests(TestCase):
         response = handle_db_integrity_error(error, 'puzzle', 'Test')
         
         self.assertEqual(response.status_code, 500)
-        self.assertIn('ошибка базы данных', response.json()['message'])
+        self.assertIn('ошибка базы данных', json.loads(response.content)['message'])
 
 
 class CleanupUploadedFilesTests(TestCase):
