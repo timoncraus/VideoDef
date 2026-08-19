@@ -1,0 +1,742 @@
+/* ============================================================
+   ЗВУКОВОЕ ЛОТО — Стили игры
+   ============================================================ */
+/* === Обёртка страницы === */
+.sound-loto-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+    .sound-loto-page-wrapper {
+        flex-direction: row;
+        align-items: flex-start;
+        padding: 2rem;
+    }
+}
+
+/* === Игровая зона === */
+.sound-loto-game-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 500px;
+}
+
+.sound-loto-game-wrapper {
+    width: 100%;
+    max-width: 700px;
+    min-height: 400px;
+    background: var(--game-bg-light, #f8f9fa);
+    border: 2px dashed #ced4da;
+    border-radius: var(--game-border-radius, 15px);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    box-shadow: var(--game-shadow-sm, 0 2px 8px rgba(0,0,0,0.05));
+    transition: border-color 0.3s ease;
+}
+
+.sound-loto-game-wrapper:hover {
+    border-color: var(--game-accent, #00bfff);
+}
+
+.sound-loto-game-wrapper .initial-message {
+    color: #6c757d;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 2rem;
+    font-weight: 500;
+}
+
+/* === Панель информации === */
+.sound-loto-info-panel {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 0.8rem 1rem;
+    background-color: #ffffff;
+    border-radius: var(--game-border-radius-sm, 8px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.sound-loto-info-item {
+    font-size: 1.1rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+.sound-loto-info-item b {
+    color: var(--game-primary, #4D8CF2);
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-left: 0.3rem;
+}
+
+/* === Кнопка воспроизведения звука === */
+.sound-loto-play-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.2rem;
+    flex-shrink: 0;
+}
+
+.sound-loto-play-btn {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--game-primary-hover, #3b6fc0);
+    background: linear-gradient(135deg, var(--game-primary, #4D8CF2) 0%, var(--game-primary-hover, #3b6fc0) 100%);
+    color: #ffffff;
+    font-size: 1.6rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.sound-loto-play-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(77, 140, 242, 0.4);
+}
+
+.sound-loto-play-btn:active {
+    transform: scale(0.96);
+}
+
+.sound-loto-play-btn .play-icon {
+    position: relative;
+    z-index: 2;
+}
+
+.sound-loto-play-btn .play-waves {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.sound-loto-play-btn:hover .play-waves::before,
+.sound-loto-play-btn:hover .play-waves::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba(77, 140, 242, 0.35);
+    transform: translate(-50%, -50%);
+    animation: soundWave 1.6s ease-out infinite;
+}
+
+.sound-loto-play-btn:hover .play-waves::after {
+    animation-delay: 0.8s;
+}
+
+@keyframes soundWave {
+    0% { width: 100%; height: 100%; opacity: 1; }
+    100% { width: 160%; height: 160%; opacity: 0; }
+}
+
+.sound-loto-play-btn-blocked {
+    background: linear-gradient(135deg, #fd7e14, #e8590c);
+    border-color: #e8590c;
+    box-shadow: 0 4px 15px rgba(253, 126, 20, 0.4);
+    animation: pulseBlocked 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseBlocked {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+}
+
+/* === Сетка карточек === */
+.sound-loto-cards-grid {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    justify-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.sound-loto-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 170px;
+    aspect-ratio: 1;
+    background-color: #ffffff;
+    border: 2px solid var(--game-primary, #4D8CF2);
+    border-radius: var(--game-border-radius-sm, 8px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+.sound-loto-card:hover {
+    transform: translateY(-3px);
+}
+
+.sound-loto-card:active {
+    transform: scale(0.97);
+}
+
+.sound-loto-card-image {
+    width: 80%;
+    height: auto;
+    max-height: 70%;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.sound-loto-card-label {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+}
+
+/* === Состояния карточек === */
+.sound-loto-card-correct {
+    background-color: #d4edda;
+    border-color: var(--game-success, #28a745);
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+    animation: correctPop 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+@keyframes correctPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.sound-loto-card-wrong {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+    animation: wrongShake 0.5s ease;
+}
+
+@keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+}
+
+/* === Сообщение о завершении === */
+.sound-loto-completion-message {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 450px;
+    padding: 1.2rem 1.5rem;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: var(--game-border-radius-sm, 8px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    z-index: 10;
+    animation: soundLotoSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sound-loto-completion-message p {
+    font-size: 1.2rem;
+    color: #155724;
+    margin: 0;
+    font-weight: 600;
+}
+
+@keyframes soundLotoSlideUp {
+    from { opacity: 0; transform: translate(-50%, 20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* === Группа чекбоксов === */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.8rem 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--game-primary, #4D8CF2);
+    cursor: pointer;
+}
+
+/* ============================================================
+   ПРЕДПРОСМОТР ПАР
+   ============================================================ */
+.game-settings-panel .pair-preview-container {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    margin: 0.8rem 0;
+    padding: 0.8rem;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow-y: visible;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.settings-panel .pair-preview-container {
+    max-height: 260px;
+    overflow-y: auto;
+    background: #f9fbff;
+}
+
+.pair-preview-container .pair-preview-hint {
+    margin: 0 0 0.6rem 0;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.pair-preview-container .pair-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0;
+    margin: 0;
+    border-bottom: 1px solid #eef3fb;
+}
+
+.pair-preview-container .pair-row:last-child {
+    border-bottom: none;
+}
+
+.pair-preview-container .pair-row-image {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    background: #ffffff;
+}
+
+.pair-preview-container .pair-row-main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    margin: 0;
+    min-width: 0;
+}
+
+.game-settings-panel input.pair-row-label,
+.settings-panel input.pair-row-label,
+.sound-loto-settings-container input.pair-row-label {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    box-sizing: border-box;
+}
+
+input.pair-row-label:disabled {
+    background: #f0f0f0;
+    color: #888;
+}
+
+input.pair-row-label:focus {
+    outline: none;
+    border-color: #4D8CF2;
+    box-shadow: 0 0 0 2px rgba(77, 140, 242, 0.15);
+}
+
+.pair-preview-container .pair-row-audio {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    margin: 0;
+    min-width: 0;
+}
+
+.pair-preview-container .pair-row-audio-name {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #6c757d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.pair-preview-container button.pair-row-play {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #e7f0ff;
+    color: #4D8CF2;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pair-preview-container button.pair-row-play:hover {
+    background: #d0e2ff;
+}
+
+.pair-preview-container .pair-row-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+}
+
+.pair-preview-container button.pair-row-move {
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #d0e2ff;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #4D8CF2;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pair-preview-container button.pair-row-move:hover:not(:disabled) {
+    background: #e7f0ff;
+}
+
+.pair-preview-container button.pair-row-move:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* === Настройки на доске === */
+.sound-loto-settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sound-loto-settings-container h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--game-primary, #4D8CF2);
+    font-size: 1.1rem;
+}
+
+.sound-loto-settings-container label {
+    font-weight: 500;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.sound-loto-settings-container input[type="text"],
+.sound-loto-settings-container select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.sound-loto-settings-container input[type="text"]:focus,
+.sound-loto-settings-container select:focus {
+    outline: none;
+    border-color: var(--game-primary, #4D8CF2);
+    box-shadow: 0 0 0 2px rgba(77, 140, 242, 0.15);
+}
+
+.sound-loto-settings-container input[type="file"] {
+    font-size: 0.85rem;
+}
+
+/* ============================================================
+   КАРТОЧКИ НАБОРОВ (ПРЕСЕТОВ)
+   ============================================================ */
+.presets-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.preset-set {
+    flex: 1 1 calc(50% - 0.75rem);
+    min-width: 120px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.75rem;
+    background: #ffffff;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preset-set:hover {
+    border-color: var(--game-primary, #4D8CF2);
+    background: #f8f9ff;
+}
+
+.preset-set.selected {
+    border-color: var(--game-primary, #4D8CF2);
+    background: #e7f0ff;
+    color: var(--game-primary, #4D8CF2);
+    font-weight: 600;
+}
+
+/* ============================================================
+   СТИЛИ ДЛЯ ИГРЫ НА ДОСКЕ
+   ============================================================ */
+.paste-game-wrapper .sound-loto-game-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.paste-game-wrapper .sound-loto-game-wrapper:hover {
+    border-color: transparent;
+}
+
+.paste-game-wrapper .initial-message {
+    font-size: 1rem;
+    padding: 1rem;
+}
+
+.paste-game-wrapper .sound-loto-info-panel {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+}
+
+.paste-game-wrapper .sound-loto-info-item {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.paste-game-wrapper .sound-loto-info-item b {
+    font-size: 0.9rem;
+}
+
+.paste-game-wrapper .sound-loto-play-wrapper {
+    flex-shrink: 0;
+    margin-bottom: 10px;
+}
+
+.paste-game-wrapper .sound-loto-play-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+}
+
+/* СЕТКА КАРТОЧЕК */
+.paste-game-wrapper .sound-loto-cards-grid {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    box-sizing: border-box;
+    align-content: flex-start;
+    justify-content: center;
+}
+
+/* Карточка */
+.paste-game-wrapper .sound-loto-card {
+    width: 110px;
+    height: 110px;
+    flex-shrink: 0;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.paste-game-wrapper .sound-loto-card-image {
+    width: 80px;
+    height: 70px;
+    object-fit: contain;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.paste-game-wrapper .sound-loto-card-label {
+    font-size: 0.7rem;
+    margin-top: 4px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    max-width: 100%;
+    line-height: 1.2;
+    flex-shrink: 0;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.paste-game-wrapper .sound-loto-completion-message {
+    bottom: 8px;
+    max-width: 90%;
+    padding: 0.6rem 0.8rem;
+}
+
+.paste-game-wrapper .sound-loto-completion-message p {
+    font-size: 0.95rem;
+}
+
+/* ============================================================
+   АДАПТИВНОСТЬ
+   ============================================================ */
+@media (max-width: 768px) {
+    .sound-loto-page-wrapper {
+        padding: 1rem;
+        gap: 1.5rem;
+    }
+
+    .sound-loto-game-wrapper {
+        min-height: 350px;
+        padding: 1rem;
+    }
+
+    .sound-loto-cards-grid {
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .sound-loto-info-panel {
+        padding: 0.6rem 0.8rem;
+    }
+
+    .sound-loto-info-item {
+        font-size: 1rem;
+    }
+
+    .sound-loto-completion-message {
+        padding: 1rem;
+    }
+
+    .sound-loto-completion-message p {
+        font-size: 1rem;
+    }
+    
+    .preset-set {
+        flex: 1 1 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .sound-loto-game-wrapper {
+        min-height: 280px;
+    }
+
+    .sound-loto-cards-grid {
+        gap: 6px;
+    }
+
+    .sound-loto-card {
+        max-width: 120px;
+    }
+
+    .sound-loto-card:hover {
+        transform: none;
+    }
+
+    .sound-loto-play-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 1.3rem;
+    }
+
+    .pair-row-image {
+        width: 36px;
+        height: 36px;
+    }
+}

@@ -15,8 +15,8 @@ export class PuzzleGame extends GameBase {
      * Создаёт экземпляр игры "Пазл".
      * 
      * @param {Object} config - Конфигурация
-     * @param {HTMLElement} config.container - DOM-контейнер для игры
-     * @param {string} config.gameId - Уникальный ID экземпляра игры
+     * @param {HTMLElement} config.container - DOM-контейнер для пазла
+     * @param {string} config.gameId - Уникальный ID экземпляра пазла
      * @param {string} config.boardRoomName - Имя комнаты доски
      * @param {string} config.name - Название пазла
      * @param {number} config.gridSize - Размер сетки (по умолчанию 2)
@@ -50,11 +50,17 @@ export class PuzzleGame extends GameBase {
     /**
      * Обработчик открытия WebSocket соединения.
      * Переопределяет абстрактный метод GameBase.
+     * Транслирует состояние только если пазл уже настроен,
+     * иначе запрашивает состояние у других клиентов (позднее подключение).
      */
     onWebSocketOpen() {
         console.log(`[PuzzleGame:${this.gameId}] WebSocket connected`);
         
-        this.broadcastState();
+        if (this.params.selectedImage) {
+            this.broadcastState();
+        } else {
+            this.sendWebSocketMessage({ type: 'request_state' });
+        }
     }
     
     /**
@@ -64,6 +70,14 @@ export class PuzzleGame extends GameBase {
      * @param {Object} data - Полученные данные
      */
     onWebSocketMessage(data) {
+        if (data.type === 'request_state') {
+            // Ответ только если есть реальное состояние
+            if (this.params.selectedImage) {
+                this.broadcastState();
+            }
+            return;
+        }
+        
         if (data.type === 'puzzle_piece_click') {
             applyRemotePieceInteraction(
                 this.puzzleContainer,
@@ -83,6 +97,28 @@ export class PuzzleGame extends GameBase {
                 const difficultySelect = settingsPanel?.querySelector('#difficulty');
                 if (puzzleNameInput) puzzleNameInput.value = this.params.name || '';
                 if (difficultySelect) difficultySelect.value = this.params.gridSize;
+                
+                // Синхронизация выбранного пресета / превью в панели
+                const presets = settingsPanel ? Array.from(settingsPanel.querySelectorAll('.preset')) : [];
+                const previewContainer = settingsPanel?.querySelector('#image-preview-container');
+                const previewImg = settingsPanel?.querySelector('#image-preview');
+                const previewText = settingsPanel?.querySelector('#image-preview-text');
+                
+                presets.forEach(p => p.classList.remove('selected'));
+                
+                if (this.params.isPreset && this.params.selectedImage) {
+                    const selectedPresetElement = presets.find(p => (p.dataset.src || p.src) === this.params.selectedImage);
+                    if (selectedPresetElement) selectedPresetElement.classList.add('selected');
+                    if (previewContainer) previewContainer.style.display = 'none';
+                } else if (!this.params.isPreset && this.params.selectedImage) {
+                    if (previewContainer && previewImg && previewText) {
+                        previewImg.src = this.params.selectedImage;
+                        previewText.textContent = 'Загруженное изображение';
+                        previewContainer.style.display = 'block';
+                    }
+                } else if (previewContainer) {
+                    previewContainer.style.display = 'none';
+                }
             }
             
             // Перерисовываем пазл с новым состоянием

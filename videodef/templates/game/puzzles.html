@@ -73,11 +73,13 @@
 
 {% block scripts %}
 <script>
-    const isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
-    const loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
+    window.isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
+    window.loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
+    
     const savePuzzleUrl = "{% url 'game:save_puzzle' %}";
     const updatePuzzleBaseUrl = "{% url 'game:update_puzzle' game_id="0" %}".replace('/0/', '/'); 
     const loadPuzzlesUrl = "{% url 'game:load_puzzles' %}";
+    
     const csrfToken = "{{ csrf_token }}";
     const images = "{% static 'images' %}";
 </script>

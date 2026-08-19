@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{% static 'css/game/whiteboard.css' %}" />
     <link rel="stylesheet" href="{% static 'css/game/puzzles.css' %}" />
     <link rel="stylesheet" href="{% static 'css/game/memory_game.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game/sound_loto.css' %}" />
 {% endblock %}
 
 {% block page_name %}Интерактивная доска{% endblock %}
@@ -33,6 +34,7 @@
                 <div class="dropdown-content" id="game-menu">
                     <div class="game-option" data-name="puzzles">🧩 Пазлы</div>
                     <div class="game-option" data-name="memory-game">🔍 Поиск пар</div>
+                    <div class="game-option" data-name="sound-loto">🔊 Звуковое лото</div>
                     <div class="game-option" data-name="cut-images">✂️ Разрезные картинки</div>
                     <div class="game-option" data-name="grid-draw">📐 Дорисовать по клеточкам</div>
                 </div>
@@ -80,17 +82,25 @@
 
 {% block scripts %}
 <script>
-    const isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
-    const loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
-    
+    window.isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
+    window.loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
+
     const images = "{% static 'images' %}";
     const savePuzzleUrl = "{% url 'game:save_puzzle' %}";
     const updatePuzzleBaseUrl = "{% url 'game:update_puzzle' game_id="0" %}".replace('/0/', '/'); 
     const loadPuzzlesUrl = "{% url 'game:load_puzzles' %}";
+    
     const presetImagesBasePath = "{% static 'images/memory_game_presets/' %}";
     const saveMemoryGameUrl = "{% url 'game:save_memory_game' %}";
     const loadMemoryGamesUrl = "{% url 'game:load_memory_games' %}";
     const updateMemoryGameBaseUrl = "{% url 'game:update_memory_game' game_id=0 %}"; 
+    
+    const soundLotoImagesBasePath = "{% static 'images/sound_loto_presets/' %}";
+    const soundLotoAudioBasePath = "{% static 'audio/sound_loto_presets/' %}";
+    const saveSoundLotoUrl = "{% url 'game:save_sound_loto' %}";
+    const loadSoundLotosUrl = "{% url 'game:load_sound_lotos' %}";
+    const updateSoundLotoBaseUrl = "{% url 'game:update_sound_loto' game_id=0 %}";
+    
     const csrfToken = "{{ csrf_token }}";
 </script>
 <script src="{% static 'js/game/whiteboard.bundle.js' %}"></script>

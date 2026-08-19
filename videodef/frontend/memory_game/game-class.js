@@ -2,9 +2,8 @@
  * Класс игры "Поиск пар", наследующий от базового класса GameBase.
  * Инкапсулирует логику игры и взаимодействие с WebSocket.
  */
-
 import { GameBase } from '../common/game-base.js';
-import { getGameParts, initializeBoard, applyRemoteCardClick } from './logic.js';
+import { getGameParts, initializeBoard, applyRemoteCardClick, stopTimer } from './logic.js';
 
 /**
  * Класс, представляющий экземпляр игры "Поиск пар".
@@ -43,12 +42,17 @@ export class MemoryGameGame extends GameBase {
     /**
      * Обработчик открытия WebSocket соединения.
      * Переопределяет абстрактный метод GameBase.
-     * Отправляет начальные настройки всем подключённым клиентам.
+     * Транслирует состояние только если игра уже запущена (есть layout),
+     * иначе запрашивает состояние у других клиентов (позднее подключение).
      */
     onWebSocketOpen() {
         console.log(`[MemoryGameGame:${this.gameId}] WebSocket connected`);
         
-        this.broadcastState();
+        if (this.params.card_layout && this.params.card_layout.length > 0) {
+            this.broadcastState();
+        } else {
+            this.sendWebSocketMessage({ type: 'request_state' });
+        }
     }
     
     /**
@@ -58,6 +62,14 @@ export class MemoryGameGame extends GameBase {
      * @param {Object} data - Полученные данные
      */
     onWebSocketMessage(data) {
+        if (data.type === 'request_state') {
+            // Ответ только если есть реальное состояние
+            if (this.params.card_layout && this.params.card_layout.length > 0) {
+                this.broadcastState();
+            }
+            return;
+        }
+        
         if (data.type === 'game_state_change') {
             const receivedState = data.gameState;
             Object.assign(this.params, receivedState);
@@ -67,9 +79,15 @@ export class MemoryGameGame extends GameBase {
                 this.params.customImageObjects = (receivedState.selectedImageSet || []).map(url => ({ url, file: null }));
             }
             
-            // Инициализируем игровое поле
-            const useExistingLayout = receivedState.card_layout && receivedState.card_layout.length > 0;
-            initializeBoard(this.gameContainer, this.params, useExistingLayout);
+            const receivedHasLayout = receivedState.card_layout && receivedState.card_layout.length > 0;
+            
+            if (receivedHasLayout) {
+                // Игра запущена — применяем существующий layout
+                initializeBoard(this.gameContainer, this.params, true);
+            } else {
+                stopTimer(this.params);
+                this.gameContainer.innerHTML = '<p class="initial-message">Ожидание начала игры. Нажмите "Перемешать".</p>';
+            }
             
             // Если эта игра активна, настраиваем UI
             const activeGameWrapper = document.querySelector('.paste-game-wrapper.active-game');

@@ -58,6 +58,38 @@ def get_memory_game_image_path(instance: 'UserMemoryGame', filename: str) -> str
     return os.path.join("memory_game_images", f"{random_filename}{ext}")
 
 
+def get_sound_loto_image_path(instance: 'UserSoundLoto', filename: str) -> str:
+    """
+    Генерирует уникальный путь для сохранения загружаемых изображений игры "Звуковое лото".
+    
+    Args:
+        instance (UserSoundLoto): Экземпляр модели.
+        filename (str): Оригинальное имя загружаемого файла.
+        
+    Returns:
+        str: Путь для сохранения файла в формате 'sound_loto_images/<uuid>.<ext>'.
+    """
+    _, ext = os.path.splitext(filename)
+    random_filename = uuid.uuid4().hex
+    return os.path.join("sound_loto_images", f"{random_filename}{ext}")
+
+
+def get_sound_loto_audio_path(instance: 'UserSoundLoto', filename: str) -> str:
+    """
+    Генерирует уникальный путь для сохранения загружаемых аудиофайлов игры "Звуковое лото".
+    
+    Args:
+        instance (UserSoundLoto): Экземпляр модели.
+        filename (str): Оригинальное имя загружаемого файла.
+        
+    Returns:
+        str: Путь для сохранения файла в формате 'sound_loto_audio/<uuid>.<ext>'.
+    """
+    _, ext = os.path.splitext(filename)
+    random_filename = uuid.uuid4().hex
+    return os.path.join("sound_loto_audio", f"{random_filename}{ext}")
+
+
 # ==========================================
 # Модели игр
 # ==========================================
@@ -316,3 +348,144 @@ class UserMemoryGame(models.Model):
     class Meta:
         verbose_name = _("Данные об игре 'Поиск пар'")
         verbose_name_plural = _("Данные об играх жанра 'Поиск пар'")
+
+
+class UserSoundLoto(models.Model):
+    """
+    Модель, хранящая специфичные данные для игры жанра 'Звуковое лото'.
+    Связана с UserGame через OneToOneField.
+    """
+    game = models.OneToOneField(
+        UserGame,
+        on_delete=models.CASCADE,
+        related_name='sound_loto_details',
+        primary_key=True,
+        verbose_name=_("Связь с базовой игрой")
+    )
+    name = models.CharField(
+        max_length=100,
+        blank=False,
+        verbose_name=_("Название игры 'Звуковое лото'"),
+        help_text=_("Название, которое пользователь дает созданному экземпляру звукового лото")
+    )
+    rounds_count = models.PositiveSmallIntegerField(
+        default=4,
+        verbose_name=_("Количество раундов"),
+        help_text=_("Количество раундов в игре (от 2 до 6)")
+    )
+    cards_count = models.PositiveSmallIntegerField(
+        default=4,
+        verbose_name=_("Количество карточек на экране"),
+        help_text=_("Количество карточек, показываемых одновременно (2, 3, 4 или 6)")
+    )
+    autoplay = models.BooleanField(
+        default=True,
+        verbose_name=_("Автовоспроизведение"),
+        help_text=_("Автоматически воспроизводить звук при показе карточек")
+    )
+    show_labels = models.BooleanField(
+        default=True,
+        verbose_name=_("Показывать подписи"),
+        help_text=_("Показывать текстовые подписи под карточками")
+    )
+    preset_name = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name=_("Название пресета"),
+        help_text=_("Название стандартного набора пар (если используется)")
+    )
+    custom_pairs = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_("Пользовательские пары"),
+        help_text=_("JSON-массив объектов с путями к изображениям, аудио и подписями")
+    )
+
+    def clean(self) -> None:
+        """
+        Валидация модели перед сохранением.
+        Проверяет наличие названия, корректность параметров и источника данных.
+        """
+        super().clean()
+        if not self.name:
+            raise ValidationError({'name': _("Название не может быть пустым.")})
+        
+        if not (2 <= self.rounds_count <= 6):
+            raise ValidationError({'rounds_count': _("Количество раундов должно быть от 2 до 6.")})
+        
+        if self.cards_count not in [2, 3, 4, 6]:
+            raise ValidationError({'cards_count': _("Количество карточек должно быть 2, 3, 4 или 6.")})
+        
+        if self.preset_name and self.custom_pairs:
+            raise ValidationError(_("Нельзя одновременно указать и пресет, и пользовательские пары."))
+        
+        if not self.preset_name and not self.custom_pairs:
+            raise ValidationError(_("Необходимо указать либо пресет, либо пользовательские пары."))
+        
+        # Проверка достаточности пар для игры
+        if self.custom_pairs:
+            pairs_count = len(self.custom_pairs)
+            required_count = max(self.rounds_count, self.cards_count)
+            if pairs_count < required_count:
+                raise ValidationError(
+                    _("Недостаточно пар для игры. Требуется минимум {required}, а загружено {available}.").format(
+                        required=required_count,
+                        available=pairs_count
+                    )
+                )
+
+    def delete_custom_files(self) -> None:
+        """
+        Удаляет все связанные пользовательские файлы (изображения и аудио) с диска.
+        Используется при удалении игры или обновлении набора пар.
+        """
+        if self.custom_pairs:
+            for pair in self.custom_pairs:
+                image_path = pair.get('image')
+                audio_path = pair.get('audio')
+                
+                if image_path and default_storage.exists(image_path):
+                    default_storage.delete(image_path)
+                
+                if audio_path and default_storage.exists(audio_path):
+                    default_storage.delete(audio_path)
+            
+            print(f"Удалены пользовательские файлы для игры {self.pk}")
+
+    @property
+    def first_image_url(self) -> str | None:
+        """
+        Возвращает URL первого изображения для отображения в списке "Мои игры".
+        
+        Returns:
+            str | None: URL первого изображения или None, если изображение не найдено.
+        """
+        if self.custom_pairs and len(self.custom_pairs) > 0:
+            first_pair = self.custom_pairs[0]
+            image_path = first_pair.get('image')
+            if image_path and default_storage.exists(image_path):
+                try:
+                    return default_storage.url(image_path)
+                except Exception:
+                    return None
+        elif self.preset_name:
+            try:
+                base_path = settings.STATIC_URL + 'images/sound_loto_presets/'
+                if self.preset_name == 'animals':
+                    return base_path + 'animals/dog.jpg'
+                elif self.preset_name == 'transport':
+                    return base_path + 'transport/train.jpg'
+                else:
+                    return static('images/Sound_loto_icon.png')
+            except Exception:
+                return static('images/Sound_loto_icon.png')
+        
+        return None
+
+    def __str__(self) -> str:
+        return f"Данные игры '{self.name}' ({self.rounds_count} раундов, {self.cards_count} карточек) для {self.pk}"
+
+    class Meta:
+        verbose_name = _("Данные об игре 'Звуковое лото'")
+        verbose_name_plural = _("Данные об играх жанра 'Звуковое лото'")

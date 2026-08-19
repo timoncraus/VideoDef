@@ -43,7 +43,7 @@ export function createPuzzle(puzzleContainer, puzzleParams, message, useExisting
     if (useExistingPositions && puzzleContainer.querySelectorAll('.puzzle-piece').length > 0) {
         const currentPiecesCount = puzzleContainer.querySelectorAll('.puzzle-piece').length;
         if (currentPiecesCount === puzzleParams.gridSize * puzzleParams.gridSize) {
-            placePieces(puzzleContainer, puzzleParams);
+            updatePuzzleImage(puzzleContainer, puzzleParams);
             checkVictory(puzzleParams, message);
             return;
         }

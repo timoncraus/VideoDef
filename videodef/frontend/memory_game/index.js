@@ -203,6 +203,7 @@ function setupWhiteboardMemoryGame(activeGameWrapper) {
                 isCustomSet: activeGameParams.isCustomSet,
                 card_layout: [],
                 attempts: 0,
+                gameStarted: false
             };
             
             activeGameParams.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
@@ -215,7 +216,31 @@ function setupWhiteboardMemoryGame(activeGameWrapper) {
         const currentActiveWrapper = document.querySelector('.paste-game-wrapper.active-game');
         
         if (currentActiveWrapper && currentActiveWrapper === activeGameWrapper && currentActiveWrapper.memoryGameGame) {
-            initializeBoard(currentActiveWrapper.gameContainer, currentActiveWrapper.memoryGameGame.params, false);
+            const game = currentActiveWrapper.memoryGameGame;
+            const params = game.params;
+
+            // Генерируем новый layout и запускаем игру локально
+            initializeBoard(currentActiveWrapper.gameContainer, params, false);
+
+            // Рассылаем состояние с card_layout (gameStarted = true)
+            if (params.onWhiteboard && params.ws && params.ws.readyState === WebSocket.OPEN) {
+                const imageSetToSend = params.isCustomSet
+                    ? params.customImageObjects.map(obj => obj.url)
+                    : params.selectedImageSet;
+
+                const stateToSend = {
+                    id: params.id,
+                    name: params.name,
+                    pairCount: params.pairCount,
+                    selectedImageSet: imageSetToSend,
+                    isCustomSet: params.isCustomSet,
+                    card_layout: params.card_layout,
+                    attempts: params.attempts,
+                    gameStarted: true
+                };
+
+                params.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
+            }
         } else {
             console.warn("Активная игра изменилась, действие 'Перемешать' отменено.");
         }
@@ -249,7 +274,7 @@ function setupWhiteboardMemoryGame(activeGameWrapper) {
             return; 
         }
         
-        const mappedLoadedData = { ...loadedData, pairCount: loadedData.pair_count, attempts: loadedData.attempts || 0 };
+        const mappedLoadedData = { ...loadedData, pairCount: loadedData.pair_count, attempts: 0 };
         delete mappedLoadedData.pair_count;
         Object.assign(activeGameParams, mappedLoadedData);
         
@@ -262,31 +287,38 @@ function setupWhiteboardMemoryGame(activeGameWrapper) {
             activeGameParams.customImageObjects = [];
         }
         
+        activeGameParams.card_layout = [];
+        activeGameParams.attempts = 0;
+        activeGameParams.matchesFound = 0;
+        activeGameParams.firstSelectedCard = null;
+        activeGameParams.secondSelectedCard = null;
+        activeGameParams.lockBoard = false;
+        
         setupGameControls(settingsPanel, activeGameParams, handleGameStateChangeForBoard);
         saveButton.textContent = 'Обновить';
         
-        if (startNewGame) {
-            const useExistingLayout = loadedData.card_layout && loadedData.card_layout.length > 0;
-            initializeBoard(activeGameWrapper.gameContainer, activeGameParams, useExistingLayout);
-            
-            if (activeGameParams.onWhiteboard && activeGameParams.ws && activeGameParams.ws.readyState === WebSocket.OPEN) {
-                console.log(`[APPLY LOADED] Отправка загруженного состояния игры ${activeGameParams.gameId}`);
-                
-                const stateToSend = {
-                    id: activeGameParams.id,
-                    name: activeGameParams.name,
-                    pairCount: activeGameParams.pairCount,
-                    selectedImageSet: activeGameParams.selectedImageSet,
-                    isCustomSet: activeGameParams.isCustomSet,
-                    card_layout: activeGameParams.card_layout || [],
-                    attempts: activeGameParams.attempts || 0
-                };
-                
-                activeGameParams.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
-            }
-            
-            alert(`Игра "${loadedData.name}" загружена в активный контейнер.`);
+        activeGameWrapper.gameContainer.innerHTML = '<p class="initial-message">Игра загружена. Нажмите "Перемешать" для запуска.</p>';
+        
+        // Синхронизируем состояние со вторым клиентом
+        if (activeGameParams.onWhiteboard && activeGameParams.ws && activeGameParams.ws.readyState === WebSocket.OPEN) {
+            const imageSetToSend = activeGameParams.isCustomSet
+                ? activeGameParams.customImageObjects.map(obj => obj.url)
+                : activeGameParams.selectedImageSet;
+
+            const stateToSend = {
+                id: activeGameParams.id,
+                name: activeGameParams.name,
+                pairCount: activeGameParams.pairCount,
+                selectedImageSet: imageSetToSend,
+                isCustomSet: activeGameParams.isCustomSet,
+                card_layout: [],
+                attempts: 0
+            };
+
+            activeGameParams.ws.send(JSON.stringify({ type: 'game_state_change', gameState: stateToSend }));
         }
+        
+        alert(`Игра "${loadedData.name}" загружена. Нажмите "Перемешать" для запуска.`);
     };
     
     const saveUrl = typeof saveMemoryGameUrl !== 'undefined' ? saveMemoryGameUrl : '/games/api/save-memory-game/';

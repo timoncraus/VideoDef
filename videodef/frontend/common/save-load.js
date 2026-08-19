@@ -75,14 +75,12 @@ export class SaveLoadManager {
      */
     async handleSave() {
         // Проверка аутентификации через глобальную переменную или cookie
-        const isAuth = typeof isAuthenticated !== 'undefined' ? isAuthenticated : !!getCookie('sessionid');
-        
+        const isAuth = (typeof window.isAuthenticated !== 'undefined') ? window.isAuthenticated : false;
+
         if (!isAuth) {
             alert("Для сохранения игры необходимо войти в аккаунт.");
-            if (typeof redirectToLogin === 'function') {
-                redirectToLogin();
-            } else if (typeof loginUrl !== 'undefined') {
-                window.location.href = loginUrl;
+            if (typeof window.loginUrl !== 'undefined') {
+                window.location.href = window.loginUrl;
             }
             return;
         }
@@ -162,14 +160,12 @@ export class SaveLoadManager {
      * Обрабатывает нажатие кнопки загрузки.
      */
     async handleLoad() {
-        const isAuth = typeof isAuthenticated !== 'undefined' ? isAuthenticated : !!getCookie('sessionid');
+        const isAuth = (typeof window.isAuthenticated !== 'undefined') ? window.isAuthenticated : false;
         
         if (!isAuth) {
             alert("Для загрузки игры необходимо войти в аккаунт.");
-            if (typeof redirectToLogin === 'function') {
-                redirectToLogin();
-            } else if (typeof loginUrl !== 'undefined') {
-                window.location.href = loginUrl;
+            if (typeof window.loginUrl !== 'undefined') {
+                window.location.href = window.loginUrl;
             }
             return;
         }

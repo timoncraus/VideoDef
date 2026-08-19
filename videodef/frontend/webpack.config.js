@@ -5,6 +5,7 @@ module.exports = {
         whiteboard: './whiteboard/index.js',
         puzzle: './puzzle/index.js',
         memory_game: './memory_game/index.js',
+        sound_loto: './sound_loto/index.js',
         my_games: './my-games.js'
     },
     output: {

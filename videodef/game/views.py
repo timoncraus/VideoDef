@@ -21,13 +21,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from io import BytesIO
 
-from .models import UserGame, UserPuzzle, UserMemoryGame, Genre
+from .models import UserGame, UserPuzzle, UserMemoryGame, UserSoundLoto, Genre
 from .utils import (
     parse_and_validate_puzzle_data,
     parse_and_validate_memory_game_data,
+    parse_and_validate_sound_loto_data,
     handle_db_integrity_error,
     cleanup_uploaded_files,
-    save_memory_game_custom_images
+    cleanup_sound_loto_custom_files,
+    save_memory_game_custom_images,
+    save_sound_loto_custom_files
 )
 
 logger = logging.getLogger(__name__)
@@ -48,6 +51,10 @@ def games(request):
          "description": "Классическая игра на развитие памяти и концентрации. Открывайте карточки, запоминайте расположение уникальных изображений и находите совпадающие пары.",
          "image": "images/Memory_game.png",
          "url": "game:memory_game"},
+        {"title": "Звуковое лото",
+         "description": "Игра на развитие слухового восприятия и внимания. Прослушайте звук и найдите соответствующую карточку среди предложенных вариантов. Используйте готовые наборы или загрузите свои изображения и аудио.",
+         "image": "images/Sound_loto.png",
+         "url": "game:sound_loto"},
     ]
     return render(request, "game/game_main.html", {"games": games_list})
 
@@ -62,6 +69,11 @@ def memory_game(request):
     return render(request, "game/memory_game.html")
 
 
+def sound_loto(request):
+    """Отображает страницу отдельной игры 'Звуковое лото'."""
+    return render(request, "game/sound_loto.html")
+
+
 def whiteboard(request):
     """Отображает страницу интерактивной доски."""
     return render(request, "game/whiteboard.html")
@@ -74,11 +86,13 @@ def my_games_view(request):
     """
     puzzle_name_subquery = UserPuzzle.objects.filter(game_id=OuterRef('pk')).values('name')[:1]
     memory_game_name_subquery = UserMemoryGame.objects.filter(game_id=OuterRef('pk')).values('name')[:1]
+    sound_loto_name_subquery = UserSoundLoto.objects.filter(game_id=OuterRef('pk')).values('name')[:1]
     
     user_games_query = UserGame.objects.filter(user=request.user).select_related('genre').annotate(
         display_name=Coalesce(
             Subquery(puzzle_name_subquery, output_field=CharField(null=True)),
             Subquery(memory_game_name_subquery, output_field=CharField(null=True)),
+            Subquery(sound_loto_name_subquery, output_field=CharField(null=True)),
             Concat(F('genre__name'), Value(' ('), F('game_id'), Value(')'))
         )
     )
@@ -106,6 +120,7 @@ def my_games_view(request):
     # --- Добавление URL изображений игр ---
     puzzle_game_pks = [game.pk for game in user_games_list if game.genre.code == 'PZL']
     memory_game_pks = [game.pk for game in user_games_list if game.genre.code == 'MEM']
+    sound_loto_pks = [game.pk for game in user_games_list if game.genre.code == 'SLT']
 
     puzzle_details_map = {}
     if puzzle_game_pks:
@@ -131,11 +146,19 @@ def my_games_view(request):
                 except Exception:
                     memory_game_details_map[game_pk] = static('images/Memory_game_icon.png')
     
+    sound_loto_details_map = {}
+    if sound_loto_pks:
+        for game_pk in sound_loto_pks:
+            details = UserSoundLoto.objects.get(pk=game_pk)
+            sound_loto_details_map[game_pk] = details.first_image_url
+    
     for game_obj in user_games_list:
         if game_obj.genre.code == 'PZL':
             game_obj.display_image_url = puzzle_details_map.get(game_obj.pk)
         elif game_obj.genre.code == 'MEM':
             game_obj.display_image_url = memory_game_details_map.get(game_obj.pk)
+        elif game_obj.genre.code == 'SLT':
+            game_obj.display_image_url = sound_loto_details_map.get(game_obj.pk)
         else:
             game_obj.display_image_url = None
 
@@ -158,7 +181,7 @@ def delete_game_view(request, game_id: str):
     """
     try:
         game_to_delete = get_object_or_404(
-            UserGame.objects.select_related('puzzle_details', 'memory_game_details'), 
+            UserGame.objects.select_related('puzzle_details', 'memory_game_details', 'sound_loto_details'), 
             pk=game_id, 
             user=request.user
         )
@@ -168,7 +191,9 @@ def delete_game_view(request, game_id: str):
             display_name = game_to_delete.puzzle_details.name
         elif hasattr(game_to_delete, 'memory_game_details') and game_to_delete.memory_game_details:
             display_name = game_to_delete.memory_game_details.name
-
+        elif hasattr(game_to_delete, 'sound_loto_details') and game_to_delete.sound_loto_details:
+            display_name = game_to_delete.sound_loto_details.name
+            
         game_to_delete.delete()
         
         return JsonResponse({
@@ -515,4 +540,203 @@ def update_memory_game_view(request, game_id: str):
     except Exception as e:
         cleanup_uploaded_files(new_paths)
         logger.error(f"Ошибка при обновлении 'Поиска пар' (ID: {game_id}): {e}\n{traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при обновлении.'}, status=500)
+    
+
+@login_required
+@require_POST
+def save_sound_loto_view(request):
+    """
+    Обрабатывает POST-запрос для сохранения состояния игры 'Звуковое лото' для текущего пользователя.
+    """
+    custom_pairs = []
+    try:
+        sound_loto_genre = Genre.objects.get(code='SLT')
+    except Genre.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Ошибка конфигурации: Жанр "Звуковое лото" не найден.'}, status=500)
+    
+    try:
+        data = parse_and_validate_sound_loto_data(request.POST, request.FILES)
+        
+        is_custom_set = bool(data['custom_images'])
+        
+        if is_custom_set:
+            custom_pairs = save_sound_loto_custom_files(
+                data['custom_images'],
+                data['custom_audios'],
+                data['custom_labels']
+            )
+            
+        with transaction.atomic():
+            new_game = UserGame.objects.create(user=request.user, genre=sound_loto_genre)
+            UserSoundLoto.objects.create(
+                game=new_game,
+                name=data['name'],
+                rounds_count=data['rounds_count'],
+                cards_count=data['cards_count'],
+                autoplay=data['autoplay'],
+                show_labels=data['show_labels'],
+                preset_name=data['preset_name'],
+                custom_pairs=custom_pairs if custom_pairs else None
+            )
+        
+        return JsonResponse({'status': 'success', 'message': f'Игра "{data["name"]}" успешно сохранена!', 'id': new_game.pk})
+    
+    except ValueError as e:
+        cleanup_sound_loto_custom_files(custom_pairs)
+        logger.warning(f"Ошибка валидации при сохранении 'Звукового лото': {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        
+    except InternalError as e:
+        cleanup_sound_loto_custom_files(custom_pairs)
+        return handle_db_integrity_error(e, 'sound_loto', data.get('name', ''), f'и количеством раундов {data.get("rounds_count", 0)}')
+        
+    except Exception as e:
+        cleanup_sound_loto_custom_files(custom_pairs)
+        logger.error(f"Ошибка при сохранении 'Звукового лото': {e}\n{traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка.'}, status=500)
+
+
+@login_required
+@require_GET
+def load_sound_lotos_view(request):
+    """
+    Обрабатывает GET-запрос для получения списка всех сохраненных игр 'Звуковое лото' для текущего пользователя.
+    """
+    try:
+        games = UserSoundLoto.objects.filter(game__user=request.user).select_related('game').order_by('-game__created_at')
+        
+        data_list = []
+        for g in games:
+            custom_pairs_with_urls = []
+            if g.custom_pairs:
+                for pair in g.custom_pairs:
+                    image_path = pair.get('image')
+                    audio_path = pair.get('audio')
+                    custom_pairs_with_urls.append({
+                        'label': pair.get('label', ''),
+                        'image_url': default_storage.url(image_path) if image_path and default_storage.exists(image_path) else None,
+                        'audio_url': default_storage.url(audio_path) if audio_path and default_storage.exists(audio_path) else None,
+                    })
+                
+            data_list.append({
+                'id': g.pk,
+                'name': g.name,
+                'rounds_count': g.rounds_count,
+                'cards_count': g.cards_count,
+                'autoplay': g.autoplay,
+                'show_labels': g.show_labels,
+                'preset_name': g.preset_name,
+                'custom_pairs': custom_pairs_with_urls if custom_pairs_with_urls else None,
+            })
+        return JsonResponse({'status': 'success', 'games': data_list})
+    
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке 'Звукового лото': {e}\n{traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при загрузке.'}, status=500)
+
+
+@login_required
+@require_http_methods(["PUT"])
+def update_sound_loto_view(request, game_id: str):
+    """
+    Обрабатывает PUT-запрос для обновления существующей игры 'Звуковое лото'.
+    Поддерживает три сценария:
+    1. Переключение на пресет.
+    2. Загрузка новых файлов.
+    3. Перестановка аудио и/или обновление подписей без пере-загрузки файлов.
+    """
+    new_pairs = []
+    old_pairs_to_delete = []
+    try:
+        game_to_update = get_object_or_404(UserSoundLoto, pk=game_id, game__user=request.user)
+        # Сохраняем копию старых пар для удаления после успешной транзакции
+        if game_to_update.custom_pairs:
+            old_pairs_to_delete = list(game_to_update.custom_pairs)
+        
+        # --- Парсинг FormData для PUT запросов ---
+        request.upload_handlers = [MemoryFileUploadHandler(request=request), TemporaryFileUploadHandler(request=request)]
+        parser = MultiPartParser(request.META, BytesIO(request.body), request.upload_handlers)
+        post_data, files_data = parser.parse()
+
+        data = parse_and_validate_sound_loto_data(post_data, files_data, is_update=True)
+
+        is_custom_set = bool(data['custom_images'])
+
+        if is_custom_set:
+            new_pairs = save_sound_loto_custom_files(
+                data['custom_images'],
+                data['custom_audios'],
+                data['custom_labels']
+            )
+
+        with transaction.atomic():
+            # Обновляем основные поля
+            game_to_update.name = data['name']
+            game_to_update.rounds_count = data['rounds_count']
+            game_to_update.cards_count = data['cards_count']
+            game_to_update.autoplay = data['autoplay']
+            game_to_update.show_labels = data['show_labels']
+
+            # Логика обновления пар
+            if data['preset_name']:
+                # Сценарий 1: переключение на пресет
+                game_to_update.custom_pairs = None
+                game_to_update.preset_name = data['preset_name']
+            elif new_pairs:
+                # Сценарий 2: загружены новые файлы
+                game_to_update.preset_name = None
+                game_to_update.custom_pairs = new_pairs
+            elif game_to_update.custom_pairs and (data.get('audio_order') or data.get('custom_labels')):
+                # Сценарий 3: перестановка аудио и/или обновление подписей без пере-загрузки файлов
+                game_to_update.preset_name = None
+                updated_pairs = list(game_to_update.custom_pairs)
+
+                if data.get('audio_order'):
+                    audio_order = data['audio_order']
+                    if len(audio_order) != len(updated_pairs):
+                        raise ValueError("Порядок аудио не соответствует количеству пар.")
+                    if sorted(audio_order) != list(range(len(updated_pairs))):
+                        raise ValueError("Порядок аудио содержит некорректные или повторяющиеся индексы.")
+
+                    # Извлекаем аудио в исходном порядке и переставляем по индексам
+                    original_audios = [pair.get('audio') for pair in updated_pairs]
+                    for i, source_idx in enumerate(audio_order):
+                        updated_pairs[i]['audio'] = original_audios[source_idx]
+
+                if data.get('custom_labels'):
+                    labels = data['custom_labels']
+                    if len(labels) == len(updated_pairs):
+                        for i, label in enumerate(labels):
+                            updated_pairs[i]['label'] = label
+
+                game_to_update.custom_pairs = updated_pairs
+
+            game_to_update.full_clean()
+            game_to_update.save()
+
+        # Удаляем старые файлы только при переключении на пресет или загрузке новых файлов
+        if old_pairs_to_delete and (data['preset_name'] or new_pairs):
+            cleanup_sound_loto_custom_files(old_pairs_to_delete)
+
+        return JsonResponse({'status': 'success', 'message': f'Игра "{data["name"]}" успешно обновлена!'})
+
+    except ValueError as e:
+        cleanup_sound_loto_custom_files(new_pairs)
+        logger.warning(f"Ошибка валидации при обновлении 'Звукового лото': {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    except ValidationError as e:
+        cleanup_sound_loto_custom_files(new_pairs)
+        error_message = '; '.join([f"{k}: {v[0]}" for k, v in e.message_dict.items()])
+        logger.warning(f"Ошибка валидации модели при обновлении 'Звукового лото': {e.message_dict}")
+        return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
+
+    except InternalError as e:
+        cleanup_sound_loto_custom_files(new_pairs)
+        return handle_db_integrity_error(e, 'sound_loto', data.get('name', ''), f'и количеством раундов {data.get("rounds_count", 0)}')
+
+    except Exception as e:
+        cleanup_sound_loto_custom_files(new_pairs)
+        logger.error(f"Ошибка при обновлении 'Звукового лото' (ID: {game_id}): {e}\n{traceback.format_exc()}")
         return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при обновлении.'}, status=500)

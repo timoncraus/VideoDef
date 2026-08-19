@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block style %}
+    <link rel="stylesheet" href="{% static 'css/game/game_common.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game/sound_loto.css' %}" />
+{% endblock %}
+{% block page_name %}Звуковое лото{% endblock %}
+{% block content %}
+<div class="sound-loto-page-wrapper">
+    <!-- Игровая зона -->
+    <div id="sound-loto-game-area" class="sound-loto-game-area">
+        <div id="sound-loto-game-wrapper" class="sound-loto-game-wrapper">
+            <p class="initial-message">Выберите настройки и нажмите "Начать игру".</p>
+        </div>
+    </div>
+    <!-- Панель настроек игры -->
+    <div id="sound-loto-settings" class="game-settings-panel">
+        <h2>Настройки игры</h2>
+
+        <label for="game-name">Название игры:</label>
+        <input type="text" id="game-name" placeholder="Моё звуковое лото">
+
+        <label>Выберите набор пар:</label>
+        <div class="presets-container">
+            <div class="preset-set" data-set-name="animals">Животные 🐶</div>
+            <div class="preset-set" data-set-name="transport">Транспорт 🚂</div>
+        </div>
+
+        <label class="upload-label" style="font-weight: 600; color: #555; margin-bottom: 0.4rem; display: block;">
+            Или загрузите свои пары:
+        </label>
+        <label style="font-weight: 500; color: #666; margin-bottom: 0.2rem;">Изображения:</label>
+        <input type="file" id="custom-images-input" accept="image/*" multiple>
+        <label style="font-weight: 500; color: #666; margin-bottom: 0.2rem;">Аудиофайлы:</label>
+        <input type="file" id="custom-audios-input" accept="audio/*" multiple>
+
+        <div id="pair-preview-container" class="pair-preview-container" style="display: none;">
+        </div>
+
+        <label for="rounds-count-select">Количество раундов:</label>
+        <select id="rounds-count-select">
+            <option value="2">2 раунда</option>
+            <option value="3">3 раунда</option>
+            <option value="4" selected>4 раунда</option>
+            <option value="5">5 раундов</option>
+            <option value="6">6 раундов</option>
+        </select>
+
+        <label for="cards-count-select">Карточек на экране:</label>
+        <select id="cards-count-select">
+            <option value="2">2 карточки</option>
+            <option value="3">3 карточки</option>
+            <option value="4" selected>4 карточки</option>
+            <option value="6">6 карточек</option>
+        </select>
+
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="autoplay-checkbox" checked>
+                Автовоспроизведение звука
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="show-labels-checkbox" checked>
+                Показывать подписи
+            </label>
+        </div>
+
+        <!-- Кнопки управления игрой -->
+        <div class="settings-buttons">
+            <button id="start-sound-loto" class="game-btn game-btn-success">Начать игру</button>
+            <button id="save-sound-loto-btn" class="game-btn game-btn-primary">Сохранить</button>
+            <button id="load-sound-loto-btn" class="game-btn game-btn-secondary">Загрузить</button>
+        </div>
+    </div>
+</div>
+<!-- Модальное окно для загрузки игр -->
+<div id="load-game-modal" class="modal-overlay">
+    <div class="modal-container">
+        <span class="modal-close-btn" id="load-cancel-btn">&times;</span>
+        <h2>Выберите сохраненную игру</h2>
+        <div id="load-list-container" style="flex-grow: 1; overflow-y: auto; margin: 1rem 0; border: 1px solid #eee; border-radius: 8px; padding: 0.5rem;">
+            <p class="text-center text-muted">Загрузка...</p>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <button id="load-cancel-btn" class="game-btn game-btn-secondary">Отмена</button>
+            <button id="load-confirm-btn" class="game-btn game-btn-primary" disabled>Загрузить выбранный</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    window.isAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
+    window.loginUrl = "{% url 'account:login' %}?next=" + window.location.pathname;
+
+    const soundLotoImagesBasePath = "{% static 'images/sound_loto_presets/' %}";
+    const soundLotoAudioBasePath = "{% static 'audio/sound_loto_presets/' %}";
+    const saveSoundLotoUrl = "{% url 'game:save_sound_loto' %}";
+    const loadSoundLotosUrl = "{% url 'game:load_sound_lotos' %}";
+    const updateSoundLotoBaseUrl = "{% url 'game:update_sound_loto' game_id=0 %}";
+    
+    const csrfToken = "{{ csrf_token }}";
+</script>
+<script src="{% static 'js/game/sound_loto.bundle.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof window.createSoundLotoSeparately === 'function') {
+            window.createSoundLotoSeparately();
+        } else {
+            console.error("Функция createSoundLotoSeparately не найдена.");
+        }
+    });
+</script>
+{% endblock %}

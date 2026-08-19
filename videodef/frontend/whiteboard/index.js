@@ -10,8 +10,10 @@ import { WhiteboardUI } from './ui.js';
 import { WhiteboardWebSocket } from './websocket.js';
 import { getPuzzleSettingsHTML } from './settings/puzzle-settings.js';
 import { getMemoryGameSettingsHTML } from './settings/memory-settings.js';
+import { getSoundLotoSettingsHTML } from './settings/sound-loto-settings.js';
 import { createPuzzleOnBoard, setupWhiteboardPuzzleSaveLoad } from '../puzzle/index.js';
 import { createMemoryGameOnBoard, setupWhiteboardMemoryGame } from '../memory_game/index.js';
+import { createSoundLotoOnBoard, setupWhiteboardSoundLoto } from '../sound_loto/index.js';
 
 /**
  * Класс интерактивной доски.
@@ -401,6 +403,8 @@ class Whiteboard {
                 setupWhiteboardPuzzleSaveLoad(focusedWrapper);
             } else if (focusedWrapper.dataset.gameName === 'memory-game') {
                 setupWhiteboardMemoryGame(focusedWrapper);
+            } else if (focusedWrapper.dataset.gameName === 'sound-loto') {
+                setupWhiteboardSoundLoto(focusedWrapper);
             }
         }
     }
@@ -456,6 +460,9 @@ class Whiteboard {
             } else if (gameName === 'memory-game' && !gameWrapper.dataset.memoryGameInitialized) {
                 createMemoryGameOnBoard(gameWrapper, roomName, id);
                 gameWrapper.dataset.memoryGameInitialized = 'true';
+            } else if (gameName === 'sound-loto' && !gameWrapper.dataset.soundLotoInitialized) {
+                createSoundLotoOnBoard(gameWrapper, roomName, id);
+                gameWrapper.dataset.soundLotoInitialized = 'true';
             }
         }
     }
@@ -552,6 +559,9 @@ class Whiteboard {
             settingsPanel.appendChild(settingsContainer);
         } else if (gameName === 'memory-game') {
             settingsContainer.innerHTML = getMemoryGameSettingsHTML();
+            settingsPanel.appendChild(settingsContainer);
+        } else if (gameName === 'sound-loto') {
+            settingsContainer.innerHTML = getSoundLotoSettingsHTML();
             settingsPanel.appendChild(settingsContainer);
         }
     }

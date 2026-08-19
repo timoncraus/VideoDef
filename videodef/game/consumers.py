@@ -91,6 +91,50 @@ class MemoryGameOnBoardConsumer(AsyncWebsocketConsumer):
             pass
 
 
+class SoundLotoOnBoardConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.board_room_name = self.scope['url_route']['kwargs']['board_room_name']
+        self.game_id = self.scope['url_route']['kwargs']['game_id']
+        # Уникальное имя группы для каждого экземпляра игры "Звуковое лото" на доске
+        self.sound_loto_instance_group_name = f'sound_loto_on_board_{self.board_room_name}_{self.game_id}'
+        await self.channel_layer.group_add(
+            self.sound_loto_instance_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        print(f"SoundLotoOnBoardConsumer: User {self.channel_name} connected to sound loto {self.game_id} on board {self.board_room_name}")
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'sound_loto_instance_group_name'):
+            await self.channel_layer.group_discard(
+                self.sound_loto_instance_group_name,
+                self.channel_name
+            )
+            print(f"SoundLotoOnBoardConsumer: User {self.channel_name} disconnected from sound loto {self.game_id} on board {self.board_room_name}")
+
+    async def receive(self, text_data):
+        if hasattr(self, 'sound_loto_instance_group_name'):
+            await self.channel_layer.group_send(
+                self.sound_loto_instance_group_name,
+                {
+                    'type': 'sound_loto_event',
+                    'message': text_data,
+                    'sender_channel_name': self.channel_name
+                }
+            )
+
+    async def sound_loto_event(self, event):
+        if event.get('sender_channel_name') == self.channel_name:
+            return
+        
+        message = event['message']
+        
+        try:
+            await self.send(text_data=message)
+        except Exception:
+            pass
+
+
 class WhiteboardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']

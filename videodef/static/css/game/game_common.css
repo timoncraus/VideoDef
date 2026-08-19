@@ -389,16 +389,18 @@
 
 /* Зеленые кнопки запуска игры */
 .settings-buttons button#start-game,
-.settings-buttons button#start-memory-game {
+.settings-buttons button#start-memory-game,
+.settings-buttons button#start-sound-loto {
     background-color: var(--game-success);
 }
 .settings-buttons button#start-game:hover,
-.settings-buttons button#start-memory-game:hover {
+.settings-buttons button#start-memory-game:hover,
+.settings-buttons button#start-sound-loto:hover {
     background-color: var(--game-success-hover);
 }
 
 /* Синие кнопки сохранения/загрузки */
-.settings-buttons button:not(#start-game):not(#start-memory-game):hover {
+.settings-buttons button:not(#start-game):not(#start-memory-game):not(#start-sound-loto):hover {
     background-color: var(--game-primary-hover);
 }
 

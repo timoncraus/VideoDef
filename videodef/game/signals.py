@@ -27,6 +27,10 @@ def delete_user_game_associated_files(sender, instance, **kwargs):
         # --- Обработка удаления файлов "Поиска пар" ---
         if hasattr(instance, 'memory_game_details') and instance.memory_game_details:
             instance.memory_game_details.delete_custom_images()
-
+            
+        # --- Обработка удаления файлов "Звукового лото" ---
+        if hasattr(instance, 'sound_loto_details') and instance.sound_loto_details:
+            instance.sound_loto_details.delete_custom_files()
+        
     except Exception as e:
         logger.error(f"SIGNAL UNEXPECTED ERROR: Ошибка при удалении файлов для UserGame PK '{instance.pk}': {e}", exc_info=True)
