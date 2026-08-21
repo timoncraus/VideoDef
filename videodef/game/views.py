@@ -13,7 +13,7 @@ from django.core.files.uploadhandler import MemoryFileUploadHandler, TemporaryFi
 from django.db import transaction, InternalError
 from django.db.models import Value, CharField, OuterRef, Subquery, F
 from django.db.models.functions import Concat, Coalesce
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.http.multipartparser import MultiPartParser
 from django.shortcuts import render, get_object_or_404
 from django.templatetags.static import static
@@ -201,9 +201,9 @@ def delete_game_view(request, game_id: str):
             'message': f'Игра "{display_name}" успешно удалена.'
         })
         
-    except UserGame.DoesNotExist:
+    except Http404:
         return JsonResponse({
-            'status': 'error', 
+            'status': 'error',
             'message': 'Игра не найдена или у вас нет прав на ее удаление.'
         }, status=404)
         
@@ -378,7 +378,7 @@ def update_puzzle_view(request, game_id: str):
         logger.warning(f"Ошибка валидации при обновлении пазла: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
         
-    except UserPuzzle.DoesNotExist:
+    except Http404:
         return JsonResponse({'status': 'error', 'message': 'Пазл для обновления не найден или у вас нет прав на его изменение.'}, status=404)
         
     except ValidationError as e:
@@ -529,7 +529,7 @@ def update_memory_game_view(request, game_id: str):
         logger.warning(f"Ошибка валидации при обновлении 'Поиска пар': {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
         
-    except UserMemoryGame.DoesNotExist:
+    except Http404:
         cleanup_uploaded_files(new_paths)
         return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
         
@@ -731,6 +731,10 @@ def update_sound_loto_view(request, game_id: str):
         error_message = '; '.join([f"{k}: {v[0]}" for k, v in e.message_dict.items()])
         logger.warning(f"Ошибка валидации модели при обновлении 'Звукового лото': {e.message_dict}")
         return JsonResponse({'status': 'error', 'message': f'Ошибка введенных данных: {error_message}'}, status=400)
+
+    except Http404:
+        cleanup_sound_loto_custom_files(new_pairs)
+        return JsonResponse({'status': 'error', 'message': 'Игра не найдена.'}, status=404)
 
     except InternalError as e:
         cleanup_sound_loto_custom_files(new_pairs)
