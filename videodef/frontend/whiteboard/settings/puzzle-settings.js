@@ -18,8 +18,8 @@ export function getPuzzleSettingsHTML(imagesPath = '/static/images') {
 
             <label>Выберите изображение для пазла:</label>
             <div class="presets-container">
-                <img src="${imagesPath}/british-cat.jpg" class="preset" data-src="${imagesPath}/british-cat.jpg" alt="Британский кот">
-                <img src="${imagesPath}/tree.png" class="preset" data-src="${imagesPath}/tree.png" alt="Дерево">
+                <img src="${imagesPath}/puzzle_presets/british-cat.jpg" class="preset" data-src="${imagesPath}/puzzle_presets/british-cat.jpg" alt="Британский кот">
+                <img src="${imagesPath}/puzzle_presets/tree.png" class="preset" data-src="${imagesPath}/puzzle_presets/tree.png" alt="Дерево">
             </div>
 
             <label class="upload-label" style="font-weight: 600; color: #555; margin-bottom: 0.4rem; display: block;">

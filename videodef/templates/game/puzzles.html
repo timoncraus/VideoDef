@@ -24,8 +24,8 @@
 
         <label>Выберите изображение для пазла:</label>
         <div class="presets-container">
-            <img src="{% static 'images/british-cat.jpg' %}" class="preset" data-src="{% static 'images/british-cat.jpg' %}" alt="Британский кот">
-            <img src="{% static 'images/tree.png' %}" class="preset" data-src="{% static 'images/tree.png' %}" alt="Дерево">
+            <img src="{% static 'images/puzzle_presets/british-cat.jpg' %}" class="preset" data-src="{% static 'images/puzzle_presets/british-cat.jpg' %}" alt="Британский кот">
+            <img src="{% static 'images/puzzle_presets/tree.png' %}" class="preset" data-src="{% static 'images/puzzle_presets/tree.png' %}" alt="Дерево">
         </div>
 
         <label class="upload-label" style="font-weight: 600; color: #555; margin-bottom: 0.4rem; display: block;">
@@ -57,7 +57,7 @@
 <!-- Модальное окно для загрузки пазлов  -->
 <div id="load-puzzle-modal" class="modal-overlay">
     <div class="modal-container">
-        <span class="modal-close-btn" id="load-cancel-btn">&times;</span>
+        <span class="modal-close-btn">&times;</span>
         <h2>Выберите сохраненный пазл</h2>
         <div id="load-list-container" style="flex-grow: 1; overflow-y: auto; margin: 1rem 0; border: 1px solid #eee; border-radius: 8px; padding: 0.5rem;">
             <!-- Сюда JS добавит список пазлов -->

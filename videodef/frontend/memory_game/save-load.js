@@ -3,6 +3,7 @@
  */
 
 import { dataURLtoBlob } from '../common/utils.js';
+import { PRESET_IMAGE_SETS_CONFIG } from './logic.js';
 
 /**
  * Отображает список сохраненных игр "Поиск пар".

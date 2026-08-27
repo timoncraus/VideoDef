@@ -58,6 +58,19 @@ export class SaveLoadManager {
         loadConfirmBtn.addEventListener('click', () => this.handleConfirmLoad());
         loadCancelBtn.addEventListener('click', () => this.hideLoadModal());
         
+        // Крестик закрытия модального окна
+        const closeModalBtn = loadModal.querySelector('.modal-close-btn');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => this.hideLoadModal());
+        }
+
+        // Закрытие по клику на затемнённый фон
+        loadModal.addEventListener('click', (e) => {
+            if (e.target === loadModal) {
+                this.hideLoadModal();
+            }
+        });
+
         // Клик по элементу списка
         loadListContainer.addEventListener('click', (e) => {
             const target = e.target.closest('li');

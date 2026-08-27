@@ -10,14 +10,12 @@ import { shuffle } from '../common/utils.js';
  */
 export const PRESET_IMAGE_SETS_CONFIG = {
     fruits: [
-        'fruits/apple.png', 'fruits/banana.png', 'fruits/cherry.png', 'fruits/grapes.png', 
-        'fruits/lemon.png', 'fruits/orange.png', 'fruits/strawberry.png', 'fruits/pineapple.png',
-        'fruits/kiwi.png', 'fruits/watermelon.png', 'fruits/mango.png', 'fruits/coconut.png'
+        'fruits/apple.jpg', 'fruits/banana.jpg', 'fruits/cherry.jpg',
+        'fruits/kiwi.jpg', 'fruits/lemon.jpg', 'fruits/mango.jpg'
     ],
     animals: [
-        'animals/panda.png', 'animals/fox.png', 'animals/bear.png', 'animals/koala.png',
-        'animals/tiger.png', 'animals/lion.png', 'animals/cow.png', 'animals/pig.png',
-        'animals/frog.png', 'animals/monkey.png', 'animals/chicken.png', 'animals/penguin.png'
+        'animals/panda.jpg', 'animals/fox.jpg', 'animals/bear.jpg',
+        'animals/koala.jpg', 'animals/tiger.jpg', 'animals/lion.jpg'
     ]
 };
 

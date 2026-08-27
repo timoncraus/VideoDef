@@ -41,19 +41,19 @@ def games(request):
     games_list = [
         {"title": "Интерактивная доска",
          "description": "Интерактивная доска для совместного рисования и работы с изображениями в реальном времени. Поддерживает многопользовательский режим, перетаскивание и масштабирование картинок.",
-         "image": "images/board.png",
+         "image": "images/Whiteboard_icon.png",
          "url": "game:whiteboard"},
         {"title": "Пазлы",
          "description": "Увлекательная игра, которая поможет развить внимание, логику и пространственное восприятие. В этой игре вам предстоит собирать изображения, разделенные на кусочки, и восстанавливать их в правильном порядке.",
-         "image": "images/Puzzle_game.png",
+         "image": "images/Puzzle_game_icon.png",
          "url": "game:puzzle_game"},
         {"title": "Поиск пар",
          "description": "Классическая игра на развитие памяти и концентрации. Открывайте карточки, запоминайте расположение уникальных изображений и находите совпадающие пары.",
-         "image": "images/Memory_game.png",
+         "image": "images/Memory_game_icon.png",
          "url": "game:memory_game"},
         {"title": "Звуковое лото",
          "description": "Игра на развитие слухового восприятия и внимания. Прослушайте звук и найдите соответствующую карточку среди предложенных вариантов. Используйте готовые наборы или загрузите свои изображения и аудио.",
-         "image": "images/Sound_loto.png",
+         "image": "images/Sound_loto_icon.png",
          "url": "game:sound_loto"},
     ]
     return render(request, "game/game_main.html", {"games": games_list})
@@ -135,16 +135,11 @@ def my_games_view(request):
             if details.custom_image_paths and details.custom_image_paths[0]:
                 memory_game_details_map[game_pk] = default_storage.url(details.custom_image_paths[0])
             elif details.preset_name:
-                try:
-                    base_path = settings.STATIC_URL + 'images/memory_game_presets/'
-                    if details.preset_name == 'fruits':
-                        memory_game_details_map[game_pk] = base_path + 'fruits/apple.png'
-                    elif details.preset_name == 'animals':
-                        memory_game_details_map[game_pk] = base_path + 'animals/panda.png'
-                    else:
-                        memory_game_details_map[game_pk] = static('images/Memory_game_icon.png')
-                except Exception:
-                    memory_game_details_map[game_pk] = static('images/Memory_game_icon.png')
+                base_path = settings.STATIC_URL + 'images/memory_game_presets/'
+                if details.preset_name == 'fruits':
+                    memory_game_details_map[game_pk] = base_path + 'fruits/apple.jpg'
+                elif details.preset_name == 'animals':
+                    memory_game_details_map[game_pk] = base_path + 'animals/panda.jpg'
     
     sound_loto_details_map = {}
     if sound_loto_pks:

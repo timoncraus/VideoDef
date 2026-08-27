@@ -12,7 +12,7 @@ export function getPuzzleParts() {
     const puzzleParams = {
         gridSize: 2,
         piecePositions: [],
-        selectedImage: typeof images !== 'undefined' ? images + '/british-cat.jpg' : null,
+        selectedImage: typeof images !== 'undefined' ? images + '/puzzle_presets/british-cat.jpg' : null,
         selectedPiece: null,
         remoteSelectedPiece: null,
         onWhiteboard: false,
