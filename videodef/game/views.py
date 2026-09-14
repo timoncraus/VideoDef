@@ -21,11 +21,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from io import BytesIO
 
-from .models import UserGame, UserPuzzle, UserMemoryGame, UserSoundLoto, Genre
+from .models import UserGame, UserPuzzle, UserMemoryGame, UserSoundLoto, Genre, SavedWhiteBoard, get_whiteboard_image_path
 from .utils import (
     parse_and_validate_puzzle_data,
     parse_and_validate_memory_game_data,
     parse_and_validate_sound_loto_data,
+    parse_and_validate_board_data,
     handle_db_integrity_error,
     cleanup_uploaded_files,
     cleanup_sound_loto_custom_files,
@@ -739,3 +740,293 @@ def update_sound_loto_view(request, game_id: str):
         cleanup_sound_loto_custom_files(new_pairs)
         logger.error(f"Ошибка при обновлении 'Звукового лото' (ID: {game_id}): {e}\n{traceback.format_exc()}")
         return JsonResponse({'status': 'error', 'message': 'Произошла внутренняя ошибка при обновлении.'}, status=500)
+
+
+@login_required
+@require_POST
+def save_whiteboard_view(request):
+    """
+    Обрабатывает POST-запрос для сохранения визуального состояния интерактивной доски.
+    """
+    saved_image_paths = []
+    try:
+        data = parse_and_validate_board_data(request.POST, request.FILES)
+
+        for file in data['board_image_files']:
+            file_path = get_whiteboard_image_path(None, file.name)
+            saved_path = default_storage.save(file_path, file)
+            saved_image_paths.append(saved_path)
+
+        # Заменяем file_index на file_path в данных для записи в БД
+        images_data = []
+        for img in data['images_data']:
+            file_index = img['file_index']
+            images_data.append({
+                'id': img.get('id'),
+                'file_path': saved_image_paths[file_index],
+                'x': img['x'],
+                'y': img['y'],
+                'width': img['width'],
+                'height': img['height'],
+            })
+
+        with transaction.atomic():
+            board = SavedWhiteBoard(
+                user=request.user,
+                name=data['name'],
+                canvas_strokes=data['canvas_strokes'],
+                images_data=images_data,
+                game_instances=data['game_instances'],
+            )
+            if data['preview_file']:
+                board.canvas_preview = data['preview_file']
+            board.save()
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Доска "{data["name"]}" сохранена!',
+            'board_id': board.pk,
+        })
+
+    except ValueError as e:
+        cleanup_uploaded_files(saved_image_paths)
+        logger.warning(f"Ошибка валидации при сохранении доски: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    except Exception as e:
+        cleanup_uploaded_files(saved_image_paths)
+        logger.error(
+            f"Непредвиденная ошибка при сохранении доски "
+            f"({request.user.username}): {e.__class__.__name__}: {e}\n{traceback.format_exc()}"
+        )
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Произошла внутренняя ошибка сервера при сохранении доски. Попробуйте позже.'
+        }, status=500)
+        
+
+@login_required
+@require_GET
+def load_whiteboards_view(request):
+    """
+    Обрабатывает GET-запрос для получения списка сохранённых досок пользователя.
+    Возвращает лёгкий список (без полных данных штрихов/картинок/игр).
+    """
+    try:
+        boards = SavedWhiteBoard.objects.filter(
+            user=request.user
+        ).order_by('-updated_at')
+
+        data_list = []
+        for b in boards:
+            data_list.append({
+                'id': b.pk,
+                'name': b.name,
+                'updated_at': b.updated_at.isoformat(),
+                'preview_url': b.preview_url,
+                'game_count': len(b.game_instances),
+            })
+
+        return JsonResponse({'status': 'success', 'boards': data_list})
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при загрузке списка досок "
+            f"({request.user.username}): {e.__class__.__name__}: {e}\n{traceback.format_exc()}"
+        )
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Произошла внутренняя ошибка сервера при загрузке списка досок.'
+        }, status=500)
+        
+
+@login_required
+@require_GET
+def load_whiteboard_detail_view(request, board_id: str):
+    """
+    Обрабатывает GET-запрос для получения полных данных конкретной доски.
+    Проверяет актуальность сохранённых игр и помечает удалённые.
+    Конвертирует file_path изображений в file_url для фронтенда.
+    """
+    try:
+        board = get_object_or_404(SavedWhiteBoard, pk=board_id, user=request.user)
+
+        validated_game_instances = []
+        for g in board.game_instances:
+            game_data = dict(g)
+
+            if g.get('saved_game_id'):
+                exists = UserGame.objects.filter(pk=g['saved_game_id']).exists()
+                if not exists:
+                    game_data['saved_game_id'] = None
+                    game_data['removed'] = True
+
+            validated_game_instances.append(game_data)
+
+        # Конвертируем file_path → file_url для изображений
+        images_with_urls = []
+        for img in board.images_data:
+            img_data = dict(img)
+            file_path = img.get('file_path')
+            if file_path and default_storage.exists(file_path):
+                img_data['file_url'] = default_storage.url(file_path)
+            else:
+                img_data['file_url'] = None
+            images_with_urls.append(img_data)
+
+        return JsonResponse({
+            'status': 'success',
+            'board': {
+                'id': board.pk,
+                'name': board.name,
+                'canvas_strokes': board.canvas_strokes,
+                'images_data': images_with_urls,
+                'game_instances': validated_game_instances,
+                'preview_url': board.preview_url,
+            }
+        })
+
+    except Http404:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Доска не найдена или у вас нет прав на её просмотр.'
+        }, status=404)
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при загрузке доски {board_id} "
+            f"({request.user.username}): {e.__class__.__name__}: {e}\n{traceback.format_exc()}"
+        )
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Произошла внутренняя ошибка сервера при загрузке доски.'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["PUT"])
+def update_whiteboard_view(request, board_id: str):
+    """
+    Обрабатывает PUT-запрос для обновления существующей сохранененной доски.
+    """
+    new_image_paths = []
+    old_image_paths_to_delete = []
+    old_preview_to_delete = None
+    try:
+        board = get_object_or_404(SavedWhiteBoard, pk=board_id, user=request.user)
+
+        if board.images_data:
+            old_image_paths_to_delete = [
+                img.get('file_path') for img in board.images_data
+                if img.get('file_path')
+            ]
+        if board.canvas_preview:
+            old_preview_to_delete = board.canvas_preview
+
+        # Парсинг FormData для PUT запросов
+        request.upload_handlers = [
+            MemoryFileUploadHandler(request=request),
+            TemporaryFileUploadHandler(request=request),
+        ]
+        parser = MultiPartParser(request.META, BytesIO(request.body), request.upload_handlers)
+        post_data, files_data = parser.parse()
+
+        data = parse_and_validate_board_data(post_data, files_data)
+
+        for file in data['board_image_files']:
+            file_path = get_whiteboard_image_path(None, file.name)
+            saved_path = default_storage.save(file_path, file)
+            new_image_paths.append(saved_path)
+
+        images_data = []
+        for img in data['images_data']:
+            file_index = img['file_index']
+            images_data.append({
+                'id': img.get('id'),
+                'file_path': new_image_paths[file_index],
+                'x': img['x'],
+                'y': img['y'],
+                'width': img['width'],
+                'height': img['height'],
+            })
+
+        with transaction.atomic():
+            board.name = data['name']
+            board.canvas_strokes = data['canvas_strokes']
+            board.images_data = images_data
+            board.game_instances = data['game_instances']
+
+            if data['preview_file']:
+                board.canvas_preview = data['preview_file']
+
+            board.save()
+
+        if old_image_paths_to_delete:
+            cleanup_uploaded_files(old_image_paths_to_delete)
+        if old_preview_to_delete and data['preview_file']:
+            if default_storage.exists(old_preview_to_delete.name):
+                old_preview_to_delete.delete(save=False)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Доска "{data["name"]}" обновлена!'
+        })
+
+    except ValueError as e:
+        cleanup_uploaded_files(new_image_paths)
+        logger.warning(f"Ошибка валидации при обновлении доски {board_id}: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    except Http404:
+        cleanup_uploaded_files(new_image_paths)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Доска не найдена или у вас нет прав на её изменение.'
+        }, status=404)
+
+    except Exception as e:
+        cleanup_uploaded_files(new_image_paths)
+        logger.error(
+            f"Непредвиденная ошибка при обновлении доски {board_id} "
+            f"({request.user.username}): {e.__class__.__name__}: {e}\n{traceback.format_exc()}"
+        )
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Произошла внутренняя ошибка сервера при обновлении доски. Попробуйте позже.'
+        }, status=500)
+        
+
+@login_required
+@require_http_methods(["DELETE"])
+@csrf_exempt
+def delete_whiteboard_view(request, board_id: str):
+    """
+    Удаляет сохраненую доску, принадлежащую текущему пользователю.
+    Не затрагивает сохранённые игры в библиотеке.
+    Превью и картинки удаляются через сигнал pre_delete.
+    """
+    try:
+        board = get_object_or_404(SavedWhiteBoard, pk=board_id, user=request.user)
+
+        name = board.name
+        board.delete()
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Доска "{name}" удалена.'
+        })
+
+    except Http404:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Доска не найдена или у вас нет прав на её удаление.'
+        }, status=404)
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при удалении доски {board_id}: {e}\n{traceback.format_exc()}"
+        )
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Произошла ошибка при удалении доски.'
+        }, status=500)

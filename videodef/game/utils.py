@@ -167,12 +167,10 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
     if files_data is None:
         files_data = {}
 
-    # Валидация названия
     name = post_data.get('name', '').strip()
     if not name:
         raise ValueError("Название не может быть пустым.")
 
-    # Валидация количества раундов
     try:
         rounds_count = int(post_data.get('roundsCount', 4))
         if not (2 <= rounds_count <= 6):
@@ -180,7 +178,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
     except (TypeError, ValueError):
         raise ValueError("Неверное или отсутствующее количество раундов.")
 
-    # Валидация количества карточек
     try:
         cards_count = int(post_data.get('cardsCount', 4))
         if cards_count not in [2, 3, 4, 6]:
@@ -192,10 +189,8 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
     autoplay = post_data.get('autoplay', 'true').lower() == 'true'
     show_labels = post_data.get('showLabels', 'true').lower() == 'true'
 
-    # Валидация пресета
     preset_name = post_data.get('presetName') or None
 
-    # Получение файлов
     if hasattr(files_data, 'getlist'):
         custom_images = files_data.getlist('customImages[]')
         custom_audios = files_data.getlist('customAudios[]')
@@ -203,7 +198,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
         custom_images = files_data.get('customImages[]', [])
         custom_audios = files_data.get('customAudios[]', [])
 
-    # Получение подписей
     custom_labels_str = post_data.get('customLabels', '[]')
     try:
         custom_labels = json.loads(custom_labels_str)
@@ -223,7 +217,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
         except json.JSONDecodeError as e:
             raise ValueError(f"Неверный формат JSON в порядке аудио: {e}")
 
-    # Проверка взаимоисключаемости пресета и пользовательских файлов
     is_custom_set = bool(custom_images) or bool(custom_audios)
     if preset_name and is_custom_set:
         raise ValueError("Нельзя одновременно указать пресет и загрузить свои файлы.")
@@ -233,7 +226,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
 
     # Валидация пользовательских файлов
     if is_custom_set:
-        # Проверка количества файлов
         if len(custom_images) != len(custom_audios):
             raise ValueError(
                 f"Количество изображений ({len(custom_images)}) не совпадает с количеством аудиофайлов ({len(custom_audios)})."
@@ -244,7 +236,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
                 f"Количество подписей ({len(custom_labels)}) не совпадает с количеством изображений ({len(custom_images)})."
             )
 
-        # Проверка достаточности пар
         pairs_count = len(custom_images)
         required_count = max(rounds_count, cards_count)
         if pairs_count < required_count:
@@ -252,7 +243,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
                 f"Недостаточно пар для игры. Требуется минимум {required_count}, а загружено {pairs_count}."
             )
 
-        # Валидация форматов и размеров файлов
         for i, image_file in enumerate(custom_images):
             image_ext = os.path.splitext(image_file.name)[1].lower()
             if image_ext not in ALLOWED_IMAGE_EXTENSIONS:
@@ -267,7 +257,6 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
                     f"Недопустимый формат аудиофайла №{i + 1}. Допустимые форматы: {', '.join(ALLOWED_AUDIO_EXTENSIONS)}."
                 )
 
-            # Проверка размера аудиофайла
             if audio_file.size > MAX_AUDIO_FILE_SIZE:
                 raise ValueError(
                     f"Аудиофайл №{i + 1} превышает максимальный размер {MAX_AUDIO_FILE_SIZE // (1024 * 1024)} МБ."
@@ -284,6 +273,112 @@ def parse_and_validate_sound_loto_data(post_data: dict, files_data: dict = None,
         'custom_audios': custom_audios,
         'custom_labels': custom_labels,
         'audio_order': audio_order,
+    }
+
+
+def parse_and_validate_board_data(post_data: dict, files_data: dict = None) -> dict:
+    """
+    Парсит и валидирует данные для сохранения/обновления доски из FormData.
+
+    Args:
+        post_data (dict): Данные из request.POST или распарсенного MultiPartParser.
+        files_data (dict, optional): Данные из request.FILES или распарсенного MultiPartParser.
+
+    Returns:
+        dict: Словарь с валидированными данными.
+
+    Raises:
+        ValueError: Если данные некорректны или отсутствуют.
+    """
+    if files_data is None:
+        files_data = {}
+
+    name = post_data.get('name', '').strip()
+    if not name:
+        raise ValueError("Название сохранения не может быть пустым.")
+
+    try:
+        canvas_strokes = json.loads(post_data.get('canvasStrokes', '[]'))
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Неверный формат JSON в штрихах: {e}")
+    if not isinstance(canvas_strokes, list):
+        raise ValueError("Штрихи должны быть массивом.")
+
+    try:
+        images_data = json.loads(post_data.get('imagesData', '[]'))
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Неверный формат JSON в изображениях: {e}")
+    if not isinstance(images_data, list):
+        raise ValueError("Изображения должны быть массивом.")
+
+    # Получаем файлы картинок из FormData
+    if hasattr(files_data, 'getlist'):
+        board_image_files = files_data.getlist('boardImages[]')
+    else:
+        board_image_files = files_data.get('boardImages[]', [])
+
+    # Валидация изображений: каждое ссылается на файл по индексу
+    for i, img in enumerate(images_data):
+        if not isinstance(img, dict):
+            raise ValueError(f"Изображение №{i + 1} должно быть объектом.")
+
+        file_index = img.get('file_index')
+        if file_index is None:
+            raise ValueError(f"Изображение №{i + 1} должно иметь 'file_index'.")
+
+        if not isinstance(file_index, int) or file_index < 0 or file_index >= len(board_image_files):
+            raise ValueError(
+                f"Изображение №{i + 1}: 'file_index' ({file_index}) выходит за "
+                f"пределы загруженных файлов ({len(board_image_files)})."
+            )
+
+        for coord_key in ('x', 'y', 'width', 'height'):
+            if not isinstance(img.get(coord_key), (int, float)):
+                raise ValueError(f"Изображение №{i + 1}: поле '{coord_key}' должно быть числом.")
+
+    try:
+        game_instances = json.loads(post_data.get('gameInstances', '[]'))
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Неверный формат JSON в игровых элементах: {e}")
+    if not isinstance(game_instances, list):
+        raise ValueError("Игровые элементы должны быть массивом.")
+
+    for i, game_inst in enumerate(game_instances):
+        if not isinstance(game_inst, dict):
+            raise ValueError(f"Игровой элемент №{i + 1} должен быть объектом.")
+
+        if not game_inst.get('instance_id') or not game_inst.get('game_type'):
+            raise ValueError(f"Игровой элемент №{i + 1} должен иметь 'instance_id' и 'game_type'.")
+
+        saved_game_id = game_inst.get('saved_game_id')
+        inline_state = game_inst.get('inline_state')
+
+        if not saved_game_id and not inline_state:
+            raise ValueError(
+                f"Игровой элемент №{i + 1} ('{game_inst.get('instance_id')}') "
+                f"должен иметь либо 'saved_game_id', либо 'inline_state'."
+            )
+
+        if saved_game_id and inline_state:
+            raise ValueError(
+                f"Игровой элемент №{i + 1} ('{game_inst.get('instance_id')}') "
+                f"не может одновременно иметь 'saved_game_id' и 'inline_state'."
+            )
+
+        if inline_state and not isinstance(inline_state, dict):
+            raise ValueError(
+                f"Игровой элемент №{i + 1}: 'inline_state' должен быть объектом (JSON)."
+            )
+
+    preview_file = files_data.get('canvasPreview')
+
+    return {
+        'name': name,
+        'canvas_strokes': canvas_strokes,
+        'images_data': images_data,
+        'game_instances': game_instances,
+        'board_image_files': board_image_files,
+        'preview_file': preview_file,
     }
 
 

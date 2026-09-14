@@ -8,14 +8,15 @@ from django.core.exceptions import ValidationError
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
 
+BOARD_ID_PREFIX = 'BRD'
 
 # ==========================================
 # Утилиты и генераторы
 # ==========================================
 
-def generate_game_random_code(length: int = 10) -> str:
+def generate_random_code(length: int = 10) -> str:
     """
-    Генерирует случайную hex-строку для использования в уникальном ID игры.
+    Генерирует случайную hex-строку для использования в уникальном ID модели.
     
     Args:
         length (int): Длина генерируемой строки. По умолчанию 10.
@@ -88,6 +89,28 @@ def get_sound_loto_audio_path(instance: 'UserSoundLoto', filename: str) -> str:
     _, ext = os.path.splitext(filename)
     random_filename = uuid.uuid4().hex
     return os.path.join("sound_loto_audio", f"{random_filename}{ext}")
+
+def get_whiteboard_preview_path(instance: 'SavedWhiteBoard', filename: str) -> str:
+    """
+    Генерирует уникальный путь для сохранения превью доски.
+    
+    Args:
+        instance: Экземпляр модели.
+        filename: Оригинальное имя загружаемого файла.
+        
+    Returns:
+        str: Путь 'whiteboard_previews/<uuid>.<ext>'.
+    """
+    _, ext = os.path.splitext(filename)
+    random_filename = uuid.uuid4().hex
+    return os.path.join("whiteboard_previews", f"{random_filename}{ext}")
+
+
+def get_whiteboard_image_path(instance: 'SavedWhiteBoard', filename: str) -> str:
+    """Генерирует уникальный путь для изображения на доске."""
+    _, ext = os.path.splitext(filename)
+    random_filename = uuid.uuid4().hex
+    return os.path.join("whiteboard_images", f"{random_filename}{ext}")
 
 
 # ==========================================
@@ -172,7 +195,7 @@ class UserGame(models.Model):
             
             # Генерируем уникальный ID, проверяя наличие в БД
             while True:
-                random_part = generate_game_random_code()
+                random_part = generate_random_code()
                 new_id = f"{genre_code}-{random_part}"
                 if not UserGame.objects.filter(pk=new_id).exists():
                     self.pk = new_id
@@ -489,3 +512,113 @@ class UserSoundLoto(models.Model):
     class Meta:
         verbose_name = _("Данные об игре 'Звуковое лото'")
         verbose_name_plural = _("Данные об играх жанра 'Звуковое лото'")
+        
+
+class SavedWhiteBoard(models.Model):
+    """
+    Сохранённое визуальное состояние интерактивной доски.
+    Хранит штрихи, изображения и расположение игровых элементов.
+    """
+    board_id = models.CharField(
+        max_length=20,
+        primary_key=True,
+        editable=False,
+        verbose_name=_("Уникальный ID сохранения доски"),
+        help_text=_("Уникальный идентификатор формата BRD-XXXXXXXXXX"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='saved_whiteboards',
+        verbose_name=_("Пользователь"),
+        db_index=True,
+    )
+    name = models.CharField(
+        max_length=100,
+        blank=False,
+        verbose_name=_("Название сохранения"),
+        help_text=_("Название, которое пользователь даёт сохранённой доске"),
+    )
+    canvas_strokes = models.JSONField(
+        default=list,
+        verbose_name=_("Штрихи рисования"),
+        help_text=_("JSON-массив: [{x0, y0, x1, y1, color, lineWidth, tool}, ...]"),
+    )
+    images_data = models.JSONField(
+        default=list,
+        verbose_name=_("Изображения на доске"),
+        help_text=_("JSON-массив: [{id, dataURL/file_path, x, y, width, height}, ...]"),
+    )
+    game_instances = models.JSONField(
+        default=list,
+        verbose_name=_("Игровые элементы на доске"),
+        help_text=_(
+            "JSON-массив: [{instance_id, game_type, saved_game_id|null, "
+            "inline_state|null, x, y, width, height}, ...]"
+        ),
+    )
+    canvas_preview = models.ImageField(
+        upload_to=get_whiteboard_preview_path,
+        blank=True,
+        null=True,
+        verbose_name=_("Превью доски"),
+        help_text=_("Изображение-превью сохранённой доски"),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Дата создания сохранения"),
+        db_index=True,
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("Дата последнего обновления"),
+    )
+    
+    def save(self, *args, **kwargs) -> None:
+        """
+        Переопределённый метод сохранения.
+        Автоматически генерирует уникальный board_id при создании.
+        """
+        if not self.pk:
+            while True:
+                random_part = generate_random_code()
+                new_id = f"{BOARD_ID_PREFIX}-{random_part}"
+                if not SavedWhiteBoard.objects.filter(pk=new_id).exists():
+                    self.pk = new_id
+                    break
+        super().save(*args, **kwargs)
+    
+    def clean(self) -> None:
+        """Валидация модели перед сохранением."""
+        super().clean()
+        if not self.name:
+            raise ValidationError({'name': _("Название не может быть пустым.")})
+
+    def delete_preview(self) -> None:
+        """Удаляет файл превью с диска."""
+        if self.canvas_preview:
+            self.canvas_preview.delete(save=False)
+    
+    @property
+    def preview_url(self) -> str | None:
+        """
+        Возвращает URL превью доски.
+        
+        Returns:
+            str | None: URL превью или None.
+        """
+        if self.canvas_preview:
+            try:
+                return self.canvas_preview.url
+            except ValueError:
+                return None
+        return None
+    
+    def __str__(self):
+        username = self.user.username if self.user else _("Неизвестный пользователь")
+        return f"Доска '{self.name}' ({self.pk}) от {username}"
+
+    class Meta:
+        verbose_name = _("Сохранение доски")
+        verbose_name_plural = _("Сохранения досок")
+        ordering = ['-updated_at']

@@ -419,6 +419,69 @@ canvas {
 }
 
 /* ==========================================================================
+   МОДАЛЬНЫЕ ОКНА СОХРАНЕНИЯ / ЗАГРУЗКИ ДОСКИ
+   ========================================================================== */
+#save-board-modal .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.4rem;
+}
+
+#save-board-modal .form-control {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.95rem;
+}
+
+#save-board-modal .form-control:focus {
+    border-color: var(--game-primary, #4D8CF2);
+    box-shadow: 0 0 0 3px rgba(77, 140, 242, 0.15);
+    outline: none;
+}
+
+#load-board-list-container ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#load-board-list-container li {
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 0.4rem;
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fafbfc;
+    font-size: 0.92rem;
+    color: #2c3e50;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+#load-board-list-container li:last-child {
+    margin-bottom: 0;
+}
+
+#load-board-list-container li:hover {
+    background: #e7f1ff;
+    border-color: var(--game-primary, #4D8CF2);
+}
+
+#load-board-list-container li.selected {
+    background: #e7f1ff;
+    border-color: var(--game-primary, #4D8CF2);
+    font-weight: 600;
+    color: var(--game-primary-hover, #3b6fc0);
+}
+
+#load-board-list-container p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.2rem;
+    margin: 0;
+}
+
+/* ==========================================================================
    АДАПТИВНОСТЬ
    ========================================================================== */
 @media (max-width: 768px) {

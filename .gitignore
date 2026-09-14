@@ -6,6 +6,8 @@ puzzle_images/
 memory_game_images/
 sound_loto_images/
 sound_loto_audio/
+whiteboard_images/
+whiteboard_previews/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

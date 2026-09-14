@@ -121,8 +121,17 @@ export class PuzzleGame extends GameBase {
                 }
             }
             
-            // Перерисовываем пазл с новым состоянием
-            createPuzzle(this.puzzleContainer, this.params, this.messageElement, true);
+            // Проверяем, есть ли валидные позиции (игра уже запущена)
+            const receivedHasPositions = this.params.piecePositions &&
+                this.params.piecePositions.length === this.params.gridSize * this.params.gridSize;
+            
+            if (receivedHasPositions) {
+                createPuzzle(this.puzzleContainer, this.params, this.messageElement, true);
+            } else {
+                this.puzzleContainer.innerHTML =
+                    '<p class="initial-message">Ожидание начала игры. Нажмите «Начать игру».</p>';
+                this.messageElement.style.display = 'none';
+            }
         }
     }
     

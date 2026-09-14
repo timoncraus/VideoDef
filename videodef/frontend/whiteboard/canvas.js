@@ -13,6 +13,7 @@ export class CanvasDrawing {
         this.currentTool = 'pen';
         this.currentLineWidth = 2;
         this.currentColor = '#000000';
+        this.strokeHistory = [];
     }
     
     initEventListeners() {
@@ -71,7 +72,10 @@ export class CanvasDrawing {
         
         this.prev = current;
     }
-    
+
+    /**
+     * Рисует линию на канвасе.
+     */
     drawLine(x0, y0, x1, y1, color, lineWidth, tool = 'pen') {
         this.drawCtx.lineWidth = lineWidth;
         this.drawCtx.lineCap = 'round';
@@ -102,11 +106,19 @@ export class CanvasDrawing {
     setLineWidth(width) {
         this.currentLineWidth = parseInt(width);
     }
-    
+
+
+    /**
+     * Визуально очищает canvas
+     */
     clear() {
         this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
     }
     
+    /**
+     * Адаптирует размер canvas под родительский контейнер,
+     * сохраняя текущее содержимое
+     */
     resizeToDisplaySize() {
         const wrapper = this.drawCanvas.parentElement;
         if (!wrapper) return;
@@ -139,6 +151,55 @@ export class CanvasDrawing {
             this.drawCtx.globalCompositeOperation = 'destination-out';
         } else {
             this.drawCtx.globalCompositeOperation = 'source-over';
+        }
+    }
+
+    /**
+     * Добавляет штрих в историю.
+     * 
+     * @param {Object} strokeData - Данные штриха {x0, y0, x1, y1, color, lineWidth, tool}
+     */
+    addToStrokeHistory(strokeData) {
+        this.strokeHistory.push(strokeData);
+    }
+
+    /**
+     * Возвращает копию истории штрихов.
+     * Используется при сборке состояния доски для сохранения.
+     * @returns {Array} Массив штрихов
+     */
+    getStrokeHistory() {
+        return [...this.strokeHistory]
+    }
+
+    /**
+     * Очищает историю штрихов.
+     * Вызывается при очистке доски и при загрузке нового состояния.
+     */
+    clearStrokeHistory() {
+        this.strokeHistory = [];
+    }
+
+    /**
+     * Воспроизводит массив штрихов на канвасе.
+     * Используется при загрузке сохранённой доски.
+     * 
+     * @param {Array} strokes - Массив штрихов [{x0, y0, x1, y1, color, lineWidth, tool}, ...]
+     */
+    replayStrokes(strokes) {
+        if (!strokes || !Array.isArray(strokes)) return;
+        
+        this.clear();
+        this.clearStrokeHistory();
+        
+        for (const stroke of strokes) {
+            this.drawLine(
+                stroke.x0, stroke.y0,
+                stroke.x1, stroke.y1,
+                stroke.color, stroke.lineWidth,
+                stroke.tool
+            );
+            this.addToStrokeHistory(stroke);
         }
     }
 }

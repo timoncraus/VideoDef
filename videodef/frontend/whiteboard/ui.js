@@ -15,13 +15,17 @@ export class WhiteboardUI {
      * @param {Function} options.onGameSelect - Callback при выборе игры
      * @param {Function} options.onClear - Callback при очистке доски
      * @param {Function} options.onSettingsToggle - Callback при переключении панели настроек
+     * @param {Function} options.onSaveBoard - Callback при нажатии "Сохранить доску"
+     * @param {Function} options.onLoadBoard - Callback при нажатии "Загрузить доску"
      */
     constructor(options = {}) {
         this.onToolChange = options.onToolChange || null;
         this.onGameSelect = options.onGameSelect || null;
         this.onClear = options.onClear || null;
         this.onSettingsToggle = options.onSettingsToggle || null;
-        
+        this.onSaveBoard = options.onSaveBoard || null;
+        this.onLoadBoard = options.onLoadBoard || null;
+
         this.initToolbar();
         this.initGameMenu();
         this.initSettingsPanel();
@@ -66,6 +70,21 @@ export class WhiteboardUI {
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 if (this.onClear) this.onClear();
+            });
+        }
+
+        const saveBoardBtn = document.getElementById('save-board-btn');
+        const loadBoardBtn = document.getElementById('load-board-btn');
+
+        if (saveBoardBtn) {
+            saveBoardBtn.addEventListener('click', () => {
+                if (this.onSaveBoard) this.onSaveBoard();
+            });
+        }
+        
+        if (loadBoardBtn) {
+            loadBoardBtn.addEventListener('click', () => {
+                if (this.onLoadBoard) this.onLoadBoard();
             });
         }
     }
@@ -169,5 +188,25 @@ export class WhiteboardUI {
             loadConfirmBtn.parentNode.replaceChild(newBtn, loadConfirmBtn);
             newBtn.disabled = true; // Сбрасываем состояние кнопки
         }
+    }
+
+    /**
+     * Показывает модальное окно по его ID.
+     * 
+     * @param {string} modalId - ID модального окна
+     */
+    showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'flex';
+    }
+    
+    /**
+     * Скрывает модальное окно по его ID.
+     * 
+     * @param {string} modalId - ID модального окна
+     */
+    hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'none';
     }
 }

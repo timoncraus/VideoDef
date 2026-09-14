@@ -46,6 +46,10 @@
             <input type="file" id="img-upload" title="Загрузить изображение" style="display: none;">
             <button class="tool" onclick="document.getElementById('img-upload').click()">🖼️ Загрузить картинку</button>
             <button id="clear_btn" class="tool" style="color: #dc3545; border-color: #dc3545;">🗑️ Очистить</button>
+
+            <div style="width: 1px; height: 30px; background: #dee2e6; margin: 0 0.5rem;"></div>
+            <button id="save-board-btn" class="tool" style="color: #28a745; border-color: #28a745;">💾 Сохранить доску</button>
+            <button id="load-board-btn" class="tool" style="color: #007bff; border-color: #007bff;">📂 Загрузить доску</button>
         </div>
 
         <!-- Холст для рисования -->
@@ -67,6 +71,35 @@
         <div class="d-flex justify-content-end gap-2">
             <button id="load-cancel-btn" class="game-btn game-btn-secondary">Отмена</button>
             <button id="load-confirm-btn" class="game-btn game-btn-primary" disabled>Загрузить выбранный</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно сохранения доски -->
+<div id="save-board-modal" class="modal-overlay">
+    <div class="modal-container">
+        <span class="modal-close-btn">&times;</span>
+        <h2>Сохранить доску</h2>
+            <label for="board-save-name-input" class="form-label">Название сохранения:</label>
+            <input type="text" id="board-save-name-input" class="form-control mb-3" placeholder="Например: Занятие 15.03">
+        <div class="d-flex justify-content-end gap-2">
+            <button id="save-board-cancel-btn" class="game-btn game-btn-secondary">Отмена</button>
+            <button id="save-board-confirm-btn" class="game-btn game-btn-primary" disabled>Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно загрузки доски -->
+<div id="load-board-modal" class="modal-overlay">
+    <div class="modal-container">
+        <span class="modal-close-btn">&times;</span>
+        <h2>Выберите сохранённую доску</h2>
+        <div id="load-board-list-container" style="flex-grow: 1; overflow-y: auto; margin: 1rem 0; border: 1px solid #eee; border-radius: 8px; padding: 0.5rem;">
+            <p class="text-center text-muted">Загрузка...</p>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <button id="load-board-cancel-btn" class="game-btn game-btn-secondary">Отмена</button>
+            <button id="load-board-confirm-btn" class="game-btn game-btn-primary" disabled>Загрузить</button>
         </div>
     </div>
 </div>
@@ -100,6 +133,9 @@
     const saveSoundLotoUrl = "{% url 'game:save_sound_loto' %}";
     const loadSoundLotosUrl = "{% url 'game:load_sound_lotos' %}";
     const updateSoundLotoBaseUrl = "{% url 'game:update_sound_loto' game_id=0 %}";
+    
+    const saveWhiteboardUrl = "{% url 'game:save_whiteboard' %}";
+    const loadWhiteboardsUrl = "{% url 'game:load_whiteboards' %}";
     
     const csrfToken = "{{ csrf_token }}";
 </script>
